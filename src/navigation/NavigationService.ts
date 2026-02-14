@@ -118,3 +118,14 @@ export function getCurrentRoute() {
   }
   return undefined;
 }
+
+export type UserRole = 'CUSTOMER' | 'BARBER';
+
+const roleRedirects = {
+  CUSTOMER: 'CustomerDashboard',
+  BARBER: 'BarberDashboard',
+} as const;
+
+export function redirectByRole(role: UserRole) {
+  replace(roleRedirects[role]);
+}

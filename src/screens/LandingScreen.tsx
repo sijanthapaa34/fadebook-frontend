@@ -15,14 +15,7 @@ import { MapPin, Calendar, Star, Shield, Clock, Scissors } from 'lucide-react-na
 import LinearGradient from 'react-native-linear-gradient';
 import MaskedView from '@react-native-masked-view/masked-view';
 import { theme } from '../theme/theme';
-
-type RootStackParamList = {
-  Landing: undefined;
-  Register: undefined;
-  About: undefined;
-  Contact: undefined;
-  Login: undefined;
-};
+import type { RootStackParamList } from '../navigation/NavigationService';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 

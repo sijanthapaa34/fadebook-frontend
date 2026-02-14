@@ -19,14 +19,9 @@ import { theme } from '../theme/theme';
 import { registerCustomer } from '../lib/auth';
 import { useAuthStore } from '../store/authStore';
 import type { RegisterCustomerRequest } from '../lib/auth';
-
-type RootStackParamList = {
-  Landing: undefined;
-  Login: undefined;
-  Register: undefined;
-  CustomerShops: undefined;
-  BarberDashboard: undefined;
-};
+import { configureGoogleSignin, signInWithGoogle } from '../lib/googleSignIn';
+import type { RootStackParamList } from '../navigation/NavigationService';
+import { redirectByRole } from '../navigation/NavigationService';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
@@ -79,36 +74,72 @@ const Register = () => {
     preferences: '',
     isLoading: false,
   });
+  
+    React.useEffect(() => {
+    configureGoogleSignin(); // configure Google Sign-In once when component mounts
+  }, []);
 
   const handleChange = (key: keyof RegisterCustomerRequest, value: string) => {
     setForm((prev) => ({ ...prev, [key]: value }));
   };
 
   const handleSubmit = async () => {
-    const { name, email, password, phone, preferences } = form;
-    if (!name || !email || !password) {
-      Alert.alert('Error', 'Please fill all required fields');
-      return;
-    }
+  const { name, email, password, phone, preferences } = form;
+  if (!name || !email || !password) {
+    Alert.alert('Error', 'Please fill all required fields');
+    return;
+  }
 
+  try {
+    setForm((prev) => ({ ...prev, isLoading: true }));
+
+    // registration + automatic login
+    const { user, token } = await registerCustomer({ name, email, password, phone, preferences });
+
+    // force role as CUSTOMER
+      const userWithRole = { ...user, role: 'CUSTOMER' as const };
+
+      // store in auth store
+      await setAuth(userWithRole, token);
+
+      // redirect using role
+      redirectByRole('CUSTOMER');
+  } catch (err: any) {
+    console.error('Registration error:', err);
+    Alert.alert('Registration failed', err.message || 'Unknown error');
+  } finally {
+    setForm((prev) => ({ ...prev, isLoading: false }));
+  }
+};
+
+
+  const handleSocialLogin = async (provider: string) => {
+  if (provider === 'Google') {
     try {
-      setForm((prev) => ({ ...prev, isLoading: true }));
-      const user = await registerCustomer({ name, email, password, phone, preferences });
+      setForm(prev => ({ ...prev, isLoading: true }));
+      
+      // sign in with Google
+      const { user, token } = await signInWithGoogle();
 
-      await setAuth(user, user.token || '');
+      // force role as CUSTOMER
+      const userWithRole = { ...user, role: 'CUSTOMER' as const };
 
-      navigation.navigate('CustomerShops');
+      // store in auth store
+      await setAuth(userWithRole, token);
+
+      // redirect using role
+      redirectByRole('CUSTOMER');
     } catch (err: any) {
-      console.error('Registration error:', err);
-      Alert.alert('Registration failed', err.message || 'Unknown error');
+      console.error('Google Sign-In error:', err);
+      Alert.alert('Error', err.message || 'Failed to login with Google');
     } finally {
-      setForm((prev) => ({ ...prev, isLoading: false }));
+      setForm(prev => ({ ...prev, isLoading: false }));
     }
-  };
-
-  const handleSocialLogin = (provider: string) => {
+  } else {
     Alert.alert('Demo', `You clicked ${provider} signup (demo only)`);
-  };
+  }
+};
+
 
   return (
     <ScrollView contentContainerStyle={styles.container}>

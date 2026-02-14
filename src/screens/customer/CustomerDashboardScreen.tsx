@@ -1,297 +1,303 @@
-import React from 'react';
+// CustomerDashboard.tsx
+// React Native version of ShopFinder component
+
+import React, { useState } from 'react';
 import {
   View,
   Text,
-  StyleSheet,
+  TextInput,
   ScrollView,
   TouchableOpacity,
+  StyleSheet,
 } from 'react-native';
-import { useNavigation, NavigationProp } from '@react-navigation/native';
-import { Calendar, MapPin, Gift, MessageSquare } from 'lucide-react-native';
-import { useAuthStore } from '../../store/authStore';
-import { RootStackParamList } from '../../navigation/NavigationService';
+import { useNavigation } from '@react-navigation/native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { Search, MapPin, Star, Clock } from 'lucide-react-native';
+import { theme } from '../../theme/theme';
+import type { RootStackParamList } from '../../navigation/NavigationService';
 
-export default function CustomerDashboard() {
-  const navigation = useNavigation<NavigationProp<RootStackParamList>>();
-  const user = useAuthStore((state) => state.user);
+type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
-  const menuItems: Array<{
-    icon: typeof Calendar;
-    title: string;
-    description: string;
-    route: keyof RootStackParamList;
-  }> = [
-    {
-      icon: Calendar,
-      title: 'Book Appointment',
-      description: 'Schedule your next visit',
-      route: 'BookAppointment',
-    },
-    {
-      icon: Calendar,
-      title: 'My Appointments',
-      description: 'View upcoming bookings',
-      route: 'CustomerAppointments',
-    },
-    {
-      icon: Gift,
-      title: 'Loyalty Points',
-      description: 'Track your rewards',
-      route: 'CustomerLoyalty',
-    },
-    {
-      icon: MapPin,
-      title: 'Find Shops',
-      description: 'Discover barbers near you',
-      route: 'Shops',
-    },
-  ];
+// Mock data for shops
+const seedShops = [
+  {
+    id: '1',
+    name: 'The Classic Cut',
+    address: '123 Main Street',
+    city: 'New York',
+    rating: 4.9,
+    reviewCount: 245,
+    openingHours: '9:00 AM - 8:00 PM',
+  },
+  {
+    id: '2',
+    name: 'Urban Fades',
+    address: '456 Broadway',
+    city: 'Brooklyn',
+    rating: 4.7,
+    reviewCount: 189,
+    openingHours: '10:00 AM - 9:00 PM',
+  },
+  {
+    id: '3',
+    name: "Gentleman's Quarters",
+    address: '789 Park Ave',
+    city: 'Manhattan',
+    rating: 4.8,
+    reviewCount: 312,
+    openingHours: '8:00 AM - 7:00 PM',
+  },
+  {
+    id: '4',
+    name: 'Precision Cuts',
+    address: '321 Oak Lane',
+    city: 'Queens',
+    rating: 4.6,
+    reviewCount: 156,
+    openingHours: '9:00 AM - 6:00 PM',
+  },
+];
+
+const CustomerDashboard = () => {
+  const [search, setSearch] = useState('');
+  const navigation = useNavigation<NavigationProp>();
+
+  const filtered = seedShops.filter(
+    (s) =>
+      s.name.toLowerCase().includes(search.toLowerCase()) ||
+      s.city.toLowerCase().includes(search.toLowerCase())
+  );
+
+  const handleShopPress = (shopId: string) => {
+    // navigation.navigate('BookShop', { shopId });
+  };
 
   return (
-    <View style={styles.container}>
-      <ScrollView contentContainerStyle={styles.scrollContent}>
-        {/* Header */}
-        <View style={styles.header}>
-          <Text style={styles.title}>Welcome back, {user?.email}!</Text>
-          <Text style={styles.subtitle}>
-            Manage your appointments and discover new barbers
-          </Text>
-        </View>
+    <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
+      {/* Header Section */}
+      <View style={styles.headerSection}>
+        <Text style={styles.title}>Find Barbershops</Text>
+        <Text style={styles.subtitle}>Discover top-rated shops near you</Text>
+      </View>
 
-        {/* Quick Actions Grid */}
-        <View style={styles.menuGrid}>
-          {menuItems.map((item, index) => {
-            const Icon = item.icon;
-            return (
-              <TouchableOpacity
-                key={index}
-                style={styles.menuCard}
-                onPress={() => {
-                  const route = item.route;
-                  navigation.navigate(route as never);
-                }}
-              >
-                <Icon size={32} color="#D4AF37" />
-                <Text style={styles.menuTitle}>{item.title}</Text>
-                <Text style={styles.menuDescription}>{item.description}</Text>
-              </TouchableOpacity>
-            );
-          })}
-        </View>
+      {/* Search Bar */}
+      <View style={styles.searchContainer}>
+        <Search size={18} color={theme.colors.muted} style={styles.searchIcon} />
+        <TextInput
+          placeholder="Search by name or city..."
+          placeholderTextColor={theme.colors.muted}
+          value={search}
+          onChangeText={setSearch}
+          style={styles.searchInput}
+        />
+      </View>
 
-        {/* Upcoming Appointments Card */}
-        <View style={styles.card}>
-          <Text style={styles.cardTitle}>Upcoming Appointments</Text>
-          
-          <View style={styles.appointmentItem}>
-            <View style={styles.appointmentHeader}>
-              <View style={styles.appointmentInfo}>
-                <Text style={styles.barberName}>Marcus Johnson</Text>
-                <Text style={styles.shopName}>Elite Barbers Downtown</Text>
-              </View>
-              <View style={styles.statusBadge}>
-                <Text style={styles.statusText}>Confirmed</Text>
-              </View>
-            </View>
-            <Text style={styles.appointmentTime}>Today at 2:00 PM</Text>
-            <Text style={styles.appointmentService}>
-              Haircut + Beard Trim
-            </Text>
-          </View>
+      {/* Map Placeholder */}
+      <View style={styles.mapPlaceholder}>
+        <MapPin size={32} color={theme.colors.primary} />
+        <Text style={styles.mapTitle}>Google Maps integration placeholder</Text>
+        <Text style={styles.mapSubtitle}>Connect API key to enable live map</Text>
+      </View>
 
+      {/* Shop List */}
+      <View style={styles.shopList}>
+        {filtered.map((shop) => (
           <TouchableOpacity
-            style={styles.viewAllButton}
-            onPress={() => navigation.navigate('CustomerAppointments')}
+            key={shop.id}
+            style={styles.shopCard}
+            onPress={() => handleShopPress(shop.id)}
+            activeOpacity={0.7}
           >
-            <Text style={styles.viewAllButtonText}>
-              View All Appointments
-            </Text>
-          </TouchableOpacity>
-        </View>
-
-        {/* Loyalty Points Card */}
-        <View style={styles.card}>
-          <Text style={styles.cardTitle}>Loyalty Points</Text>
-          
-          <View style={styles.loyaltyContainer}>
-            <View style={styles.giftIconContainer}>
-              <Gift size={48} color="#D4AF37" />
+            <View style={styles.shopHeader}>
+              <View style={styles.shopInfo}>
+                <Text style={styles.shopName}>{shop.name}</Text>
+                <View style={styles.addressRow}>
+                  <MapPin size={12} color={theme.colors.muted} />
+                  <Text style={styles.addressText}>
+                    {shop.address}, {shop.city}
+                  </Text>
+                </View>
+              </View>
+              <View style={styles.ratingContainer}>
+                <Star size={14} color={theme.colors.primary} fill={theme.colors.primary} />
+                <Text style={styles.ratingText}>{shop.rating}</Text>
+              </View>
             </View>
-            <Text style={styles.pointsValue}>250</Text>
-            <Text style={styles.pointsLabel}>Points Available</Text>
-            
-            <TouchableOpacity
-              style={styles.rewardsButton}
-              onPress={() => navigation.navigate('CustomerLoyalty')}
-            >
-              <Text style={styles.rewardsButtonText}>View Rewards</Text>
-            </TouchableOpacity>
-          </View>
+
+            <View style={styles.shopFooter}>
+              <View style={styles.hoursRow}>
+                <Clock size={12} color={theme.colors.muted} />
+                <Text style={styles.hoursText}>{shop.openingHours}</Text>
+              </View>
+              <Text style={styles.reviewCount}>{shop.reviewCount} reviews</Text>
+            </View>
+          </TouchableOpacity>
+        ))}
+      </View>
+
+      {/* Empty State */}
+      {filtered.length === 0 && (
+        <View style={styles.emptyState}>
+          <Text style={styles.emptyText}>No shops found</Text>
+          <Text style={styles.emptySubtext}>Try adjusting your search</Text>
         </View>
-      </ScrollView>
-    </View>
+      )}
+    </ScrollView>
   );
-}
+};
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0A0A0A',
+    backgroundColor: theme.colors.background,
   },
-  scrollContent: {
-    padding: 20,
-    paddingTop: 40,
-  },
-  header: {
-    marginBottom: 24,
+  headerSection: {
+    paddingHorizontal: theme.spacing.lg,
+    paddingTop: theme.spacing.xl,
+    paddingBottom: theme.spacing.lg,
   },
   title: {
     fontSize: 28,
-    fontWeight: 'bold',
-    color: '#FFFFFF',
-    marginBottom: 4,
+    fontFamily: theme.fonts.serif,
+    fontWeight: '700',
+    color: theme.colors.text,
+    marginBottom: theme.spacing.xs,
   },
   subtitle: {
     fontSize: 14,
-    color: '#A0A0A0',
-    lineHeight: 20,
+    fontFamily: theme.fonts.sans,
+    color: theme.colors.muted,
   },
-  menuGrid: {
+  searchContainer: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
-    marginBottom: 24,
-    gap: 16,
-  },
-  menuCard: {
-    width: '47%',
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
-    borderRadius: 16,
-    padding: 20,
+    alignItems: 'center',
+    marginHorizontal: theme.spacing.lg,
+    marginBottom: theme.spacing.lg,
+    backgroundColor: 'rgba(39, 39, 42, 0.3)',
+    borderRadius: theme.radius.md,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
+    borderColor: theme.colors.border,
+    paddingHorizontal: theme.spacing.md,
   },
-  menuTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#FFFFFF',
-    marginTop: 12,
-    marginBottom: 4,
+  searchIcon: {
+    marginRight: theme.spacing.sm,
   },
-  menuDescription: {
+  searchInput: {
+    flex: 1,
+    height: 44,
+    fontSize: 14,
+    fontFamily: theme.fonts.sans,
+    color: theme.colors.text,
+  },
+  mapPlaceholder: {
+    marginHorizontal: theme.spacing.lg,
+    marginBottom: theme.spacing.xl,
+    height: 180,
+    backgroundColor: 'rgba(24, 24, 27, 0.4)',
+    borderRadius: theme.radius.lg,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  mapTitle: {
+    fontSize: 14,
+    fontFamily: theme.fonts.sans,
+    color: theme.colors.muted,
+    marginTop: theme.spacing.sm,
+  },
+  mapSubtitle: {
     fontSize: 12,
-    color: '#A0A0A0',
-    lineHeight: 16,
+    fontFamily: theme.fonts.sans,
+    color: theme.colors.muted,
+    marginTop: theme.spacing.xs,
   },
-  card: {
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
-    borderRadius: 16,
-    padding: 20,
+  shopList: {
+    paddingHorizontal: theme.spacing.lg,
+    gap: theme.spacing.md,
+    paddingBottom: theme.spacing.xxl,
+  },
+  shopCard: {
+    backgroundColor: 'rgba(24, 24, 27, 0.4)',
+    borderRadius: theme.radius.lg,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
-    marginBottom: 20,
+    borderColor: theme.colors.border,
+    padding: theme.spacing.lg,
   },
-  cardTitle: {
-    fontSize: 20,
-    fontWeight: '600',
-    color: '#FFFFFF',
-    marginBottom: 16,
-  },
-  appointmentItem: {
-    padding: 16,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
-    backgroundColor: 'rgba(255, 255, 255, 0.02)',
-    marginBottom: 16,
-  },
-  appointmentHeader: {
+  shopHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
-    marginBottom: 8,
+    marginBottom: theme.spacing.md,
   },
-  appointmentInfo: {
+  shopInfo: {
     flex: 1,
-  },
-  barberName: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#FFFFFF',
-    marginBottom: 4,
+    marginRight: theme.spacing.md,
   },
   shopName: {
-    fontSize: 14,
-    color: '#A0A0A0',
+    fontSize: 16,
+    fontFamily: theme.fonts.sans,
+    fontWeight: '600',
+    color: theme.colors.text,
+    marginBottom: theme.spacing.xs,
   },
-  statusBadge: {
-    backgroundColor: 'rgba(34, 197, 94, 0.2)',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
+  addressRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: theme.spacing.xs,
   },
-  statusText: {
+  addressText: {
     fontSize: 12,
-    color: '#22C55E',
-    fontWeight: '500',
+    fontFamily: theme.fonts.sans,
+    color: theme.colors.muted,
   },
-  appointmentTime: {
+  ratingContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: theme.spacing.xs,
+  },
+  ratingText: {
     fontSize: 14,
-    color: '#A0A0A0',
-    marginBottom: 4,
+    fontFamily: theme.fonts.sans,
+    fontWeight: '600',
+    color: theme.colors.primary,
   },
-  appointmentService: {
+  shopFooter: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  hoursRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: theme.spacing.xs,
+  },
+  hoursText: {
+    fontSize: 12,
+    fontFamily: theme.fonts.sans,
+    color: theme.colors.muted,
+  },
+  reviewCount: {
+    fontSize: 12,
+    fontFamily: theme.fonts.sans,
+    color: theme.colors.muted,
+  },
+  emptyState: {
+    alignItems: 'center',
+    paddingVertical: theme.spacing.xxl,
+  },
+  emptyText: {
+    fontSize: 16,
+    fontFamily: theme.fonts.sans,
+    fontWeight: '600',
+    color: theme.colors.text,
+    marginBottom: theme.spacing.xs,
+  },
+  emptySubtext: {
     fontSize: 14,
-    color: '#A0A0A0',
-  },
-  viewAllButton: {
-    backgroundColor: 'transparent',
-    borderWidth: 1,
-    borderColor: 'rgba(212, 175, 55, 0.3)',
-    paddingVertical: 12,
-    borderRadius: 8,
-    alignItems: 'center',
-  },
-  viewAllButtonText: {
-    color: '#D4AF37',
-    fontSize: 16,
-    fontWeight: '500',
-  },
-  loyaltyContainer: {
-    alignItems: 'center',
-    paddingVertical: 24,
-  },
-  giftIconContainer: {
-    width: 96,
-    height: 96,
-    borderRadius: 48,
-    backgroundColor: 'rgba(212, 175, 55, 0.1)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  pointsValue: {
-    fontSize: 40,
-    fontWeight: 'bold',
-    color: '#FFFFFF',
-    marginBottom: 8,
-  },
-  pointsLabel: {
-    fontSize: 16,
-    color: '#A0A0A0',
-    marginBottom: 16,
-  },
-  rewardsButton: {
-    backgroundColor: 'transparent',
-    borderWidth: 1,
-    borderColor: 'rgba(212, 175, 55, 0.3)',
-    paddingVertical: 12,
-    paddingHorizontal: 24,
-    borderRadius: 8,
-  },
-  rewardsButtonText: {
-    color: '#D4AF37',
-    fontSize: 16,
-    fontWeight: '500',
+    fontFamily: theme.fonts.sans,
+    color: theme.colors.muted,
   },
 });
+
+export default CustomerDashboard;

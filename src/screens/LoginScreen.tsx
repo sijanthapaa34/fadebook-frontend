@@ -15,22 +15,10 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import Logo from '../components/Logo';
 import { theme } from '../theme/theme';
 import { useAuthStore } from '../store/authStore';
-import type { UserRole } from '../models/models';
-
-export type RootStackParamList = {
-  Landing: undefined;
-  Login: undefined;
-  Register: undefined;
-  CustomerShops: undefined;
-  BarberDashboard: undefined;
-};
+import type { RootStackParamList } from '../navigation/NavigationService';
+import { redirectByRole } from '../navigation/NavigationService';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
-
-const roleRedirects: Record<UserRole, keyof RootStackParamList> = {
-  CUSTOMER: 'CustomerShops',
-  BARBER: 'BarberDashboard',
-};
 
 const Login = () => {
   const navigation = useNavigation<NavigationProp>();
@@ -42,12 +30,12 @@ const Login = () => {
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false); // local loading
 
-  // Redirect on login
   useEffect(() => {
-    if (user?.role) {
-      navigation.replace(roleRedirects[user.role]);
-    }
-  }, [user, navigation]);
+  if (user?.role) {
+    redirectByRole(user.role);
+  }
+  }, [user]);
+
 
   const handleSubmit = async () => {
     if (!email || !password) {
@@ -70,7 +58,9 @@ const Login = () => {
     <ScrollView contentContainerStyle={styles.container}>
       <View style={styles.wrapper}>
         <View style={styles.header}>
+          <TouchableOpacity onPress={() => navigation.navigate('Landing')}>
           <Logo size="lg" />
+          </TouchableOpacity>
           <Text style={styles.subtitle}>Sign in to your account</Text>
         </View>
 

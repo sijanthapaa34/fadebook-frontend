@@ -7,7 +7,7 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>en</string>
 	<key>CFBundleDisplayName</key>
-	<string>FadeBookFrontEnd</string>
+	<string>FadeBook</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
@@ -34,25 +34,25 @@
 			<string>Editor</string>
 			<key>CFBundleURLSchemes</key>
 			<array>
-				<string>com.googleusercontent.apps.1093929953759-8l494h6fqg8gn4jriae6l25uvhapofoj</string>
+				<string>com.googleusercontent.apps.330770558960-satr5o193upaq318m5k0959b1or3pf90</string>
 			</array>
 		</dict>
 		<!-- Facebook Sign-In -->
-		<dict>
+		<!-- <dict>
 			<key>CFBundleTypeRole</key>
 			<string>Editor</string>
 			<key>CFBundleURLSchemes</key>
 			<array>
 				<string>fbYOUR_FACEBOOK_APP_ID</string>
 			</array>
-		</dict>
+		</dict> -->
 	</array>
 	
 	<!-- Facebook Configuration -->
 	<key>FacebookAppID</key>
 	<string>YOUR_FACEBOOK_APP_ID</string>
 	<key>FacebookDisplayName</key>
-	<string>FadeBookFrontEnd</string>
+	<string>FadeBook</string>
 	<key>FacebookClientToken</key>
 	<string>YOUR_FACEBOOK_CLIENT_TOKEN</string>
 	
