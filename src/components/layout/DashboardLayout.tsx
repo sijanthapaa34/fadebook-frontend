@@ -53,7 +53,7 @@ interface NavItem {
 
 const navConfig: Record<UserRole, NavItem[]> = {
   CUSTOMER: [
-    { label: 'Find Shops', path: 'CustomerShops', Icon: MapPin },
+    { label: 'Find Shops', path: 'CustomerDashboard', Icon: MapPin },
     { label: 'My Bookings', path: 'CustomerAppointments', Icon: Calendar },
     { label: 'Payments', path: 'CustomerPayments', Icon: CreditCard },
     { label: 'Chat', path: 'CustomerChat', Icon: MessageSquare },
@@ -65,7 +65,6 @@ const navConfig: Record<UserRole, NavItem[]> = {
     { label: 'Earnings', path: 'BarberEarnings', Icon: DollarSign },
     { label: 'Profile', path: 'BarberProfile', Icon: UserCircle },
   ],
-  
 };
 
 interface DashboardLayoutProps {
@@ -142,15 +141,9 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ user, children, onLog
           </View>
         </View>
 
-        {/* Main Content */}
+        {/* Main Content - FIXED: Removed ScrollView wrapper */}
         <View style={styles.mainContent}>
-          <ScrollView
-            style={styles.contentScroll}
-            contentContainerStyle={styles.contentContainer}
-            showsVerticalScrollIndicator={false}
-          >
             {children}
-          </ScrollView>
         </View>
       </View>
     );
@@ -167,16 +160,12 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ user, children, onLog
         </TouchableOpacity>
       </View>
 
-      {/* Main Content */}
-      <ScrollView
-        style={styles.mobileContent}
-        contentContainerStyle={styles.mobileContentContainer}
-        showsVerticalScrollIndicator={false}
-      >
+      {/* Main Content - FIXED: Removed ScrollView, added flex: 1 */}
+      <View style={styles.mobileContent}>
         {children}
-      </ScrollView>
+      </View>
 
-      {/* Bottom Navigation */}
+      {/* Bottom Navigation - FIXED: Removed absolute positioning */}
       <View style={styles.bottomNav}>
         {navItems.slice(0, 5).map((item) => {
           const isActive = currentPath === item.path;
@@ -299,13 +288,7 @@ const styles = StyleSheet.create({
     color: theme.colors.muted,
   },
   mainContent: {
-    flex: 1,
-  },
-  contentScroll: {
-    flex: 1,
-  },
-  contentContainer: {
-    padding: theme.spacing.xl,
+    flex: 1, // Takes up remaining space
   },
 
   // Mobile Styles
@@ -328,11 +311,7 @@ const styles = StyleSheet.create({
     padding: theme.spacing.sm,
   },
   mobileContent: {
-    flex: 1,
-  },
-  mobileContentContainer: {
-    padding: theme.spacing.lg,
-    paddingBottom: 100,
+    flex: 1, // Takes up remaining space between header and bottom nav
   },
   bottomNav: {
     flexDirection: 'row',
@@ -343,10 +322,7 @@ const styles = StyleSheet.create({
     borderTopColor: theme.colors.border,
     paddingVertical: theme.spacing.sm,
     paddingBottom: 28,
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
+    // REMOVED: position: 'absolute', bottom: 0, left: 0, right: 0
   },
   bottomNavItem: {
     alignItems: 'center',

@@ -1,155 +1,206 @@
-// CustomerDashboard.tsx
-// React Native version of ShopFinder component
-
-import React, { useState } from 'react';
+// src/screens/customer/CustomerDashboardScreen.tsx
+import React, { useState, useEffect, useMemo, memo } from 'react';
 import {
   View,
   Text,
   TextInput,
-  ScrollView,
+  FlatList,
   TouchableOpacity,
   StyleSheet,
+  ActivityIndicator,
 } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
-import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { Search, MapPin, Star, Clock } from 'lucide-react-native';
+import { useNavigation } from '@react-navigation/native'; // 1. Import hook
+import { useInfiniteQuery } from '@tanstack/react-query';
+import { Search, MapPin, Star, Clock, Navigation } from 'lucide-react-native';
 import { theme } from '../../theme/theme';
-import type { RootStackParamList } from '../../navigation/NavigationService';
+import { fetchShops } from '../../api/barbershopService';
+import { Barbershop } from '../../models/models';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack'; // For typing
+import type { RootStackParamList } from '../../navigation/NavigationService'; // Import your root param list
 
-type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
+// --- ListHeader Component (Unchanged) ---
+interface ListHeaderProps {
+  userCoords: { latitude: number; longitude: number } | null;
+  search: string;
+  setSearch: (text: string) => void;
+  isLoading: boolean;
+  listTitle: string;
+}
 
-// Mock data for shops
-const seedShops = [
-  {
-    id: '1',
-    name: 'The Classic Cut',
-    address: '123 Main Street',
-    city: 'New York',
-    rating: 4.9,
-    reviewCount: 245,
-    openingHours: '9:00 AM - 8:00 PM',
-  },
-  {
-    id: '2',
-    name: 'Urban Fades',
-    address: '456 Broadway',
-    city: 'Brooklyn',
-    rating: 4.7,
-    reviewCount: 189,
-    openingHours: '10:00 AM - 9:00 PM',
-  },
-  {
-    id: '3',
-    name: "Gentleman's Quarters",
-    address: '789 Park Ave',
-    city: 'Manhattan',
-    rating: 4.8,
-    reviewCount: 312,
-    openingHours: '8:00 AM - 7:00 PM',
-  },
-  {
-    id: '4',
-    name: 'Precision Cuts',
-    address: '321 Oak Lane',
-    city: 'Queens',
-    rating: 4.6,
-    reviewCount: 156,
-    openingHours: '9:00 AM - 6:00 PM',
-  },
-];
+const ListHeader = memo(({ userCoords, search, setSearch, isLoading, listTitle }: ListHeaderProps) => (
+  <>
+    <View style={styles.headerSection}>
+      <Text style={styles.title}>Find Barbershops</Text>
+      <Text style={styles.subtitle}>
+        {userCoords ? 'Discover top-rated shops near you' : 'Discover the best shops'}
+      </Text>
+    </View>
+
+    <View style={styles.searchContainer}>
+      <Search size={18} color={theme.colors.muted} style={styles.searchIcon} />
+      <TextInput
+        placeholder="Search by name or city..."
+        placeholderTextColor={theme.colors.muted}
+        value={search}
+        onChangeText={setSearch}
+        style={styles.searchInput}
+      />
+    </View>
+
+    <View style={styles.mapPlaceholder}>
+      <Navigation size={32} color={theme.colors.primary} />
+      <Text style={styles.mapTitle}>Map View</Text>
+      <Text style={styles.mapSubtitle}>
+          {userCoords ? 'Location Acquired' : 'Using Default List'}
+      </Text>
+    </View>
+
+    <View style={styles.sectionHeader}>
+      <Text style={styles.sectionTitle}>{listTitle}</Text>
+    </View>
+
+    {isLoading && <ActivityIndicator size="large" color={theme.colors.primary} style={{ marginTop: 20 }} />}
+  </>
+));
+
 
 const CustomerDashboard = () => {
+  // 2. Initialize navigation
+  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  
   const [search, setSearch] = useState('');
-  const navigation = useNavigation<NavigationProp>();
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+  
+  const [userCoords, setUserCoords] = useState<{ latitude: number; longitude: number } | null>({
+    latitude: 27.7154,
+    longitude: 85.3073
+  });
 
-  const filtered = seedShops.filter(
-    (s) =>
-      s.name.toLowerCase().includes(search.toLowerCase()) ||
-      s.city.toLowerCase().includes(search.toLowerCase())
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(search);
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [search]);
+
+  const {
+    data,
+    isLoading,
+    isError,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+  } = useInfiniteQuery({
+    queryKey: ['shops', debouncedSearch, userCoords],
+    queryFn: ({ pageParam = 0 }) => 
+      fetchShops({
+        page: pageParam,
+        size: 10,
+        search: debouncedSearch,
+        latitude: userCoords?.latitude,
+        longitude: userCoords?.longitude,
+      }),
+    getNextPageParam: (lastPage) => {
+      if (lastPage.last) return undefined;
+      return lastPage.page + 1;
+    },
+    initialPageParam: 0,
+  });
+
+  const shops = useMemo(() => data?.pages.flatMap((page) => page.content) ?? [], [data]);
+
+  const listTitle = useMemo(() => {
+    if (debouncedSearch.length > 1) return `Results for "${debouncedSearch}"`;
+    if (userCoords) return "Shops Nearby";
+    return "Top Rated Shops";
+  }, [debouncedSearch, userCoords]);
+
+  // 3. Updated renderItem with navigation
+  const renderItem = ({ item }: { item: Barbershop }) => (
+    <TouchableOpacity 
+      style={styles.shopCard} 
+      activeOpacity={0.7}
+      onPress={() => navigation.navigate('BookAppointment', { shopId: item.id.toString() })}
+    >
+      <View style={styles.shopHeader}>
+        <View style={styles.shopInfo}>
+          <Text style={styles.shopName}>{item.name}</Text>
+          <View style={styles.addressRow}>
+            <MapPin size={12} color={theme.colors.muted} />
+            <Text style={styles.addressText}>
+              {item.address}, {item.city}
+            </Text>
+          </View>
+        </View>
+        <View style={styles.ratingContainer}>
+          <Star size={14} color={theme.colors.primary} fill={theme.colors.primary} />
+          <Text style={styles.ratingText}>{item.rating.toFixed(1)}</Text>
+        </View>
+      </View>
+
+      <View style={styles.shopFooter}>
+        <View style={styles.hoursRow}>
+          <Clock size={12} color={theme.colors.muted} />
+          <Text style={styles.hoursText}>{item.operatingHours || 'Hours not available'}</Text>
+        </View>
+      </View>
+    </TouchableOpacity>
   );
 
-  const handleShopPress = (shopId: string) => {
-    // navigation.navigate('BookShop', { shopId });
+  const renderFooter = () => {
+    if (!isFetchingNextPage) return null;
+    return <ActivityIndicator size="large" color={theme.colors.primary} style={{ marginVertical: 20 }} />;
+  };
+
+  const renderEmpty = () => {
+    if (isLoading) return null;
+    return (
+      <View style={styles.emptyState}>
+        <Text style={styles.emptyText}>No shops found</Text>
+        <Text style={styles.emptySubtext}>Try adjusting your search or location</Text>
+      </View>
+    );
   };
 
   return (
-    <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
-      {/* Header Section */}
-      <View style={styles.headerSection}>
-        <Text style={styles.title}>Find Barbershops</Text>
-        <Text style={styles.subtitle}>Discover top-rated shops near you</Text>
-      </View>
-
-      {/* Search Bar */}
-      <View style={styles.searchContainer}>
-        <Search size={18} color={theme.colors.muted} style={styles.searchIcon} />
-        <TextInput
-          placeholder="Search by name or city..."
-          placeholderTextColor={theme.colors.muted}
-          value={search}
-          onChangeText={setSearch}
-          style={styles.searchInput}
-        />
-      </View>
-
-      {/* Map Placeholder */}
-      <View style={styles.mapPlaceholder}>
-        <MapPin size={32} color={theme.colors.primary} />
-        <Text style={styles.mapTitle}>Google Maps integration placeholder</Text>
-        <Text style={styles.mapSubtitle}>Connect API key to enable live map</Text>
-      </View>
-
-      {/* Shop List */}
-      <View style={styles.shopList}>
-        {filtered.map((shop) => (
-          <TouchableOpacity
-            key={shop.id}
-            style={styles.shopCard}
-            onPress={() => handleShopPress(shop.id)}
-            activeOpacity={0.7}
-          >
-            <View style={styles.shopHeader}>
-              <View style={styles.shopInfo}>
-                <Text style={styles.shopName}>{shop.name}</Text>
-                <View style={styles.addressRow}>
-                  <MapPin size={12} color={theme.colors.muted} />
-                  <Text style={styles.addressText}>
-                    {shop.address}, {shop.city}
-                  </Text>
-                </View>
-              </View>
-              <View style={styles.ratingContainer}>
-                <Star size={14} color={theme.colors.primary} fill={theme.colors.primary} />
-                <Text style={styles.ratingText}>{shop.rating}</Text>
-              </View>
-            </View>
-
-            <View style={styles.shopFooter}>
-              <View style={styles.hoursRow}>
-                <Clock size={12} color={theme.colors.muted} />
-                <Text style={styles.hoursText}>{shop.openingHours}</Text>
-              </View>
-              <Text style={styles.reviewCount}>{shop.reviewCount} reviews</Text>
-            </View>
-          </TouchableOpacity>
-        ))}
-      </View>
-
-      {/* Empty State */}
-      {filtered.length === 0 && (
-        <View style={styles.emptyState}>
-          <Text style={styles.emptyText}>No shops found</Text>
-          <Text style={styles.emptySubtext}>Try adjusting your search</Text>
-        </View>
-      )}
-    </ScrollView>
+    <View style={styles.container}>
+      <FlatList
+        data={shops}
+        keyExtractor={(item) => item.id.toString()}
+        renderItem={renderItem}
+        contentContainerStyle={styles.listContent}
+        ListHeaderComponent={
+          <ListHeader 
+            userCoords={userCoords} 
+            search={search} 
+            setSearch={setSearch} 
+            isLoading={isLoading} 
+            listTitle={listTitle} 
+          />
+        }
+        ListFooterComponent={renderFooter}
+        ListEmptyComponent={renderEmpty}
+        
+        onEndReached={() => {
+          if (hasNextPage && !isFetchingNextPage) {
+            fetchNextPage();
+          }
+        }}
+        onEndReachedThreshold={0.5}
+        showsVerticalScrollIndicator={false}
+      />
+    </View>
   );
 };
 
+// Styles remain the same
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: theme.colors.background,
+  },
+  listContent: {
+    paddingBottom: 30,
   },
   headerSection: {
     paddingHorizontal: theme.spacing.lg,
@@ -212,10 +263,15 @@ const styles = StyleSheet.create({
     color: theme.colors.muted,
     marginTop: theme.spacing.xs,
   },
-  shopList: {
+  sectionHeader: {
     paddingHorizontal: theme.spacing.lg,
-    gap: theme.spacing.md,
-    paddingBottom: theme.spacing.xxl,
+    marginBottom: theme.spacing.md,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontFamily: theme.fonts.sans,
+    fontWeight: '600',
+    color: theme.colors.text,
   },
   shopCard: {
     backgroundColor: 'rgba(24, 24, 27, 0.4)',
@@ -223,6 +279,8 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: theme.colors.border,
     padding: theme.spacing.lg,
+    marginHorizontal: theme.spacing.lg,
+    marginBottom: theme.spacing.md,
   },
   shopHeader: {
     flexDirection: 'row',
@@ -277,14 +335,10 @@ const styles = StyleSheet.create({
     fontFamily: theme.fonts.sans,
     color: theme.colors.muted,
   },
-  reviewCount: {
-    fontSize: 12,
-    fontFamily: theme.fonts.sans,
-    color: theme.colors.muted,
-  },
   emptyState: {
     alignItems: 'center',
     paddingVertical: theme.spacing.xxl,
+    paddingHorizontal: theme.spacing.lg,
   },
   emptyText: {
     fontSize: 16,
@@ -292,11 +346,13 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: theme.colors.text,
     marginBottom: theme.spacing.xs,
+    textAlign: 'center',
   },
   emptySubtext: {
     fontSize: 14,
     fontFamily: theme.fonts.sans,
     color: theme.colors.muted,
+    textAlign: 'center',
   },
 });
 

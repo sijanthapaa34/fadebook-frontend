@@ -1,14 +1,7 @@
-// src/screens/Login.tsx
 import React, { useState, useEffect } from 'react';
 import {
-  View,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  StyleSheet,
-  ScrollView,
-  Alert,
-  ActivityIndicator,
+  View, Text, TextInput, TouchableOpacity, StyleSheet, 
+  ScrollView, Alert, ActivityIndicator,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -22,20 +15,18 @@ type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
 const Login = () => {
   const navigation = useNavigation<NavigationProp>();
-
   const login = useAuthStore((state) => state.login);
   const user = useAuthStore((state) => state.user);
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [isLoading, setIsLoading] = useState(false); // local loading
+  const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
-  if (user?.role) {
-    redirectByRole(user.role);
-  }
+    if (user?.role) {
+      redirectByRole(user.role);
+    }
   }, [user]);
-
 
   const handleSubmit = async () => {
     if (!email || !password) {
@@ -46,6 +37,7 @@ const Login = () => {
     setIsLoading(true);
     try {
       await login(email, password);
+      // Navigation is handled by useEffect above
     } catch (err: any) {
       console.error('login error:', err);
       Alert.alert('Login failed', err.message || 'Invalid credentials');
@@ -59,7 +51,7 @@ const Login = () => {
       <View style={styles.wrapper}>
         <View style={styles.header}>
           <TouchableOpacity onPress={() => navigation.navigate('Landing')}>
-          <Logo size="lg" />
+            <Logo size="lg" />
           </TouchableOpacity>
           <Text style={styles.subtitle}>Sign in to your account</Text>
         </View>
@@ -108,10 +100,7 @@ const Login = () => {
 
         <Text style={styles.footer}>
           Don't have an account?{' '}
-          <Text
-            style={styles.link}
-            onPress={() => navigation.navigate('Register')}
-          >
+          <Text style={styles.link} onPress={() => navigation.navigate('Register')}>
             Sign up
           </Text>
         </Text>
@@ -124,8 +113,8 @@ const styles = StyleSheet.create({
   container: {
     flexGrow: 1,
     justifyContent: 'center',
-    paddingTop: theme.spacing.xxl, // restore top padding like old UI
-    paddingBottom: theme.spacing.xxl, // restore bottom padding
+    paddingTop: theme.spacing.xxl,
+    paddingBottom: theme.spacing.xxl,
     paddingHorizontal: theme.spacing.lg,
     backgroundColor: theme.colors.background,
   },

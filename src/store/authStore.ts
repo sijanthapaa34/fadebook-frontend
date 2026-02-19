@@ -1,8 +1,12 @@
-// src/store/authStore.ts
 import { create } from 'zustand';
 import * as Keychain from 'react-native-keychain';
 import { User } from '../models/models';
-import { login as loginApi } from '../lib/auth';
+import { 
+  loginRequest, 
+  registerRequest, 
+  googleSignInRequest,
+  RegisterCustomerRequest 
+} from '../api/authService';
 
 interface AuthState {
   user: User | null;
@@ -11,10 +15,11 @@ interface AuthState {
   isLoading: boolean;
 
   // Actions
-  setAuth: (user: User, token: string) => Promise<void>;
-  login: (email: string, password: string) => Promise<void>;
-  logout: () => Promise<void>;
   initialize: () => Promise<void>;
+  login: (email: string, password: string) => Promise<void>;
+  register: (data: RegisterCustomerRequest) => Promise<void>;
+  googleLogin: () => Promise<void>;
+  logout: () => Promise<void>;
 }
 
 export const useAuthStore = create<AuthState>((set) => ({
@@ -23,63 +28,48 @@ export const useAuthStore = create<AuthState>((set) => ({
   isAuthenticated: false,
   isLoading: true,
 
-  // Initialize auth state from Keychain
   initialize: async () => {
     try {
       set({ isLoading: true });
-
       const credentials = await Keychain.getGenericPassword();
       if (credentials) {
-        const { username, password } = credentials; // username = user JSON, password = token
-        const parsedUser: User = JSON.parse(username);
-
-        set({
-          user: parsedUser,
-          token: password,
-          isAuthenticated: true,
-          isLoading: false,
+        const parsedUser: User = JSON.parse(credentials.username);
+        set({ 
+          user: parsedUser, 
+          token: credentials.password, 
+          isAuthenticated: true 
         });
-      } else {
-        set({ isLoading: false });
       }
     } catch (error) {
       console.error('Error initializing auth:', error);
+    } finally {
       set({ isLoading: false });
     }
   },
 
-  // Set auth manually (used after registration or social login)
-  setAuth: async (user: User, token: string) => {
-    try {
-      await Keychain.setGenericPassword(JSON.stringify(user), token);
-      set({ user, token, isAuthenticated: true });
-    } catch (error) {
-      console.error('Error setting auth:', error);
-    }
+  login: async (email, password) => {
+    const { user, token } = await loginRequest(email, password);
+    await Keychain.setGenericPassword(JSON.stringify(user), token);
+    set({ user, token, isAuthenticated: true });
   },
 
-  // Login using API
-  login: async (email: string, password: string) => {
-    try {
-      const { user, token } = await loginApi(email, password);
-
-      // Save to Keychain securely
-      await Keychain.setGenericPassword(JSON.stringify(user), token);
-
-      set({ user, token, isAuthenticated: true });
-    } catch (error) {
-      console.error('Login failed:', error);
-      throw error; // rethrow for screens to handle
-    }
+  register: async (data) => {
+    const { user, token } = await registerRequest(data);
+    // Force role to CUSTOMER for safety
+    const userWithRole = { ...user, role: 'CUSTOMER' as const };
+    await Keychain.setGenericPassword(JSON.stringify(userWithRole), token);
+    set({ user: userWithRole, token, isAuthenticated: true });
   },
 
-  // Logout
+  googleLogin: async () => {
+    const { user, token } = await googleSignInRequest();
+    const userWithRole = { ...user, role: 'CUSTOMER' as const };
+    await Keychain.setGenericPassword(JSON.stringify(userWithRole), token);
+    set({ user: userWithRole, token, isAuthenticated: true });
+  },
+
   logout: async () => {
-    try {
-      await Keychain.resetGenericPassword();
-      set({ user: null, token: null, isAuthenticated: false });
-    } catch (error) {
-      console.error('Error logging out:', error);
-    }
+    await Keychain.resetGenericPassword();
+    set({ user: null, token: null, isAuthenticated: false });
   },
 }));

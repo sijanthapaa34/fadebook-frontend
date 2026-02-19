@@ -1,4 +1,4 @@
-// Landing.tsx
+// src/screens/Landing.tsx
 import React from 'react';
 import {
   View,
@@ -7,7 +7,6 @@ import {
   Image,
   TouchableOpacity,
   StyleSheet,
-  Platform,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -61,16 +60,15 @@ const Landing = () => {
 
           <Text style={styles.heroTitle}>Your Perfect{'\n'}</Text>
           <MaskedView maskElement={<Text style={styles.heroTitleGold}>Fade Awaits</Text>}>
-              <LinearGradient colors={[theme.colors.primary, '#E5C88A']}>
-                <Text style={[styles.heroTitleGold, { opacity: 0 }]}>Fade Awaits</Text>
-              </LinearGradient>
-            </MaskedView>
+            <LinearGradient colors={[theme.colors.primary, '#E5C88A']}>
+              <Text style={[styles.heroTitleGold, { opacity: 0 }]}>Fade Awaits</Text>
+            </LinearGradient>
+          </MaskedView>
 
           <Text style={styles.heroDescription}>
             Book premium barbershop appointments in seconds. Find the best barbers near you, choose your style, and skip the wait.
           </Text>
           <View style={styles.heroButtons}>
-            {/* Book Now (Primary Solid Button) */}
             <TouchableOpacity
               style={styles.primaryButtonSolid}
               onPress={() => navigation.navigate('Register')}
@@ -79,7 +77,6 @@ const Landing = () => {
               <Text style={styles.primaryButtonTextSolid}>Book Now</Text>
             </TouchableOpacity>
 
-            {/* Learn More (Outline Button) */}
             <TouchableOpacity
               style={styles.outlineButton}
               onPress={() => navigation.navigate('About')}
@@ -88,8 +85,6 @@ const Landing = () => {
               <Text style={styles.outlineButtonText}>Learn More</Text>
             </TouchableOpacity>
           </View>
-
-        
         </View>
       </View>
 
@@ -174,13 +169,11 @@ const Landing = () => {
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: theme.colors.background },
-
-  // Hero
+  container: { flex: 1, backgroundColor: 'transparent' },
   heroSection: { minHeight: 650, position: 'relative' },
   heroImage: { position: 'absolute', width: '100%', height: '100%' },
   heroOverlay: { position: 'absolute', width: '100%', height: '100%' },
-  heroContent: { paddingHorizontal: theme.spacing.lg, paddingVertical: 96, zIndex: 1 },
+  heroContent: { paddingHorizontal: theme.spacing.lg, paddingVertical: 120, zIndex: 1 },
   badge: {
     alignSelf: 'flex-start',
     paddingHorizontal: theme.spacing.xl,
@@ -196,14 +189,24 @@ const styles = StyleSheet.create({
   heroTitleGold: { fontSize: 38, fontFamily: theme.fonts.serif, fontWeight: '700', lineHeight: 44, marginBottom: 0 },
   heroDescription: { fontSize: 16, fontFamily: theme.fonts.sans, color: theme.colors.muted, lineHeight: 28, marginBottom: theme.spacing.xxl, maxWidth: 500 },
   heroButtons: { flexDirection: 'row', gap: theme.spacing.md, flexWrap: 'wrap' },
-  primaryButton: { paddingHorizontal: theme.spacing.xxl, paddingVertical: theme.spacing.md, borderRadius: theme.radius.md, minWidth: 160 , alignItems: 'center',justifyContent: 'center',},primaryButtonText: {
-  color: theme.colors.primaryText,
-  fontSize: 16,
-  fontWeight: '600',
-  textAlign: 'center',
-},
+  primaryButtonSolid: {
+    backgroundColor: '#D4AF37',
+    paddingVertical: 14,
+    paddingHorizontal: 24,
+    borderRadius: theme.radius.md,
+    minWidth: 160,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  primaryButtonTextSolid: {
+    color: '#000000',
+    fontFamily: theme.fonts.sans,
+    fontSize: theme.typography.button.fontSize,
+    fontWeight: theme.typography.button.fontWeight,
+    textAlign: 'center',
+  },
   outlineButton: { borderWidth: 1.5, borderColor: theme.colors.primary, paddingHorizontal: theme.spacing.xxl, paddingVertical: theme.spacing.sm, borderRadius: theme.radius.md, backgroundColor: 'transparent' },
-  outlineButtonText: { color: theme.colors.primary, fontSize: theme.typography.button.fontSize, fontWeight: theme.typography.button.fontWeight, fontFamily: theme.fonts.sans,  textAlign: 'center', },
+  outlineButtonText: { color: theme.colors.primary, fontSize: theme.typography.button.fontSize, fontWeight: theme.typography.button.fontWeight, fontFamily: theme.fonts.sans, textAlign: 'center' },
 
   // Stats
   statsSection: { borderTopWidth: 1, borderBottomWidth: 1, borderColor: theme.colors.border, backgroundColor: 'rgba(22,24,29,0.5)', paddingVertical: 48, paddingHorizontal: theme.spacing.lg },
@@ -230,59 +233,17 @@ const styles = StyleSheet.create({
   ctaTitleContainer: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', alignItems: 'center' },
   ctaTitle: { fontSize: 38, fontFamily: theme.fonts.serif, fontWeight: '700', color: theme.colors.text, textAlign: 'center' },
   ctaTitleGold: { fontSize: 38, fontFamily: theme.fonts.serif, fontWeight: '700', color: '#000000', textAlign: 'center' },
-  ctaDescription: { fontSize: 16, fontFamily: theme.fonts.sans, color: theme.colors.muted, marginTop: theme.spacing.sm, marginBottom: theme.spacing.xxl, textAlign: 'center', maxWidth: 400 },
-  ctaButton: {
-  paddingHorizontal: theme.spacing.xxl,
-  paddingVertical: theme.spacing.md,
-  borderRadius: theme.radius.md,
-  minWidth: 220,           // wider than hero button
-  alignItems: 'center',
-  justifyContent: 'center',
-},
-
-ctaButtonText: {
-  color: theme.colors.primaryText,
-  fontSize: 16,
-  fontWeight: '600',
-  textAlign: 'center',
-},
-// Hero Primary Solid Button
-primaryButtonSolid: {
-  backgroundColor: '#D4AF37',
-  paddingVertical: 14,
-  paddingHorizontal: 24,
-  borderRadius: theme.radius.md,
-  minWidth: 160,
-  alignItems: 'center',
-  justifyContent: 'center',
-},
-
-primaryButtonTextSolid: {
-  color: '#000000',
-  fontFamily: theme.fonts.sans,
-  fontSize: theme.typography.button.fontSize,
-  fontWeight: theme.typography.button.fontWeight,
-  textAlign: 'center',
-},
-
-// CTA Solid Button
-ctaButtonSolid: {
-  backgroundColor: '#D4AF37',
-  paddingVertical: 14,
-  paddingHorizontal: 32,
-  borderRadius: theme.radius.md,
-  minWidth: 220,
-  alignItems: 'center',
-  justifyContent: 'center',
-  marginTop: theme.spacing.md,
-},
-
-ctaButtonTextSolid: {
-  color: '#000000',
-  fontSize: 16,
-  fontWeight: '600',
-  textAlign: 'center',
-},
+  ctaButtonSolid: {
+    backgroundColor: '#D4AF37',
+    paddingVertical: 14,
+    paddingHorizontal: 32,
+    borderRadius: theme.radius.md,
+    minWidth: 220,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: theme.spacing.md,
+  },
+  ctaButtonTextSolid: { color: '#000000', fontSize: 16, fontWeight: '600', textAlign: 'center' },
 
   // Footer
   footer: { borderTopWidth: 1, borderColor: theme.colors.border, backgroundColor: 'rgba(22,24,29,0.3)', paddingVertical: 48, paddingHorizontal: theme.spacing.lg, alignItems: 'center' },
@@ -290,6 +251,5 @@ ctaButtonTextSolid: {
   footerLinks: { flexDirection: 'row', gap: theme.spacing.xl, flexWrap: 'wrap', justifyContent: 'center' },
   footerLink: { fontSize: 14, fontFamily: theme.fonts.sans, color: theme.colors.muted },
 });
-
 
 export default Landing;

@@ -20,7 +20,7 @@ export type RootStackParamList = {
   
   // Customer Routes
   CustomerDashboard: undefined;
-  BookAppointment: { shopId?: string };
+  BookAppointment: { shopId: string }; // Defined parameter for navigation
   CustomerBook: undefined;
   CustomerAppointments: undefined;
   CustomerLoyalty: undefined;

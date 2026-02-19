@@ -1,553 +1,568 @@
-import React, { useState, useMemo } from 'react';
+// src/screens/customer/BookAppointmentScreen.tsx
+import React, { useState } from 'react';
 import {
   View,
   Text,
   TouchableOpacity,
-  ScrollView,
   StyleSheet,
-  SafeAreaView,
-  ActivityIndicator,
-  Alert,
+  ScrollView,
+  Dimensions,
 } from 'react-native';
-import { useNavigation, useRoute } from '@react-navigation/native';
-import { format } from 'date-fns';
-import { DateSelector } from '../../components/booking/DateSelector';
-import { TimeSlotSelector } from '../../components/booking/TimeSlotSelector';
-import { ServiceSelector } from '../../components/booking/ServiceSelector';
-import { BarberSelector } from '../../components/booking/BarberSelector';
-import { generateTimeSlots, defaultSchedule } from '../../utils/bookingHelper';
-import { mockShops, mockBarbers, mockServices, mockAppointments } from '../../data/mockData';
-import {
-  ChevronLeft,
-  Calendar,
-  Scissors,
-  User,
-  Clock,
-  CheckCircle,
-} from 'lucide-react-native';
+import { useRoute, useNavigation } from '@react-navigation/native';
+// 1. Import useSafeAreaInsets
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { ArrowLeft, Check, Clock, DollarSign, User, CalendarDays } from 'lucide-react-native';
+import { format, addDays } from 'date-fns';
+import { theme } from '../../theme/theme';
 
-type BookingStep = 'barber' | 'services' | 'datetime' | 'confirm';
+// --- MOCK DATA ---
+type Step = 'service' | 'barber' | 'time' | 'confirm';
 
-export default function BookAppointmentScreen() {
-  const navigation = useNavigation<any>();
-  const route = useRoute<any>();
-  const { shopId = mockShops[0].id } = route.params || {};
+interface Shop { id: string; name: string; address: string; }
+interface Service { id: string; shopId: string; name: string; description: string; price: number; duration: number; }
+interface Barber { id: string; shopId: string; name: string; specialties: string[]; rating: number; }
 
-  const shop = mockShops.find((s) => s.id === shopId) || mockShops[0];
+const seedShops: Shop[] = [
+  { id: 's1', name: 'The Classic Cut', address: '123 Main St' },
+  { id: 'default', name: 'Selected Barbershop', address: '123 Style Ave' },
+];
 
-  const [step, setStep] = useState<BookingStep>('barber');
-  const [selectedBarberId, setSelectedBarberId] = useState<string | undefined>();
-  const [selectedServices, setSelectedServices] = useState<string[]>([]);
-  const [selectedDate, setSelectedDate] = useState<Date | undefined>();
-  const [selectedTime, setSelectedTime] = useState<string | undefined>();
-  const [isSubmitting, setIsSubmitting] = useState(false);
+const seedServices: Service[] = [
+  { id: 'sv1', shopId: 's1', name: 'Haircut', description: 'Classic scissor cut', price: 25, duration: 30 },
+  { id: 'sv2', shopId: 's1', name: 'Beard Trim', description: 'Shape and trim', price: 15, duration: 20 },
+  { id: 'sv3', shopId: 's1', name: 'Hot Towel Shave', description: 'Luxury shave', price: 30, duration: 45 },
+];
 
-  const shopBarbers = mockBarbers.filter((b) => b.shopId === shopId);
-  const recommendedBarber = shopBarbers.find((b) => (b.rating ?? 0) >= 4.8);
+const seedBarbers: Barber[] = [
+  { id: 'b1', shopId: 's1', name: 'John Doe', specialties: ['Fades', 'Beards'], rating: 4.8 },
+  { id: 'b2', shopId: 's1', name: 'Mike Ross', specialties: ['Coloring', 'Styling'], rating: 4.9 },
+];
 
-  const timeSlots = useMemo(() => {
-    if (!selectedDate || !selectedBarberId) return [];
-    const barberAppointments = mockAppointments.filter(
-      (apt) => apt.barberId === selectedBarberId && apt.status !== 'cancelled'
-    );
-    return generateTimeSlots(selectedDate, defaultSchedule, barberAppointments);
-  }, [selectedDate, selectedBarberId]);
+const timeSlots = ['9:00 AM', '9:30 AM', '10:00 AM', '10:30 AM', '11:00 AM', '11:30 AM', '1:00 PM', '1:30 PM', '2:00 PM', '2:30 PM', '3:00 PM', '3:30 PM', '4:00 PM'];
 
-  const selectedBarber = shopBarbers.find((b) => b.id === selectedBarberId);
-  const selectedServicesData = mockServices.filter((s) => selectedServices.includes(s.id));
-  const totalPrice = selectedServicesData.reduce((sum, s) => sum + s.price, 0);
-  const totalDuration = selectedServicesData.reduce((sum, s) => sum + s.duration, 0);
+// --- COMPONENT ---
 
-  const handleToggleService = (serviceId: string) => {
-    setSelectedServices((prev) =>
-      prev.includes(serviceId) ? prev.filter((id) => id !== serviceId) : [...prev, serviceId]
-    );
+const BookAppointment = () => {
+  const route = useRoute();
+  const navigation = useNavigation();
+  // 2. Get insets to handle status bar height
+  const insets = useSafeAreaInsets();
+  
+  const { shopId } = route.params as { shopId: string };
+
+  let shop = seedShops.find((s) => s.id === shopId);
+  if (!shop) {
+      shop = seedShops[0]; 
+  }
+
+  const services = seedServices.filter((s) => s.shopId === shop.id || shopId === 's1');
+  const barbers = seedBarbers.filter((b) => b.shopId === shop.id || shopId === 's1');
+
+  const [step, setStep] = useState<Step>('service');
+  const [selectedService, setSelectedService] = useState<string | null>(null);
+  const [selectedBarber, setSelectedBarber] = useState<string | null>(null);
+  const [selectedDay, setSelectedDay] = useState<'today' | 'tomorrow'>('today');
+  const [selectedTime, setSelectedTime] = useState<string | null>(null);
+
+  const today = new Date();
+  const tomorrow = addDays(today, 1);
+  const selectedDate = selectedDay === 'today' ? today : tomorrow;
+
+  const service = services.find((s) => s.id === selectedService);
+  const barber = barbers.find((b) => b.id === selectedBarber);
+
+  const goBack = () => navigation.goBack();
+  
+  const handleConfirm = () => {
+    // @ts-ignore
+    navigation.navigate('CustomerAppointments'); 
   };
 
-  const handleNext = () => {
-    if (step === 'barber' && !selectedBarberId) {
-      Alert.alert('Error', 'Please select a barber');
-      return;
-    }
-    if (step === 'services' && selectedServices.length === 0) {
-      Alert.alert('Error', 'Please select at least one service');
-      return;
-    }
-    if (step === 'datetime' && (!selectedDate || !selectedTime)) {
-      Alert.alert('Error', 'Please select date and time');
-      return;
-    }
+  const steps: { key: Step; label: string }[] = [
+    { key: 'service', label: 'Service' },
+    { key: 'barber', label: 'Barber' },
+    { key: 'time', label: 'Time' },
+    { key: 'confirm', label: 'Confirm' },
+  ];
 
-    const steps: BookingStep[] = ['barber', 'services', 'datetime', 'confirm'];
-    const currentIndex = steps.indexOf(step);
-    if (currentIndex < steps.length - 1) {
-      setStep(steps[currentIndex + 1]);
-    }
-  };
-
-  const handleBack = () => {
-    const steps: BookingStep[] = ['barber', 'services', 'datetime', 'confirm'];
-    const currentIndex = steps.indexOf(step);
-    if (currentIndex > 0) {
-      setStep(steps[currentIndex - 1]);
-    } else {
-      navigation.goBack();
-    }
-  };
-
-  const handleConfirm = async () => {
-    setIsSubmitting(true);
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(() => resolve(undefined), 1500));
-
-    Alert.alert(
-      'Appointment Booked!',
-      `Your appointment is confirmed for ${format(selectedDate!, 'PPP')} at ${selectedTime}`,
-      [
-        {
-          text: 'OK',
-          onPress: () => navigation.navigate('Appointments'),
-        },
-      ]
-    );
-
-    setIsSubmitting(false);
-  };
-
-  const canProceed = () => {
-    if (step === 'barber') return !!selectedBarberId;
-    if (step === 'services') return selectedServices.length > 0;
-    if (step === 'datetime') return !!selectedDate && !!selectedTime;
-    return true;
-  };
-
-  const renderStepIndicator = () => {
-    const stepConfig = [
-      { key: 'barber', icon: User, label: 'Barber' },
-      { key: 'services', icon: Scissors, label: 'Services' },
-      { key: 'datetime', icon: Calendar, label: 'Date & Time' },
-      { key: 'confirm', icon: CheckCircle, label: 'Confirm' },
-    ];
-
-    const steps: BookingStep[] = ['barber', 'services', 'datetime', 'confirm'];
-    const currentIdx = steps.indexOf(step);
-
+  if (!shop) {
     return (
-      <View style={styles.progressContainer}>
-        {stepConfig.map((s, idx) => {
-          const isActive = s.key === step;
-          const isCompleted = idx < currentIdx;
-          const IconComponent = s.icon;
-
-          return (
-            <View key={s.key} style={styles.progressStepWrapper}>
-              <View
-                style={[
-                  styles.progressStep,
-                  isActive && styles.progressStepActive,
-                  isCompleted && styles.progressStepCompleted,
-                ]}
-              >
-                <IconComponent
-                  size={16}
-                  color={isActive || isCompleted ? '#3b82f6' : '#9ca3af'}
-                />
-              </View>
-              {idx < 3 && (
-                <View
-                  style={[
-                    styles.progressLine,
-                    isCompleted && styles.progressLineCompleted,
-                  ]}
-                />
-              )}
-            </View>
-          );
-        })}
+      <View style={[styles.centeredContainer, { paddingTop: insets.top }]}>
+        <Text style={styles.errorText}>Shop not found.</Text>
+        <TouchableOpacity onPress={goBack} style={{ marginTop: 20 }}>
+            <Text style={{ color: theme.colors.primary }}>Go Back</Text>
+        </TouchableOpacity>
       </View>
     );
-  };
-
-  const renderContent = () => {
-    switch (step) {
-      case 'barber':
-        return (
-          <BarberSelector
-            barbers={shopBarbers}
-            selectedBarberId={selectedBarberId}
-            onSelectBarber={setSelectedBarberId}
-            recommendedBarberId={recommendedBarber?.id}
-          />
-        );
-
-      case 'services':
-        return (
-          <ServiceSelector
-            services={mockServices}
-            selectedServices={selectedServices}
-            onToggleService={handleToggleService}
-          />
-        );
-
-      case 'datetime':
-        return (
-          <View style={styles.datetimeContainer}>
-            <DateSelector
-              selectedDate={selectedDate}
-              onSelectDate={setSelectedDate}
-              barberSchedule={defaultSchedule}
-            />
-
-            {selectedDate && (
-              <View style={styles.timeslotContainer}>
-                <TimeSlotSelector
-                  slots={timeSlots}
-                  selectedTime={selectedTime}
-                  onSelectTime={setSelectedTime}
-                  selectedDate={selectedDate}
-                />
-              </View>
-            )}
-          </View>
-        );
-
-      case 'confirm':
-        return (
-          <View style={styles.confirmContainer}>
-            <View style={styles.confirmHeader}>
-              <CheckCircle size={64} color="#3b82f6" />
-              <Text style={styles.confirmTitle}>Confirm Your Booking</Text>
-              <Text style={styles.confirmSubtitle}>
-                Please review your appointment details
-              </Text>
-            </View>
-
-            <View style={styles.detailsCard}>
-              <View style={styles.detailRow}>
-                <Calendar size={20} color="#3b82f6" />
-                <View style={styles.detailContent}>
-                  <Text style={styles.detailLabel}>Date & Time</Text>
-                  <Text style={styles.detailValue}>
-                    {format(selectedDate!, 'EEEE, MMMM d, yyyy')} at {selectedTime}
-                  </Text>
-                </View>
-              </View>
-
-              <View style={styles.detailRow}>
-                <User size={20} color="#3b82f6" />
-                <View style={styles.detailContent}>
-                  <Text style={styles.detailLabel}>Barber</Text>
-                  <Text style={styles.detailValue}>{selectedBarber?.name}</Text>
-                </View>
-              </View>
-
-              <View style={styles.detailRow}>
-                <Scissors size={20} color="#3b82f6" />
-                <View style={styles.detailContent}>
-                  <Text style={styles.detailLabel}>Services</Text>
-                  <View>
-                    {selectedServicesData.map((service) => (
-                      <Text key={service.id} style={styles.serviceItem}>
-                        {service.name} - ${service.price}
-                      </Text>
-                    ))}
-                  </View>
-                </View>
-              </View>
-
-              <View style={styles.detailRow}>
-                <Clock size={20} color="#3b82f6" />
-                <View style={styles.detailContent}>
-                  <Text style={styles.detailLabel}>Duration</Text>
-                  <Text style={styles.detailValue}>{totalDuration} minutes</Text>
-                </View>
-              </View>
-
-              <View style={styles.totalRow}>
-                <Text style={styles.totalLabel}>Total</Text>
-                <Text style={styles.totalValue}>${totalPrice}</Text>
-              </View>
-            </View>
-
-            <View style={styles.reminderBox}>
-              <Text style={styles.reminderText}>
-                <Text style={styles.reminderBold}>Reminder:</Text> Please arrive 5
-                minutes before your appointment. Cancellations must be made at least 2
-                hours in advance.
-              </Text>
-            </View>
-          </View>
-        );
-
-      default:
-        return null;
-    }
-  };
+  }
 
   return (
-    <SafeAreaView style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
-        <View style={styles.headerTop}>
-          <TouchableOpacity onPress={handleBack} style={styles.backButton}>
-            <ChevronLeft size={24} color="#000" />
-          </TouchableOpacity>
-          <View style={styles.headerTitles}>
-            <Text style={styles.headerTitle}>Book Appointment</Text>
-            <Text style={styles.headerSubtitle}>{shop.name}</Text>
-          </View>
-        </View>
-
-        {renderStepIndicator()}
-      </View>
-
-      {/* Content */}
-      <ScrollView
-        style={styles.content}
+    // 3. Apply top padding dynamically
+    <View style={[styles.mainContainer, { paddingTop: insets.top }]}>
+      <ScrollView 
+        style={styles.scrollView} 
         contentContainerStyle={styles.contentContainer}
         showsVerticalScrollIndicator={false}
       >
-        <View style={styles.card}>{renderContent()}</View>
-      </ScrollView>
+        {/* Header */}
+        <View style={styles.header}>
+          <TouchableOpacity onPress={goBack} style={styles.backBtn}>
+            <ArrowLeft size={18} color={theme.colors.text} />
+          </TouchableOpacity>
+          <View style={styles.headerTextContainer}>
+            <Text style={styles.shopName}>{shop.name}</Text>
+            <Text style={styles.shopAddress}>{shop.address}</Text>
+          </View>
+        </View>
 
-      {/* Bottom Action Bar */}
-      <View style={styles.bottomBar}>
-        {step !== 'confirm' && (
-          <View style={styles.totalContainer}>
-            <Text style={styles.totalSmallLabel}>Total</Text>
-            <Text style={styles.totalSmallValue}>${totalPrice}</Text>
+        {/* Progress Stepper */}
+        <View style={styles.stepperContainer}>
+          {steps.map((s, i) => {
+            const isActive = steps.findIndex((x) => x.key === step) >= i;
+            return (
+              <View key={s.key} style={styles.stepWrapper}>
+                <View style={[styles.stepCircle, isActive && styles.stepCircleActive]}>
+                  <Text style={[styles.stepNumber, isActive && styles.stepNumberActive]}>{i + 1}</Text>
+                </View>
+                <Text style={styles.stepLabel}>{s.label}</Text>
+                {i < steps.length - 1 && <View style={styles.stepLine} />}
+              </View>
+            );
+          })}
+        </View>
+
+        {/* Step: Service */}
+        {step === 'service' && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Choose a Service</Text>
+            {services.map((s) => (
+              <TouchableOpacity
+                key={s.id}
+                onPress={() => { setSelectedService(s.id); setStep('barber'); }}
+                style={[styles.card, selectedService === s.id && styles.cardSelected]}
+              >
+                <View style={styles.cardRow}>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.cardTitle}>{s.name}</Text>
+                    <Text style={styles.cardDesc}>{s.description}</Text>
+                  </View>
+                  <View style={styles.cardRight}>
+                    <Text style={styles.priceText}>${s.price}</Text>
+                    <Text style={styles.durationText}>{s.duration} min</Text>
+                  </View>
+                </View>
+              </TouchableOpacity>
+            ))}
           </View>
         )}
-        <TouchableOpacity
-          style={[
-            styles.actionButton,
-            (!canProceed() || isSubmitting) && styles.actionButtonDisabled,
-          ]}
-          onPress={step === 'confirm' ? handleConfirm : handleNext}
-          disabled={!canProceed() || isSubmitting}
-          activeOpacity={0.8}
-        >
-          {isSubmitting ? (
-            <ActivityIndicator color="#fff" />
-          ) : (
-            <Text style={styles.actionButtonText}>
-              {step === 'confirm' ? 'Confirm Booking' : 'Continue'}
+
+        {/* Step: Barber */}
+        {step === 'barber' && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Choose Your Barber</Text>
+            {barbers.map((b) => (
+              <TouchableOpacity
+                key={b.id}
+                onPress={() => { setSelectedBarber(b.id); setStep('time'); }}
+                style={[styles.card, selectedBarber === b.id && styles.cardSelected]}
+              >
+                <View style={styles.barberRow}>
+                  <View style={styles.avatarPlaceholder}>
+                    <User size={20} color={theme.colors.primary} />
+                  </View>
+                  <View style={styles.barberInfo}>
+                    <Text style={styles.cardTitle}>{b.name}</Text>
+                    <Text style={styles.cardDesc}>{b.specialties.join(' · ')}</Text>
+                  </View>
+                  <View style={styles.ratingBadge}>
+                    <Text style={styles.ratingText}>★ {b.rating}</Text>
+                  </View>
+                </View>
+              </TouchableOpacity>
+            ))}
+            <TouchableOpacity onPress={() => setStep('service')} style={styles.backTextBtn}>
+              <Text style={styles.backText}>← Back</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+
+        {/* Step: Time */}
+        {step === 'time' && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Pick a Day & Time</Text>
+
+            <View style={styles.dayRow}>
+              {[
+                { key: 'today' as const, date: today },
+                { key: 'tomorrow' as const, date: tomorrow },
+              ].map(({ key, date }) => (
+                <TouchableOpacity
+                  key={key}
+                  onPress={() => { setSelectedDay(key); setSelectedTime(null); }}
+                  style={[styles.dayBtn, selectedDay === key && styles.dayBtnActive]}
+                >
+                  <CalendarDays size={18} color={selectedDay === key ? theme.colors.primary : theme.colors.text} />
+                  <View style={{ marginLeft: 8 }}>
+                    <Text style={[styles.dayLabel, selectedDay === key && styles.dayLabelActive]}>
+                      {key.charAt(0).toUpperCase() + key.slice(1)}
+                    </Text>
+                    <Text style={styles.dateSubText}>{format(date, 'EEE, MMM d')}</Text>
+                  </View>
+                </TouchableOpacity>
+              ))}
+            </View>
+
+            <Text style={styles.slotsHeader}>
+              Available slots for {format(selectedDate, 'EEEE, MMMM d')}
             </Text>
-          )}
-        </TouchableOpacity>
-      </View>
-    </SafeAreaView>
+
+            <View style={styles.timeGrid}>
+              {timeSlots.map((t) => (
+                <TouchableOpacity
+                  key={t}
+                  onPress={() => { setSelectedTime(t); setStep('confirm'); }}
+                  style={[styles.timeSlot, selectedTime === t && styles.timeSlotActive]}
+                >
+                  <Text style={[styles.timeText, selectedTime === t && styles.timeTextActive]}>{t}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+
+            <TouchableOpacity onPress={() => setStep('barber')} style={styles.backTextBtn}>
+              <Text style={styles.backText}>← Back</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+
+        {/* Step: Confirm */}
+        {step === 'confirm' && service && barber && selectedTime && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Confirm Booking</Text>
+            
+            <View style={[styles.card, { padding: 24 }]}>
+              <View style={styles.confirmRow}>
+                <CalendarDays size={16} color={theme.colors.primary} />
+                <Text style={styles.confirmText}>{format(selectedDate, 'EEE, MMM d')} at {selectedTime}</Text>
+              </View>
+              <View style={styles.confirmRow}>
+                <User size={16} color={theme.colors.primary} />
+                <Text style={styles.confirmText}>{barber.name}</Text>
+              </View>
+              <View style={styles.confirmRow}>
+                <Check size={16} color={theme.colors.primary} />
+                <Text style={styles.confirmText}>{service.name} ({service.duration} min)</Text>
+              </View>
+              <View style={styles.confirmRow}>
+                <DollarSign size={16} color={theme.colors.primary} />
+                <Text style={[styles.confirmText, { fontWeight: '700' }]}>${service.price}</Text>
+              </View>
+            </View>
+
+            <View style={styles.confirmActions}>
+              <TouchableOpacity 
+                style={[styles.confirmBtn, styles.backBtnOutline]} 
+                onPress={() => setStep('time')}
+              >
+                <Text style={styles.backText}>Back</Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity 
+                style={[styles.confirmBtn, styles.payBtn]} 
+                onPress={handleConfirm}
+              >
+                <Text style={styles.payBtnText}>Confirm & Pay</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        )}
+      </ScrollView>
+    </View>
   );
-}
+};
 
 const styles = StyleSheet.create({
-  container: {
+  // 4. Updated container structure
+  mainContainer: {
     flex: 1,
-    backgroundColor: '#f9fafb',
+    backgroundColor: theme.colors.background,
   },
-  header: {
-    backgroundColor: '#fff',
-    borderBottomWidth: 1,
-    borderBottomColor: '#e5e7eb',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-  },
-  headerTop: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    marginBottom: 16,
-  },
-  backButton: {
-    padding: 4,
-  },
-  headerTitles: {
+  scrollView: {
     flex: 1,
   },
-  headerTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#000',
-  },
-  headerSubtitle: {
-    fontSize: 14,
-    color: '#6b7280',
-    marginTop: 2,
-  },
-  progressContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  progressStepWrapper: {
+  centeredContainer: {
     flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  progressStep: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    borderWidth: 2,
-    borderColor: '#d1d5db',
-    backgroundColor: '#fff',
     justifyContent: 'center',
     alignItems: 'center',
-  },
-  progressStepActive: {
-    borderColor: '#3b82f6',
-    backgroundColor: '#3b82f6',
-  },
-  progressStepCompleted: {
-    borderColor: '#3b82f6',
-    backgroundColor: '#dbeafe',
-  },
-  progressLine: {
-    flex: 1,
-    height: 2,
-    backgroundColor: '#e5e7eb',
-    marginHorizontal: 4,
-  },
-  progressLineCompleted: {
-    backgroundColor: '#3b82f6',
-  },
-  content: {
-    flex: 1,
+    backgroundColor: theme.colors.background,
   },
   contentContainer: {
-    padding: 16,
+    padding: theme.spacing.lg,
+    paddingBottom: 40,
   },
-  card: {
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    padding: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
+  errorText: {
+    color: theme.colors.muted,
+    textAlign: 'center',
+    fontSize: 16,
   },
-  datetimeContainer: {
-    gap: 24,
-  },
-  timeslotContainer: {
-    marginTop: 24,
-  },
-  confirmContainer: {
-    gap: 24,
-  },
-  confirmHeader: {
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  confirmTitle: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#000',
-    marginTop: 12,
-    marginBottom: 8,
-  },
-  confirmSubtitle: {
-    fontSize: 14,
-    color: '#6b7280',
-  },
-  detailsCard: {
-    gap: 16,
-  },
-  detailRow: {
+  header: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: 12,
+    alignItems: 'center',
+    marginBottom: theme.spacing.xl,
   },
-  detailContent: {
+  backBtn: {
+    padding: theme.spacing.sm,
+    marginRight: theme.spacing.sm,
+  },
+  headerTextContainer: {
     flex: 1,
   },
-  detailLabel: {
-    fontSize: 14,
-    color: '#6b7280',
-    marginBottom: 4,
+  shopName: {
+    fontSize: 20,
+    fontFamily: theme.fonts.serif,
+    fontWeight: '700',
+    color: theme.colors.text,
   },
-  detailValue: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#000',
-  },
-  serviceItem: {
-    fontSize: 16,
-    fontWeight: '500',
-    color: '#000',
-    marginBottom: 4,
-  },
-  totalRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingTop: 16,
-    borderTopWidth: 1,
-    borderTopColor: '#e5e7eb',
-  },
-  totalLabel: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#000',
-  },
-  totalValue: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#3b82f6',
-  },
-  reminderBox: {
-    backgroundColor: '#f3f4f6',
-    borderWidth: 1,
-    borderColor: '#e5e7eb',
-    borderRadius: 8,
-    padding: 16,
-  },
-  reminderText: {
-    fontSize: 14,
-    color: '#000',
-    lineHeight: 20,
-  },
-  reminderBold: {
-    fontWeight: '600',
-  },
-  bottomBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: '#fff',
-    borderTopWidth: 1,
-    borderTopColor: '#e5e7eb',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    gap: 12,
-  },
-  totalContainer: {
-    flex: 1,
-  },
-  totalSmallLabel: {
+  shopAddress: {
     fontSize: 12,
-    color: '#6b7280',
+    color: theme.colors.muted,
+    marginTop: 2,
   },
-  totalSmallValue: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#3b82f6',
+
+  // Stepper
+  stepperContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: theme.spacing.xl,
   },
-  actionButton: {
+  stepWrapper: {
     flex: 1,
-    backgroundColor: '#3b82f6',
-    borderRadius: 8,
-    paddingVertical: 14,
+    alignItems: 'center',
+    flexDirection: 'row',
+  },
+  stepCircle: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: theme.colors.surface,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  actionButtonDisabled: {
-    backgroundColor: '#9ca3af',
-    opacity: 0.6,
+  stepCircleActive: {
+    backgroundColor: theme.colors.primary,
+    borderColor: theme.colors.primary,
   },
-  actionButtonText: {
+  stepNumber: {
+    color: theme.colors.muted,
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  stepNumberActive: {
+    color: '#000',
+  },
+  stepLabel: {
+    marginLeft: 8,
+    fontSize: 12,
+    color: theme.colors.muted,
+  },
+  stepLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: theme.colors.border,
+    marginHorizontal: 4,
+  },
+
+  // Sections
+  section: {
+    marginBottom: theme.spacing.lg,
+  },
+  sectionTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#fff',
+    color: theme.colors.text,
+    marginBottom: theme.spacing.md,
+  },
+
+  // Cards
+  card: {
+    backgroundColor: theme.colors.card,
+    borderRadius: theme.radius.lg,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    padding: theme.spacing.lg,
+    marginBottom: theme.spacing.sm,
+  },
+  cardSelected: {
+    borderColor: theme.colors.primary,
+  },
+  cardRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  cardTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: theme.colors.text,
+    marginBottom: 4,
+  },
+  cardDesc: {
+    fontSize: 12,
+    color: theme.colors.muted,
+    marginTop: 2,
+  },
+  cardRight: {
+    alignItems: 'flex-end',
+    marginLeft: 16,
+  },
+  priceText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: theme.colors.primary,
+  },
+  durationText: {
+    fontSize: 12,
+    color: theme.colors.muted,
+  },
+
+  // Barber Card
+  barberRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  avatarPlaceholder: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(212, 175, 55, 0.1)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: theme.spacing.md,
+  },
+  barberInfo: {
+    flex: 1,
+  },
+  ratingBadge: {
+    backgroundColor: 'rgba(212, 175, 55, 0.1)',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 4,
+  },
+  ratingText: {
+    color: theme.colors.primary,
+    fontSize: 12,
+    fontWeight: '600',
+  },
+
+  // Time Selection
+  dayRow: {
+    flexDirection: 'row',
+    gap: theme.spacing.md,
+    marginBottom: theme.spacing.lg,
+  },
+  dayBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: theme.spacing.lg,
+    borderRadius: theme.radius.md,
+    backgroundColor: theme.colors.surface,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+  },
+  dayBtnActive: {
+    borderColor: theme.colors.primary,
+    backgroundColor: 'rgba(212, 175, 55, 0.1)',
+  },
+  dayLabel: {
+    color: theme.colors.text,
+    fontWeight: '500',
+    fontSize: 14,
+  },
+  dayLabelActive: {
+    color: theme.colors.primary,
+  },
+  dateSubText: {
+    fontSize: 12,
+    color: theme.colors.muted,
+    marginTop: 2,
+  },
+  slotsHeader: {
+    fontSize: 14,
+    color: theme.colors.muted,
+    marginBottom: theme.spacing.md,
+  },
+  timeGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: theme.spacing.sm,
+  },
+  timeSlot: {
+    width: (Dimensions.get('window').width - theme.spacing.lg * 2 - theme.spacing.sm * 2) / 3,
+    padding: theme.spacing.md,
+    borderRadius: theme.radius.md,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    alignItems: 'center',
+    backgroundColor: theme.colors.surface,
+  },
+  timeSlotActive: {
+    borderColor: theme.colors.primary,
+    backgroundColor: 'rgba(212, 175, 55, 0.1)',
+  },
+  timeText: {
+    color: theme.colors.text,
+    fontSize: 13,
+  },
+  timeTextActive: {
+    color: theme.colors.primary,
+    fontWeight: '600',
+  },
+
+  // Confirm
+  confirmRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: theme.spacing.md,
+    marginBottom: theme.spacing.md,
+  },
+  confirmText: {
+    color: theme.colors.text,
+    fontSize: 14,
+  },
+  confirmActions: {
+    flexDirection: 'row',
+    gap: theme.spacing.md,
+    marginTop: theme.spacing.lg,
+  },
+  confirmBtn: {
+    flex: 1,
+    padding: theme.spacing.lg,
+    borderRadius: theme.radius.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  backBtnOutline: {
+    backgroundColor: 'transparent',
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+  },
+  backText: {
+    color: theme.colors.muted,
+    fontWeight: '600',
+  },
+  backTextBtn: {
+    marginTop: theme.spacing.md,
+  },
+  payBtn: {
+    backgroundColor: theme.colors.primary,
+  },
+  payBtnText: {
+    color: '#000',
+    fontWeight: '700',
+    fontSize: 14,
   },
 });
+
+export default BookAppointment;

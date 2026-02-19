@@ -1,17 +1,14 @@
-// PublicLayout.tsx
-// React Native version of Public Layout for unauthenticated screens
-
+// src/components/layout/PublicLayout.tsx
 import React from 'react';
 import {
   View,
   Text,
-  ScrollView,
   TouchableOpacity,
   StyleSheet,
   Dimensions,
-  SafeAreaView,
   StatusBar,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { theme } from '../../theme/theme';
@@ -31,6 +28,7 @@ interface PublicLayoutProps {
 const PublicLayout: React.FC<PublicLayoutProps> = ({ children, showNav = true }) => {
   const navigation = useNavigation<NavigationProp>();
   const route = useRoute();
+  const insets = useSafeAreaInsets();
 
   const isLanding = route.name === 'Landing' || route.name === 'Home';
 
@@ -55,7 +53,7 @@ const PublicLayout: React.FC<PublicLayoutProps> = ({ children, showNav = true })
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <View style={styles.container}>
       <StatusBar
         barStyle="light-content"
         backgroundColor={isLanding ? 'transparent' : theme.colors.background}
@@ -63,51 +61,54 @@ const PublicLayout: React.FC<PublicLayoutProps> = ({ children, showNav = true })
       />
 
       {/* Header */}
-      <View style={[styles.header, isLanding && styles.headerTransparent]}>
-        <TouchableOpacity onPress={handleHome} activeOpacity={0.7}>
-          <Logo size="sm" />
-        </TouchableOpacity>
+      <View
+        style={[
+          // Removed styles.header as styles are handled by headerSolid/headerTransparent
+          isLanding ? styles.headerTransparent : styles.headerSolid,
+          { paddingTop: insets.top },
+        ]}
+      >
+        <View style={styles.headerContent}>
+          <TouchableOpacity onPress={handleHome} activeOpacity={0.7} style={styles.logoContainer}>
+            <Logo size="sm" />
+          </TouchableOpacity>
 
-        {showNav && (
-          <>
-            {/* Desktop/Tablet Navigation */}
-            {isTablet && (
-              <View style={styles.desktopNav}>
-                <TouchableOpacity onPress={handleHome} activeOpacity={0.7}>
-                  <Text style={styles.navLink}>Home</Text>
+          {showNav && (
+            <>
+              {/* Desktop/Tablet Navigation */}
+              {isTablet && (
+                <View style={styles.desktopNav}>
+                  <TouchableOpacity onPress={handleHome} activeOpacity={0.7}>
+                    <Text style={styles.navLink}>Home</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity onPress={handleAbout} activeOpacity={0.7}>
+                    <Text style={styles.navLink}>About</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity onPress={handleContact} activeOpacity={0.7}>
+                    <Text style={styles.navLink}>Contact</Text>
+                  </TouchableOpacity>
+                </View>
+              )}
+
+              {/* Auth Buttons */}
+              <View style={styles.authButtons}>
+                <TouchableOpacity style={styles.signInButton} onPress={handleLogin} activeOpacity={0.7}>
+                  <Text style={styles.signInText}>Sign In</Text>
                 </TouchableOpacity>
-                <TouchableOpacity onPress={handleAbout} activeOpacity={0.7}>
-                  <Text style={styles.navLink}>About</Text>
-                </TouchableOpacity>
-                <TouchableOpacity onPress={handleContact} activeOpacity={0.7}>
-                  <Text style={styles.navLink}>Contact</Text>
+                <TouchableOpacity style={styles.getStartedButton} onPress={handleRegister} activeOpacity={0.8}>
+                  <Text style={styles.getStartedText}>Get Started</Text>
                 </TouchableOpacity>
               </View>
-            )}
-
-            {/* Auth Buttons */}
-            <View style={styles.authButtons}>
-              <TouchableOpacity style={styles.signInButton} onPress={handleLogin} activeOpacity={0.7}>
-                <Text style={styles.signInText}>Sign In</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.getStartedButton} onPress={handleRegister} activeOpacity={0.8}>
-                <Text style={styles.getStartedText}>Get Started</Text>
-              </TouchableOpacity>
-            </View>
-          </>
-        )}
+            </>
+          )}
+        </View>
       </View>
 
-      {/* Main Content */}
-      <ScrollView
-        style={styles.content}
-        contentContainerStyle={styles.contentContainer}
-        showsVerticalScrollIndicator={false}
-        bounces={false}
-      >
+      {/* Main Content Area */}
+      <View style={styles.mainContent}>
         {children}
-      </ScrollView>
-    </SafeAreaView>
+      </View>
+    </View>
   );
 };
 
@@ -116,31 +117,37 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: theme.colors.background,
   },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: theme.spacing.lg,
-    paddingVertical: theme.spacing.md,
+  // Solid Header for About, Contact, etc.
+  headerSolid: {
     backgroundColor: theme.colors.background,
     borderBottomWidth: 1,
     borderBottomColor: theme.colors.border,
-    minHeight: 56,
-    zIndex: 50,
   },
+  // Transparent Header for Landing
   headerTransparent: {
-    backgroundColor: 'rgba(10, 10, 10, 0.6)',
-    borderBottomWidth: 0,
+    backgroundColor: 'transparent',
     position: 'absolute',
     top: 0,
     left: 0,
     right: 0,
     zIndex: 50,
+    borderBottomWidth: 0,
+  },
+  headerContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    minHeight: 56,
+    paddingHorizontal: theme.spacing.lg,
+  },
+  logoContainer: {
+    flexShrink: 1,
   },
   desktopNav: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: theme.spacing.xl,
+    marginHorizontal: theme.spacing.xl,
   },
   navLink: {
     fontSize: 14,
@@ -151,6 +158,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: theme.spacing.sm,
+    flexShrink: 0,
   },
   signInButton: {
     paddingHorizontal: theme.spacing.lg,
@@ -176,11 +184,8 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: theme.colors.primaryText,
   },
-  content: {
+  mainContent: {
     flex: 1,
-  },
-  contentContainer: {
-    flexGrow: 1,
   },
 });
 

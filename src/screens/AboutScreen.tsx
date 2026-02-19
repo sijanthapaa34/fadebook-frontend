@@ -11,7 +11,7 @@ export default function About() {
     <View style={styles.container}>
       <ScrollView contentContainerStyle={styles.scrollContent}>
         <View style={styles.content}>
-          <Text style={styles.title}>About BarberBook</Text>
+          <Text style={styles.title}>About FadeBook</Text>
 
           {/* Mission Card */}
           <View style={styles.card}>

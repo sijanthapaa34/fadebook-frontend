@@ -5,12 +5,12 @@ export interface User {
   id: string;       // from JWT sub
   email: string;    // from JWT
   role: UserRole;   // from JWT
+  name: string;
+  phone?: string;
 }
 
 // Customer info (fetched from backend)
 export interface Customer extends User {
-  name: string;
-  phone?: string;
   avatar?: string;
   points?: number;
   totalBookings?: number;
@@ -20,8 +20,6 @@ export interface Customer extends User {
 
 // Barber info (fetched from backend)
 export interface Barber extends User {
-  name: string;
-  phone?: string;
   avatar?: string; // profilePicture
   bio?: string;
   experienceYears?: number;
@@ -35,19 +33,29 @@ export interface Barber extends User {
   shopId?: string;
 }
 
-// Shop info (minimal for mobile)
-export interface Shop {
-  id: string;
+// src/types/barbershop.ts
+export interface Barbershop {
+  id: number;
   name: string;
   address: string;
-  lat?: number;
-  lng?: number;
-  rating?: number;
-  reviewCount?: number;
-  priceCategory?: 1 | 2 | 3;
-  hours?: { open: string; close: string };
-  image?: string;
-  services?: string[];
+  city: string;
+  state: string | null;
+  postalCode: string;
+  phone: string;
+  email: string;
+  website: string | null;
+  operatingHours: string;
+  profilePicture: string;
+  rating: number;
+}
+
+export interface PageResponse<T> {
+  content: T[];
+  page: number;
+  size: number;
+  totalElements: number;
+  totalPages: number;
+  last: boolean;
 }
 
 // Service info

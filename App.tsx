@@ -10,6 +10,9 @@ import { navigationRef } from './src/navigation/NavigationService';
 import { useAuthStore } from './src/store/authStore';
 import type { RootStackParamList } from './src/navigation/NavigationService';
 
+// --- ADD THIS IMPORT ---
+import { configureGoogleSignin } from './src/api/authService';
+
 // Layouts
 import DashboardLayout from './src/components/layout/DashboardLayout';
 import PublicLayout from './src/components/layout/PublicLayout';
@@ -21,15 +24,8 @@ import Register from './src/screens/RegisterScreen';
 import About from './src/screens/AboutScreen';
 import Contact from './src/screens/ContactScreen';
 import CustomerDashboard from './src/screens/customer/CustomerDashboardScreen';
-// import CustomerAppointments from './src/screens/customer/CustomerAppointmentsScreen';
-// import CustomerPayments from './src/screens/customer/CustomerPaymentsScreen';
-// import CustomerChat from './src/screens/customer/CustomerChatScreen';
-// import CustomerProfile from './src/screens/customer/CustomerProfileScreen';
-// import BookAppointment from './src/screens/customer/BookAppointmentScreen';
-// import BarberDashboard from './src/screens/barber/BarberDashboardScreen';
-// import BarberSchedule from './src/screens/barber/BarberScheduleScreen';
-// import BarberEarnings from './src/screens/barber/BarberEarningsScreen';
-// import BarberProfile from './src/screens/barber/BarberProfileScreen';
+// --- ADD THIS IMPORT ---
+import BookAppointment from './src/screens/customer/BookAppointmentScreen';
 import NotFound from './src/screens/NotFoundScreen';
 
 // -------------------- React Query --------------------
@@ -48,19 +44,21 @@ const Stack = createNativeStackNavigator<RootStackParamList>();
 export default function App() {
   const isDarkMode = useColorScheme() === 'dark';
 
-  // Get auth store
   const initialize = useAuthStore((s) => s.initialize);
   const logout = useAuthStore((s) => s.logout);
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const isLoading = useAuthStore((s) => s.isLoading);
   const user = useAuthStore((s) => s.user);
 
-  // Initialize auth on app start
   useEffect(() => {
     initialize();
+    
+    // --- ADD THIS LINE ---
+    // Configure Google Sign-In immediately when app starts
+    configureGoogleSignin();
+    
   }, [initialize]);
 
-  // Loading state
   if (isLoading) {
     return (
       <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#0A0A0A' }}>
@@ -96,21 +94,8 @@ export default function App() {
                   )}
                 </Stack.Screen>
                 
-                <Stack.Screen name="Login">
-                  {() => (
-                    <PublicLayout>
-                      <Login />
-                    </PublicLayout>
-                  )}
-                </Stack.Screen>
-                
-                <Stack.Screen name="Register">
-                  {() => (
-                    <PublicLayout>
-                      <Register />
-                    </PublicLayout>
-                  )}
-                </Stack.Screen>
+                <Stack.Screen name="Login" component={Login} />
+                <Stack.Screen name="Register" component={Register} />
                 
                 <Stack.Screen name="About">
                   {() => (
@@ -141,84 +126,11 @@ export default function App() {
                   )}
                 </Stack.Screen>
                 
-                {/* <Stack.Screen name="CustomerAppointments">
-                  {() => (
-                    <DashboardLayout user={user!} onLogout={logout}>
-                      <CustomerAppointments />
-                    </DashboardLayout>
-                  )}
-                </Stack.Screen>
-                
-                <Stack.Screen name="CustomerPayments">
-                  {() => (
-                    <DashboardLayout user={user!} onLogout={logout}>
-                      <CustomerPayments />
-                    </DashboardLayout>
-                  )}
-                </Stack.Screen>
-                
-                <Stack.Screen name="CustomerChat">
-                  {() => (
-                    <DashboardLayout user={user!} onLogout={logout}>
-                      <CustomerChat />
-                    </DashboardLayout>
-                  )}
-                </Stack.Screen>
-                
-                <Stack.Screen name="CustomerProfile">
-                  {() => (
-                    <DashboardLayout user={user!} onLogout={logout}>
-                      <CustomerProfile />
-                    </DashboardLayout>
-                  )}
-                </Stack.Screen>
-                
-                <Stack.Screen name="BookAppointment">
-                  {() => (
-                    <DashboardLayout user={user!} onLogout={logout}>
-                      <BookAppointment />
-                    </DashboardLayout>
-                  )}
-                </Stack.Screen> */}
+                {/* Added BookAppointment Screen */}
+                {/* We keep it outside DashboardLayout so it appears as a full screen stack */}
+                <Stack.Screen name="BookAppointment" component={BookAppointment} />
               </>
             )}
-
-            {/* ---------------- BARBER ---------------- */}
-            {/* {isAuthenticated && role === 'BARBER' && (
-              <>
-                <Stack.Screen name="BarberDashboard">
-                  {() => (
-                    <DashboardLayout user={user!} onLogout={logout}>
-                      <BarberDashboard />
-                    </DashboardLayout>
-                  )}
-                </Stack.Screen>
-                
-                <Stack.Screen name="BarberSchedule">
-                  {() => (
-                    <DashboardLayout user={user!} onLogout={logout}>
-                      <BarberSchedule />
-                    </DashboardLayout>
-                  )}
-                </Stack.Screen>
-                
-                <Stack.Screen name="BarberEarnings">
-                  {() => (
-                    <DashboardLayout user={user!} onLogout={logout}>
-                      <BarberEarnings />
-                    </DashboardLayout>
-                  )}
-                </Stack.Screen>
-                
-                <Stack.Screen name="BarberProfile">
-                  {() => (
-                    <DashboardLayout user={user!} onLogout={logout}>
-                      <BarberProfile />
-                    </DashboardLayout>
-                  )}
-                </Stack.Screen>
-              </>
-            )} */}
 
             {/* ---------------- FALLBACK ---------------- */}
             <Stack.Screen name="NotFound" component={NotFound} />
