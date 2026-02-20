@@ -1,6 +1,4 @@
-// DashboardLayout.tsx
-// React Native version of Dashboard Layout with mobile navigation
-
+// src/components/layout/DashboardLayout.tsx
 import React from 'react';
 import {
   View,
@@ -30,7 +28,9 @@ import {
 } from 'lucide-react-native';
 import { theme } from '../../theme/theme';
 import Logo from '../../components/Logo';
-import type { RootStackParamList } from '../../navigation/NavigationService';
+
+// FIX: Import from AppNavigator
+import type { RootStackParamList } from '../../navigation/AppNavigator';
 import type { UserRole } from '../../models/models';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
@@ -38,7 +38,6 @@ type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 const { width } = Dimensions.get('window');
 const isTablet = width >= 768;
 
-// Icon component type
 type IconComponentType = React.ComponentType<{
   size?: number;
   color?: string;
@@ -79,7 +78,9 @@ interface DashboardLayoutProps {
 const DashboardLayout: React.FC<DashboardLayoutProps> = ({ user, children, onLogout }) => {
   const navigation = useNavigation<NavigationProp>();
   const route = useRoute();
-  const navItems = navConfig[user.role];
+  
+  // FIX: Add fallback to empty array if user.role is missing or invalid
+  const navItems = navConfig[user.role] || [];
 
   const currentPath = route.name;
 
@@ -87,17 +88,15 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ user, children, onLog
     navigation.navigate(path as any);
   };
 
-  // Render icon with proper typing
   const renderIcon = (Icon: IconComponentType, isActive: boolean, size: number = 18) => {
     const color = isActive ? theme.colors.primary : theme.colors.muted;
     return <Icon size={size} color={color} strokeWidth={2} />;
   };
 
-  // Tablet Layout with Sidebar
+  // Tablet Layout
   if (isTablet) {
     return (
       <View style={styles.tabletContainer}>
-        {/* Sidebar */}
         <View style={styles.sidebar}>
           <View style={styles.sidebarHeader}>
             <Logo size="sm" />
@@ -131,7 +130,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ user, children, onLog
                 <Text style={styles.userName} numberOfLines={1}>
                   {user.name}
                 </Text>
-                <Text style={styles.userRole}>{user.role.replace('_', ' ')}</Text>
+                <Text style={styles.userRole}>{user.role}</Text>
               </View>
             </View>
             <TouchableOpacity style={styles.logoutButton} onPress={onLogout} activeOpacity={0.7}>
@@ -141,7 +140,6 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ user, children, onLog
           </View>
         </View>
 
-        {/* Main Content - FIXED: Removed ScrollView wrapper */}
         <View style={styles.mainContent}>
             {children}
         </View>
@@ -149,10 +147,9 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ user, children, onLog
     );
   }
 
-  // Mobile Layout with Bottom Tabs
+  // Mobile Layout
   return (
     <View style={styles.mobileContainer}>
-      {/* Header */}
       <View style={styles.mobileHeader}>
         <Logo size="sm" />
         <TouchableOpacity style={styles.headerLogout} onPress={onLogout} activeOpacity={0.7}>
@@ -160,12 +157,11 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ user, children, onLog
         </TouchableOpacity>
       </View>
 
-      {/* Main Content - FIXED: Removed ScrollView, added flex: 1 */}
       <View style={styles.mobileContent}>
         {children}
       </View>
 
-      {/* Bottom Navigation - FIXED: Removed absolute positioning */}
+      {/* This is where the crash happened. navItems is now guaranteed to be an array [] */}
       <View style={styles.bottomNav}>
         {navItems.slice(0, 5).map((item) => {
           const isActive = currentPath === item.path;
@@ -189,7 +185,6 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ user, children, onLog
 };
 
 const styles = StyleSheet.create({
-  // Tablet Styles
   tabletContainer: {
     flex: 1,
     flexDirection: 'row',
@@ -288,10 +283,8 @@ const styles = StyleSheet.create({
     color: theme.colors.muted,
   },
   mainContent: {
-    flex: 1, // Takes up remaining space
+    flex: 1,
   },
-
-  // Mobile Styles
   mobileContainer: {
     flex: 1,
     backgroundColor: theme.colors.background,
@@ -311,7 +304,7 @@ const styles = StyleSheet.create({
     padding: theme.spacing.sm,
   },
   mobileContent: {
-    flex: 1, // Takes up remaining space between header and bottom nav
+    flex: 1,
   },
   bottomNav: {
     flexDirection: 'row',
@@ -322,7 +315,6 @@ const styles = StyleSheet.create({
     borderTopColor: theme.colors.border,
     paddingVertical: theme.spacing.sm,
     paddingBottom: 28,
-    // REMOVED: position: 'absolute', bottom: 0, left: 0, right: 0
   },
   bottomNavItem: {
     alignItems: 'center',

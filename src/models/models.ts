@@ -101,3 +101,72 @@ export interface LoyaltyPoints {
   points: number;
   history: { date: string; points: number; description: string }[];
 }
+// Add these to your existing models.ts file
+
+export interface ServiceDTO {
+  id: number;
+  name: string;
+  description: string;
+  price: number;
+  durationMinutes: number;
+  barberShop: string;
+}
+
+export interface BarberDTO {
+  id: number;
+  name: string;
+  barbershop: string;
+  active: boolean;
+  email: string;
+  phone: string;
+  bio: string;
+  profilePicture: string | null;
+  rating: number;
+  experienceYears: number;
+  available: boolean;
+}
+
+export interface TimeSlotDTO {
+  startTime: string; // LocalDateTime string e.g. "2023-10-27T09:00:00"
+  endTime: string;
+}
+
+export interface AvailableSlotsResponseDTO {
+  date: string;
+  availableSlots: TimeSlotDTO[];
+  bookedSlots: TimeSlotDTO[];
+}
+
+export interface CreateAppointmentRequest {
+  barberId: number;
+  barbershopId: number; 
+  serviceIds: number[];
+  scheduledTime: string; // Format: "YYYY-MM-DDTHH:mm:ss"
+}
+
+
+export type AppointmentStatus = 'PENDING' | 'CONFIRMED' | 'COMPLETED' | 'CANCELLED' | 'NO_SHOW';
+export type PaymentStatus = 'PENDING' | 'PAID' | 'REFUNDED';
+
+export interface AppointmentDetailsResponse {
+  appointmentId: number;
+  customerId: number;
+  customerName: string;
+  barberId: number;
+  barberName: string;
+  barbershopId: number;
+  barbershopName: string;
+  services: ServiceDTO[];
+  totalPrice: number;
+  totalDurationMinutes: number;
+  status: AppointmentStatus;
+  scheduledTime: string;
+  checkInTime?: string;
+  completedTime?: string;
+  paymentStatus: PaymentStatus;
+  paidAmount?: number;
+  paymentMethod?: string;
+  customerNotes?: string;
+  barberNotes?: string;
+  createdAt: string;
+}

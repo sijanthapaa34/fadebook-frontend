@@ -1,24 +1,20 @@
 // src/screens/customer/CustomerDashboardScreen.tsx
-import React, { useState, useEffect, useMemo, memo } from 'react';
+import React, { useState, useMemo, memo } from 'react';
 import {
-  View,
-  Text,
-  TextInput,
-  FlatList,
-  TouchableOpacity,
-  StyleSheet,
-  ActivityIndicator,
+  View, Text, TextInput, FlatList, TouchableOpacity, StyleSheet, ActivityIndicator,
 } from 'react-native';
-import { useNavigation } from '@react-navigation/native'; // 1. Import hook
+import { useNavigation } from '@react-navigation/native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useInfiniteQuery } from '@tanstack/react-query';
 import { Search, MapPin, Star, Clock, Navigation } from 'lucide-react-native';
 import { theme } from '../../theme/theme';
 import { fetchShops } from '../../api/barbershopService';
 import { Barbershop } from '../../models/models';
-import type { NativeStackNavigationProp } from '@react-navigation/native-stack'; // For typing
-import type { RootStackParamList } from '../../navigation/NavigationService'; // Import your root param list
+import type { RootStackParamList } from '../../navigation/AppNavigator';
 
-// --- ListHeader Component (Unchanged) ---
+type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
+
+// --- ListHeader Component ---
 interface ListHeaderProps {
   userCoords: { latitude: number; longitude: number } | null;
   search: string;
@@ -65,8 +61,7 @@ const ListHeader = memo(({ userCoords, search, setSearch, isLoading, listTitle }
 
 
 const CustomerDashboard = () => {
-  // 2. Initialize navigation
-  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  const navigation = useNavigation<NavigationProp>();
   
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
@@ -76,34 +71,19 @@ const CustomerDashboard = () => {
     longitude: 85.3073
   });
 
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setDebouncedSearch(search);
-    }, 500);
+  React.useEffect(() => {
+    const timer = setTimeout(() => setDebouncedSearch(search), 500);
     return () => clearTimeout(timer);
   }, [search]);
 
-  const {
-    data,
-    isLoading,
-    isError,
-    fetchNextPage,
-    hasNextPage,
-    isFetchingNextPage,
-  } = useInfiniteQuery({
+  const { data, isLoading, fetchNextPage, hasNextPage, isFetchingNextPage } = useInfiniteQuery({
     queryKey: ['shops', debouncedSearch, userCoords],
     queryFn: ({ pageParam = 0 }) => 
       fetchShops({
-        page: pageParam,
-        size: 10,
-        search: debouncedSearch,
-        latitude: userCoords?.latitude,
-        longitude: userCoords?.longitude,
+        page: pageParam, size: 10, search: debouncedSearch,
+        latitude: userCoords?.latitude, longitude: userCoords?.longitude,
       }),
-    getNextPageParam: (lastPage) => {
-      if (lastPage.last) return undefined;
-      return lastPage.page + 1;
-    },
+    getNextPageParam: (lastPage) => lastPage.last ? undefined : lastPage.page + 1,
     initialPageParam: 0,
   });
 
@@ -115,21 +95,21 @@ const CustomerDashboard = () => {
     return "Top Rated Shops";
   }, [debouncedSearch, userCoords]);
 
-  // 3. Updated renderItem with navigation
   const renderItem = ({ item }: { item: Barbershop }) => (
     <TouchableOpacity 
       style={styles.shopCard} 
       activeOpacity={0.7}
-      onPress={() => navigation.navigate('BookAppointment', { shopId: item.id.toString() })}
+      onPress={() => navigation.navigate('BookAppointment', { 
+        shopId: item.id.toString(), // FIX: Ensure ID is string
+        shopName: item.name 
+      })}
     >
       <View style={styles.shopHeader}>
         <View style={styles.shopInfo}>
           <Text style={styles.shopName}>{item.name}</Text>
           <View style={styles.addressRow}>
             <MapPin size={12} color={theme.colors.muted} />
-            <Text style={styles.addressText}>
-              {item.address}, {item.city}
-            </Text>
+            <Text style={styles.addressText}>{item.address}, {item.city}</Text>
           </View>
         </View>
         <View style={styles.ratingContainer}>
@@ -147,21 +127,6 @@ const CustomerDashboard = () => {
     </TouchableOpacity>
   );
 
-  const renderFooter = () => {
-    if (!isFetchingNextPage) return null;
-    return <ActivityIndicator size="large" color={theme.colors.primary} style={{ marginVertical: 20 }} />;
-  };
-
-  const renderEmpty = () => {
-    if (isLoading) return null;
-    return (
-      <View style={styles.emptyState}>
-        <Text style={styles.emptyText}>No shops found</Text>
-        <Text style={styles.emptySubtext}>Try adjusting your search or location</Text>
-      </View>
-    );
-  };
-
   return (
     <View style={styles.container}>
       <FlatList
@@ -169,23 +134,8 @@ const CustomerDashboard = () => {
         keyExtractor={(item) => item.id.toString()}
         renderItem={renderItem}
         contentContainerStyle={styles.listContent}
-        ListHeaderComponent={
-          <ListHeader 
-            userCoords={userCoords} 
-            search={search} 
-            setSearch={setSearch} 
-            isLoading={isLoading} 
-            listTitle={listTitle} 
-          />
-        }
-        ListFooterComponent={renderFooter}
-        ListEmptyComponent={renderEmpty}
-        
-        onEndReached={() => {
-          if (hasNextPage && !isFetchingNextPage) {
-            fetchNextPage();
-          }
-        }}
+        ListHeaderComponent={<ListHeader userCoords={userCoords} search={search} setSearch={setSearch} isLoading={isLoading} listTitle={listTitle} />}
+        onEndReached={() => { if (hasNextPage && !isFetchingNextPage) fetchNextPage(); }}
         onEndReachedThreshold={0.5}
         showsVerticalScrollIndicator={false}
       />
@@ -193,167 +143,31 @@ const CustomerDashboard = () => {
   );
 };
 
-// Styles remain the same
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: theme.colors.background,
-  },
-  listContent: {
-    paddingBottom: 30,
-  },
-  headerSection: {
-    paddingHorizontal: theme.spacing.lg,
-    paddingTop: theme.spacing.xl,
-    paddingBottom: theme.spacing.lg,
-  },
-  title: {
-    fontSize: 28,
-    fontFamily: theme.fonts.serif,
-    fontWeight: '700',
-    color: theme.colors.text,
-    marginBottom: theme.spacing.xs,
-  },
-  subtitle: {
-    fontSize: 14,
-    fontFamily: theme.fonts.sans,
-    color: theme.colors.muted,
-  },
-  searchContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginHorizontal: theme.spacing.lg,
-    marginBottom: theme.spacing.lg,
-    backgroundColor: 'rgba(39, 39, 42, 0.3)',
-    borderRadius: theme.radius.md,
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-    paddingHorizontal: theme.spacing.md,
-  },
-  searchIcon: {
-    marginRight: theme.spacing.sm,
-  },
-  searchInput: {
-    flex: 1,
-    height: 44,
-    fontSize: 14,
-    fontFamily: theme.fonts.sans,
-    color: theme.colors.text,
-  },
-  mapPlaceholder: {
-    marginHorizontal: theme.spacing.lg,
-    marginBottom: theme.spacing.xl,
-    height: 180,
-    backgroundColor: 'rgba(24, 24, 27, 0.4)',
-    borderRadius: theme.radius.lg,
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  mapTitle: {
-    fontSize: 14,
-    fontFamily: theme.fonts.sans,
-    color: theme.colors.muted,
-    marginTop: theme.spacing.sm,
-  },
-  mapSubtitle: {
-    fontSize: 12,
-    fontFamily: theme.fonts.sans,
-    color: theme.colors.muted,
-    marginTop: theme.spacing.xs,
-  },
-  sectionHeader: {
-    paddingHorizontal: theme.spacing.lg,
-    marginBottom: theme.spacing.md,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontFamily: theme.fonts.sans,
-    fontWeight: '600',
-    color: theme.colors.text,
-  },
-  shopCard: {
-    backgroundColor: 'rgba(24, 24, 27, 0.4)',
-    borderRadius: theme.radius.lg,
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-    padding: theme.spacing.lg,
-    marginHorizontal: theme.spacing.lg,
-    marginBottom: theme.spacing.md,
-  },
-  shopHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: theme.spacing.md,
-  },
-  shopInfo: {
-    flex: 1,
-    marginRight: theme.spacing.md,
-  },
-  shopName: {
-    fontSize: 16,
-    fontFamily: theme.fonts.sans,
-    fontWeight: '600',
-    color: theme.colors.text,
-    marginBottom: theme.spacing.xs,
-  },
-  addressRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: theme.spacing.xs,
-  },
-  addressText: {
-    fontSize: 12,
-    fontFamily: theme.fonts.sans,
-    color: theme.colors.muted,
-  },
-  ratingContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: theme.spacing.xs,
-  },
-  ratingText: {
-    fontSize: 14,
-    fontFamily: theme.fonts.sans,
-    fontWeight: '600',
-    color: theme.colors.primary,
-  },
-  shopFooter: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  hoursRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: theme.spacing.xs,
-  },
-  hoursText: {
-    fontSize: 12,
-    fontFamily: theme.fonts.sans,
-    color: theme.colors.muted,
-  },
-  emptyState: {
-    alignItems: 'center',
-    paddingVertical: theme.spacing.xxl,
-    paddingHorizontal: theme.spacing.lg,
-  },
-  emptyText: {
-    fontSize: 16,
-    fontFamily: theme.fonts.sans,
-    fontWeight: '600',
-    color: theme.colors.text,
-    marginBottom: theme.spacing.xs,
-    textAlign: 'center',
-  },
-  emptySubtext: {
-    fontSize: 14,
-    fontFamily: theme.fonts.sans,
-    color: theme.colors.muted,
-    textAlign: 'center',
-  },
+  container: { flex: 1, backgroundColor: theme.colors.background },
+  listContent: { paddingBottom: 30 },
+  headerSection: { paddingHorizontal: theme.spacing.lg, paddingTop: theme.spacing.xl, paddingBottom: theme.spacing.lg },
+  title: { fontSize: 28, fontFamily: theme.fonts.serif, fontWeight: '700', color: theme.colors.text, marginBottom: theme.spacing.xs },
+  subtitle: { fontSize: 14, fontFamily: theme.fonts.sans, color: theme.colors.muted },
+  searchContainer: { flexDirection: 'row', alignItems: 'center', marginHorizontal: theme.spacing.lg, marginBottom: theme.spacing.lg, backgroundColor: 'rgba(39, 39, 42, 0.3)', borderRadius: theme.radius.md, borderWidth: 1, borderColor: theme.colors.border, paddingHorizontal: theme.spacing.md },
+  searchIcon: { marginRight: theme.spacing.sm },
+  searchInput: { flex: 1, height: 44, fontSize: 14, fontFamily: theme.fonts.sans, color: theme.colors.text },
+  mapPlaceholder: { marginHorizontal: theme.spacing.lg, marginBottom: theme.spacing.xl, height: 180, backgroundColor: 'rgba(24, 24, 27, 0.4)', borderRadius: theme.radius.lg, borderWidth: 1, borderColor: theme.colors.border, alignItems: 'center', justifyContent: 'center' },
+  mapTitle: { fontSize: 14, fontFamily: theme.fonts.sans, color: theme.colors.muted, marginTop: theme.spacing.sm },
+  mapSubtitle: { fontSize: 12, fontFamily: theme.fonts.sans, color: theme.colors.muted, marginTop: theme.spacing.xs },
+  sectionHeader: { paddingHorizontal: theme.spacing.lg, marginBottom: theme.spacing.md },
+  sectionTitle: { fontSize: 18, fontFamily: theme.fonts.sans, fontWeight: '600', color: theme.colors.text },
+  shopCard: { backgroundColor: theme.colors.card, borderRadius: theme.radius.lg, borderWidth: 1, borderColor: theme.colors.border, padding: theme.spacing.lg, marginHorizontal: theme.spacing.lg, marginBottom: theme.spacing.md },
+  shopHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: theme.spacing.md },
+  shopInfo: { flex: 1, marginRight: theme.spacing.md },
+  shopName: { fontSize: 16, fontFamily: theme.fonts.sans, fontWeight: '600', color: theme.colors.text, marginBottom: theme.spacing.xs },
+  addressRow: { flexDirection: 'row', alignItems: 'center' },
+  addressText: { fontSize: 12, fontFamily: theme.fonts.sans, color: theme.colors.muted, marginLeft: 4 },
+  ratingContainer: { flexDirection: 'row', alignItems: 'center' },
+  ratingText: { fontSize: 14, fontFamily: theme.fonts.sans, fontWeight: '600', color: theme.colors.primary, marginLeft: 4 },
+  shopFooter: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  hoursRow: { flexDirection: 'row', alignItems: 'center' },
+  hoursText: { fontSize: 12, fontFamily: theme.fonts.sans, color: theme.colors.muted, marginLeft: 4 },
 });
 
 export default CustomerDashboard;

@@ -1,13 +1,7 @@
+// src/api/authService.ts
 import api from './api';
-import { jwtDecode } from 'jwt-decode';
 import { User, UserRole } from '../models/models';
 import { GoogleSignin, statusCodes } from '@react-native-google-signin/google-signin';
-
-interface JWTPayload {
-  role: string;
-  sub: string;
-  email: string;
-}
 
 export interface RegisterCustomerRequest { 
   name: string; 
@@ -23,18 +17,29 @@ const fetchUserProfile = async (token: string): Promise<User> => {
     const res = await api.get<User>('/auth/me', {
       headers: { Authorization: `Bearer ${token}` },
     });
-    const user = res.data;
-    if (user.role) {
-        user.role = user.role.toUpperCase() as UserRole;
-    }
-    return user;
+    
+    const rawUser = res.data;
+
+    // FIX: Normalize data to prevent crashes
+    const safeUser: User = {
+      ...rawUser,
+      // Ensure name is always a string
+      name: rawUser.name || 'User', 
+      // Ensure role is uppercase string
+      role: (rawUser.role || 'CUSTOMER').toString().toUpperCase() as UserRole,
+      // Ensure phone is string
+      phone: rawUser.phone || '',
+    };
+    
+    console.log('Fetched & Normalized User:', safeUser);
+    return safeUser;
   } catch (error) {
     console.error('Failed to fetch user profile', error);
     throw new Error('Could not fetch user details after login');
   }
 };
 
-// --- Google Configuration (Call this in App.tsx) ---
+// --- Google Configuration ---
 export const configureGoogleSignin = () => {
   GoogleSignin.configure({
     webClientId: '330770558960-rst7s8nhiormbq19dddgorhq9p1uo0q5.apps.googleusercontent.com', 
@@ -47,7 +52,7 @@ export const configureGoogleSignin = () => {
 
 export const loginRequest = async (email: string, password: string): Promise<{ user: User; token: string }> => {
   const res = await api.post('/auth/login', { email, password });
-  const token = res.data.token;
+  const token = res.data.token || res.data; 
   if (!token) throw new Error('No token returned');
   const userProfile = await fetchUserProfile(token);
   return { user: userProfile, token };

@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+// src/screens/RegisterScreen.tsx
+import React, { useState } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet, 
   ScrollView, Alert, ActivityIndicator,
@@ -10,9 +11,8 @@ import Svg, { Path } from 'react-native-svg';
 import Logo from '../components/Logo';
 import { theme } from '../theme/theme';
 import { useAuthStore } from '../store/authStore';
-import type { RootStackParamList } from '../navigation/NavigationService';
-import { redirectByRole } from '../navigation/NavigationService';
 
+import type { RootStackParamList } from '../navigation/AppNavigator';
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
 // SVG Icons for Social Buttons
@@ -44,7 +44,8 @@ const Register = () => {
   // Connect to Store
   const register = useAuthStore((s) => s.register);
   const googleLogin = useAuthStore((s) => s.googleLogin);
-  const user = useAuthStore((s) => s.user);
+  // REMOVED: user selection and redirect logic. 
+  // AppNavigator handles switching screens when 'user' is set.
 
   const [form, setForm] = useState({
     name: '',
@@ -54,13 +55,6 @@ const Register = () => {
     preferences: '',
     isLoading: false,
   });
-
-  // Redirect if user logs in/registers
-  useEffect(() => {
-    if (user?.role) {
-      redirectByRole(user.role);
-    }
-  }, [user]);
 
   const handleChange = (key: string, value: string) => {
     setForm((prev) => ({ ...prev, [key]: value }));
@@ -76,7 +70,7 @@ const Register = () => {
     try {
       setForm((prev) => ({ ...prev, isLoading: true }));
       await register({ name, email, password, phone, preferences });
-      // Navigation handled by useEffect
+      // Navigation handled automatically by AppNavigator
     } catch (err: any) {
       console.error('Registration error:', err);
       Alert.alert('Registration failed', err.message || 'Unknown error');
@@ -90,7 +84,7 @@ const Register = () => {
       try {
         setForm(prev => ({ ...prev, isLoading: true }));
         await googleLogin();
-        // Navigation handled by useEffect
+        // Navigation handled automatically by AppNavigator
       } catch (err: any) {
         console.error('Google Sign-In error:', err);
         Alert.alert('Error', err.message || 'Failed to login with Google');

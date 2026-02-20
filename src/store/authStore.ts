@@ -1,3 +1,4 @@
+// src/store/authStore.ts
 import { create } from 'zustand';
 import * as Keychain from 'react-native-keychain';
 import { User } from '../models/models';
@@ -34,6 +35,12 @@ export const useAuthStore = create<AuthState>((set) => ({
       const credentials = await Keychain.getGenericPassword();
       if (credentials) {
         const parsedUser: User = JSON.parse(credentials.username);
+        
+        // Validate role on init
+        if (parsedUser && parsedUser.role) {
+             parsedUser.role = parsedUser.role.toString().toUpperCase() as any;
+        }
+        
         set({ 
           user: parsedUser, 
           token: credentials.password, 
@@ -48,14 +55,22 @@ export const useAuthStore = create<AuthState>((set) => ({
   },
 
   login: async (email, password) => {
-    const { user, token } = await loginRequest(email, password);
-    await Keychain.setGenericPassword(JSON.stringify(user), token);
-    set({ user, token, isAuthenticated: true });
+    try {
+      const { user, token } = await loginRequest(email, password);
+      
+      // Force role to be safe
+      const safeUser = { ...user, role: user.role || 'CUSTOMER' };
+      
+      await Keychain.setGenericPassword(JSON.stringify(safeUser), token);
+      set({ user: safeUser, token, isAuthenticated: true });
+    } catch (error) {
+      console.error('Login Action Error:', error);
+      throw error; // Re-throw to show alert in UI
+    }
   },
 
   register: async (data) => {
     const { user, token } = await registerRequest(data);
-    // Force role to CUSTOMER for safety
     const userWithRole = { ...user, role: 'CUSTOMER' as const };
     await Keychain.setGenericPassword(JSON.stringify(userWithRole), token);
     set({ user: userWithRole, token, isAuthenticated: true });

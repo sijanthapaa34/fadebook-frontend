@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+// src/screens/LoginScreen.tsx
+import React, { useState } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet, 
   ScrollView, Alert, ActivityIndicator,
@@ -8,25 +9,20 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import Logo from '../components/Logo';
 import { theme } from '../theme/theme';
 import { useAuthStore } from '../store/authStore';
-import type { RootStackParamList } from '../navigation/NavigationService';
-import { redirectByRole } from '../navigation/NavigationService';
 
+import type { RootStackParamList } from '../navigation/AppNavigator';
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
 const Login = () => {
   const navigation = useNavigation<NavigationProp>();
   const login = useAuthStore((state) => state.login);
-  const user = useAuthStore((state) => state.user);
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
-  useEffect(() => {
-    if (user?.role) {
-      redirectByRole(user.role);
-    }
-  }, [user]);
+  // REMOVED: useEffect redirect logic. 
+  // AppNavigator automatically switches to Dashboard when 'user' state changes.
 
   const handleSubmit = async () => {
     if (!email || !password) {
@@ -37,7 +33,7 @@ const Login = () => {
     setIsLoading(true);
     try {
       await login(email, password);
-      // Navigation is handled by useEffect above
+      // AppNavigator will detect the new 'user' state and switch screens automatically
     } catch (err: any) {
       console.error('login error:', err);
       Alert.alert('Login failed', err.message || 'Invalid credentials');
