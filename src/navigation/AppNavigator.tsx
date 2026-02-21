@@ -17,9 +17,11 @@ import Contact from '../screens/ContactScreen';
 // Private Screens
 import CustomerDashboard from '../screens/customer/CustomerDashboardScreen';
 import BookAppointment from '../screens/customer/BookAppointmentScreen';
-import CustomerAppointments from '../screens/customer/MyAppointmentsScreen'; 
+import CustomerAppointments from '../screens/customer/CustomerAppointmentsScreen'; 
+import CheckoutScreen from '../screens/customer/CheckoutScreen';
+import CustomerPayments from '../screens/customer/CustomerPaymentsScreen';
+import CustomerChatScreen from '../screens/customer/CustomerchatScreen'; 
 
-// Other Screens
 import NotFound from '../screens/NotFoundScreen';
 
 // Layouts
@@ -30,6 +32,9 @@ import PublicLayout from '../components/layout/PublicLayout';
 import { configureGoogleSignin } from '../api/authService';
 import { theme } from '../theme/theme';
 
+// Types
+import type { RescheduleData } from '../models/models';
+
 // ---------------- TYPES ----------------
 export type RootStackParamList = {
   Landing: undefined;
@@ -38,8 +43,22 @@ export type RootStackParamList = {
   About: undefined;
   Contact: undefined;
   CustomerDashboard: undefined;
-  BookAppointment: { shopId: string; shopName?: string };
+  BookAppointment: { shopId: string; shopName?: string; reschedule?: RescheduleData };
   CustomerAppointments: undefined;
+  CustomerPayments: undefined;
+  CustomerChat: undefined; // ✅ NEW TYPE
+  Checkout: {
+    amount: number;
+    shopName: string;
+    serviceName: string;
+    barberName: string;
+    date: string;
+    time: string;
+    barberId: number;
+    barbershopId: number;
+    serviceIds: number[];
+    scheduledTime: string;
+  };
   NotFound: undefined;
 };
 
@@ -55,7 +74,7 @@ const AppNavigator = () => {
 
   useEffect(() => {
     configureGoogleSignin();
-    initialize(); // <--- CRITICAL: Check if user is logged in on app start
+    initialize();
   }, []);
 
   if (isLoading) {
@@ -94,6 +113,7 @@ const AppNavigator = () => {
                 </DashboardLayout>
               )}
             </Stack.Screen>
+
             <Stack.Screen name="CustomerAppointments">
               {() => (
                 <DashboardLayout user={user} onLogout={logout}>
@@ -101,6 +121,26 @@ const AppNavigator = () => {
                 </DashboardLayout>
               )}
             </Stack.Screen>
+
+            <Stack.Screen name="CustomerPayments">
+              {() => (
+                <DashboardLayout user={user} onLogout={logout}>
+                  <CustomerPayments />
+                </DashboardLayout>
+              )}
+            </Stack.Screen>
+
+            {/* ✅ NEW SCREEN: Chat */}
+            <Stack.Screen name="CustomerChat">
+              {() => (
+                <DashboardLayout user={user} onLogout={logout}>
+                  <CustomerChatScreen />
+                </DashboardLayout>
+              )}
+            </Stack.Screen>
+
+            {/* Modals / Full Screen */}
+            <Stack.Screen name="Checkout" component={CheckoutScreen} />
             <Stack.Screen name="BookAppointment" component={BookAppointment} />
           </>
         )}

@@ -2,7 +2,7 @@ export type UserRole = 'CUSTOMER' | 'BARBER';
 
 // Base user (from JWT)
 export interface User {
-  id: string;       // from JWT sub
+  id: number;       // from JWT sub
   email: string;    // from JWT
   role: UserRole;   // from JWT
   name: string;
@@ -30,7 +30,7 @@ export interface Barber extends User {
   isActive?: boolean;
   commissionRate?: number;
   skills?: string[];
-  shopId?: string;
+  shopId?: number;
 }
 
 // src/types/barbershop.ts
@@ -60,11 +60,12 @@ export interface PageResponse<T> {
 
 // Service info
 export interface Service {
-  id: string;
+  id: number;
   name: string;
   duration: number; // in minutes
   price: number;
   category: string;
+  shopId: number;
 }
 
 // Appointment info
@@ -169,4 +170,23 @@ export interface AppointmentDetailsResponse {
   customerNotes?: string;
   barberNotes?: string;
   createdAt: string;
+}
+// Add this interface if not already present
+export interface ServiceItemDTO {
+  serviceId: number; // Matches your backend
+  name: string;
+  price: number;
+  durationMinutes: number;
+}
+
+// Update RescheduleData interface
+export interface RescheduleData {
+  appointmentId: number;
+  shopId: number;
+  shopName: string;
+  services: ServiceItemDTO[]; // CHANGED: Pass the whole array
+  barberId: number;
+  barberName: string;
+  price: number;    // Total price
+  duration: number; // Total duration
 }
