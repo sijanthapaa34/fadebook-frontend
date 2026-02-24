@@ -36,6 +36,12 @@
 			<array>
 				<string>com.googleusercontent.apps.330770558960-satr5o193upaq318m5k0959b1or3pf90</string>
 			</array>
+			<key>NSPhotoLibraryUsageDescription</key>
+			<string>FadeBook needs access to your photo gallery to upload a profile picture.</string>
+			<key>NSPhotoLibraryAddUsageDescription</key>
+			<string>FadeBook needs permission to save photos.</string>
+			<key>NSCameraUsageDescription</key>
+			<string>FadeBook needs access to your camera to take a profile photo.</string>
 		</dict>
 		<!-- Facebook Sign-In -->
 		<!-- <dict>
