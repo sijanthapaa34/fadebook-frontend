@@ -2,15 +2,19 @@
 import React, { useState } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet, 
-  ScrollView, Alert, ActivityIndicator,
+  ScrollView, Alert, ActivityIndicator, Image,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
+import { launchImageLibrary } from 'react-native-image-picker';
+import { User } from 'lucide-react-native';
 
 import Logo from '../components/Logo';
 import { theme } from '../theme/theme';
 import { useAuthStore } from '../store/authStore';
+import { uploadProfilePicture } from '../api/userService';
 
 import type { RootStackParamList } from '../navigation/AppNavigator';
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
@@ -38,30 +42,59 @@ const socialButtons = [
   },
 ];
 
+type FormState = {
+  name: string;
+  email: string;
+  password: string;
+  phone: string;
+  isLoading: boolean;
+  photoUri: string | null; 
+};
+
 const Register = () => {
   const navigation = useNavigation<NavigationProp>();
+  const insets = useSafeAreaInsets();
   
-  // Connect to Store
   const register = useAuthStore((s) => s.register);
+  const setUser = useAuthStore((s) => s.setUser);
   const googleLogin = useAuthStore((s) => s.googleLogin);
-  // REMOVED: user selection and redirect logic. 
-  // AppNavigator handles switching screens when 'user' is set.
 
-  const [form, setForm] = useState({
+  const [form, setForm] = useState<FormState>({
     name: '',
     email: '',
     password: '',
     phone: '',
-    preferences: '',
     isLoading: false,
+    photoUri: null,
   });
 
   const handleChange = (key: string, value: string) => {
     setForm((prev) => ({ ...prev, [key]: value }));
   };
 
+  const handleSelectPhoto = () => {
+    launchImageLibrary({ mediaType: 'photo', quality: 0.5 }, (response) => {
+      if (response.didCancel) return;
+      if (response.errorCode) {
+        Alert.alert('Error', response.errorMessage);
+        return;
+      }
+      if (response.assets && response.assets.length > 0) {
+        const uri = response.assets[0].uri;
+        if (uri) {
+          setForm(prev => ({ ...prev, photoUri: uri }));
+        }
+      }
+    });
+  };
+
   const handleSubmit = async () => {
-    const { name, email, password, phone, preferences, isLoading } = form;
+    const { name, email, password, phone, photoUri } = form;
+    
+    if (!photoUri) {
+      Alert.alert('Error', 'Profile photo is required');
+      return;
+    }
     if (!name || !email || !password) {
       Alert.alert('Error', 'Please fill all required fields');
       return;
@@ -69,8 +102,19 @@ const Register = () => {
 
     try {
       setForm((prev) => ({ ...prev, isLoading: true }));
-      await register({ name, email, password, phone, preferences });
-      // Navigation handled automatically by AppNavigator
+
+      const newUser = await register({ name, email, password, phone });
+      
+      if (newUser && newUser.id) {
+        try {
+          const profileUrl = await uploadProfilePicture(newUser.id, photoUri);
+          setUser({ ...newUser, profilePicture: profileUrl });
+        } catch (uploadError) {
+          console.warn("Registration ok, but photo upload failed:", uploadError);
+          Alert.alert('Warning', 'Account created, but photo failed to upload.');
+        }
+      }
+      
     } catch (err: any) {
       console.error('Registration error:', err);
       Alert.alert('Registration failed', err.message || 'Unknown error');
@@ -84,7 +128,6 @@ const Register = () => {
       try {
         setForm(prev => ({ ...prev, isLoading: true }));
         await googleLogin();
-        // Navigation handled automatically by AppNavigator
       } catch (err: any) {
         console.error('Google Sign-In error:', err);
         Alert.alert('Error', err.message || 'Failed to login with Google');
@@ -97,7 +140,7 @@ const Register = () => {
   };
 
   return (
-    <ScrollView contentContainerStyle={styles.container}>
+    <ScrollView contentContainerStyle={[styles.container, { paddingTop: insets.top + 16 }]}>
       <View style={styles.wrapper}>
         <View style={styles.header}>
           <TouchableOpacity onPress={() => navigation.navigate('Landing')}>
@@ -108,7 +151,27 @@ const Register = () => {
 
         <View style={styles.card}>
           <View style={styles.form}>
-            {(['name', 'email', 'password', 'phone', 'preferences'] as const).map((key) => (
+            
+            {/* Profile Photo Component */}
+            <View style={styles.photoContainer}>
+              <TouchableOpacity onPress={handleSelectPhoto} style={styles.avatarWrapper}>
+                {form.photoUri ? (
+                  <Image source={{ uri: form.photoUri }} style={styles.avatarImage} />
+                ) : (
+                  <View style={styles.avatarPlaceholder}>
+                    <User size={32} color={theme.colors.muted} />
+                  </View>
+                )}
+                <View style={styles.plusButton}>
+                  <Text style={styles.plusText}>+</Text>
+                </View>
+              </TouchableOpacity>
+              <TouchableOpacity onPress={handleSelectPhoto}>
+                <Text style={styles.uploadText}>Upload Profile Photo</Text>
+              </TouchableOpacity>
+            </View>
+
+            {(['name', 'email', 'password', 'phone'] as const).map((key) => (
               <View style={styles.inputGroup} key={key}>
                 <Text style={styles.label}>{key.charAt(0).toUpperCase() + key.slice(1)}</Text>
                 <TextInput
@@ -166,7 +229,8 @@ const styles = StyleSheet.create({
   container: {
     flexGrow: 1,
     backgroundColor: theme.colors.background,
-    paddingVertical: theme.spacing.xxl,
+    // paddingTop is now set dynamically via insets.top + 16
+    paddingBottom: theme.spacing.xxl,
     paddingHorizontal: theme.spacing.lg,
   },
   wrapper: { width: '100%', maxWidth: theme.layout.maxWidth, alignSelf: 'center' },
@@ -181,6 +245,57 @@ const styles = StyleSheet.create({
     marginBottom: theme.spacing.xxl,
   },
   form: { gap: theme.spacing.lg },
+  
+  // Photo Upload Styles
+  photoContainer: {
+    alignItems: 'center',
+    marginBottom: theme.spacing.lg,
+  },
+  avatarWrapper: {
+    position: 'relative',
+    marginBottom: theme.spacing.sm,
+  },
+  avatarPlaceholder: {
+    width: 150,
+    height: 150,
+    borderRadius: 40,
+    backgroundColor: theme.colors.surface,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  avatarImage: {
+    width: 150,
+    height: 150,
+    borderRadius: 40,
+    backgroundColor: theme.colors.surface,
+  },
+  plusButton: {
+    position: 'absolute',
+    bottom: 0,
+    right: 0,
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: theme.colors.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
+    borderColor: theme.colors.card,
+  },
+  plusText: {
+    color: '#000',
+    fontWeight: '700',
+    fontSize: 12,
+    lineHeight: 16,
+  },
+  uploadText: {
+    color: theme.colors.primary,
+    fontWeight: '500',
+    fontSize: 13,
+  },
+
   inputGroup: { marginBottom: theme.spacing.lg },
   label: { color: theme.colors.text, marginBottom: theme.spacing.sm },
   input: {

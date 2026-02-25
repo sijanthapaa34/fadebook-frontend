@@ -1,18 +1,18 @@
 // src/screens/customer/BookAppointmentScreen.tsx
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet, ScrollView, Dimensions, ActivityIndicator, Alert,
 } from 'react-native';
 import { useRoute, useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useQuery, useMutation } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueries } from '@tanstack/react-query';
 import { ArrowLeft, Check, Clock, DollarSign, User, CalendarDays, AlertCircle, MapPin, CheckCircle, RefreshCw } from 'lucide-react-native';
-import { format, parseISO } from 'date-fns';
+import { format, parseISO, isBefore } from 'date-fns';
 import { theme } from '../../theme/theme';
-import { 
-  fetchServicesByShop, fetchBarbersByShop, fetchAvailableSlots, rescheduleAppointment 
-} from '../../api/appointmentService';
+import { fetchBarbersByShop } from '../../api/barberService';
+import { fetchAvailableSlots, rescheduleAppointment } from '../../api/appointmentService';
+import { fetchServicesByShop, fetchServiceById } from '../../api/serviceService';
 import { ServiceDTO, BarberDTO, AppointmentDetailsResponse, RescheduleData } from '../../models/models';
 import type { RootStackParamList } from '../../navigation/AppNavigator'; 
 
@@ -21,64 +21,76 @@ type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
 const BookAppointment = () => {
   const route = useRoute();
-  // ✅ Apply Type to useNavigation
   const navigation = useNavigation<NavigationProp>();
   const insets = useSafeAreaInsets();
-  
-  // ... rest of your code remains exactly the same
   
   const params = route.params as { shopId: string; shopName?: string; reschedule?: RescheduleData };
   const { shopId, shopName, reschedule: rescheduleData } = params;
   
   const isReschedule = !!rescheduleData;
-  const effectiveShopId = isReschedule ? rescheduleData.shopId : shopId;
+  const effectiveShopId = isReschedule ? rescheduleData.shopId : Number(shopId);
 
   const [step, setStep] = useState<Step>(isReschedule ? 'time' : 'service');
   const [selectedServices, setSelectedServices] = useState<ServiceDTO[]>([]);
   const [selectedBarber, setSelectedBarber] = useState<BarberDTO | null>(null);
   const [selectedDay, setSelectedDay] = useState<'today' | 'tomorrow'>('today');
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
-  const [bookingResponse, setBookingResponse] = useState<AppointmentDetailsResponse | null>(null);
 
+  // --- Reschedule Data Preparation ---
+
+  // 1. Extract IDs immediately from params (Synchronous)
+  const rescheduleBarberId = isReschedule ? Number(rescheduleData?.barberId) : null;
+  const rescheduleServiceIds = useMemo(() => {
+    if (!isReschedule || !rescheduleData) return [];
+    console.log('rescheduleData.services:', rescheduleData.services);
+    return rescheduleData.services.map(s => s.serviceId);
+  }, [isReschedule, rescheduleData]);
+
+  // 2. Initialize Barber state immediately if rescheduling
   useEffect(() => {
-    if (isReschedule && rescheduleData) {
-      const bId = Number(rescheduleData.barberId);
-
-      const mappedServices: ServiceDTO[] = rescheduleData.services.map(s => ({
-        id: s.serviceId,       
-        name: s.name,
-        price: s.price,
-        durationMinutes: s.durationMinutes,
-        barberShop: rescheduleData.shopName,
-        description: ''       
-      }));
-
-      if (mappedServices.some(s => !s.id || isNaN(s.id))) {
-         Alert.alert("Error", "One or more services have invalid IDs.");
-         return;
-      }
-
-      setSelectedServices(mappedServices);
+    if (isReschedule && rescheduleData && !selectedBarber) {
       setSelectedBarber({
-        id: bId,
+        id: Number(rescheduleData.barberId),
         name: rescheduleData.barberName,
         bio: '',
-        rating: 0
+        rating: 0,
+        barbershop: rescheduleData.shopName,
       } as BarberDTO);
     }
-  }, [rescheduleData]);
+  }, [isReschedule, rescheduleData, selectedBarber]);
+
+  // 3. Fetch Full ServiceDTOs in background (for price/duration display later)
+  const serviceQueries = useQueries({
+    queries: rescheduleServiceIds.map(id => ({
+      queryKey: ['service', id],
+      queryFn: () => fetchServiceById({ serviceId: id }),
+      enabled: isReschedule && !!id,
+      staleTime: Infinity,
+    })),
+  });
+
+  // 4. Populate selectedServices once fetched
+  useEffect(() => {
+    const successfulServices = serviceQueries
+      .filter(q => q.isSuccess && q.data)
+      .map(q => q.data as ServiceDTO);
+
+    if (isReschedule && successfulServices.length > 0 && selectedServices.length === 0) {
+      setSelectedServices(successfulServices);
+    }
+  }, [isReschedule, serviceQueries, selectedServices.length]);
 
   // --- Queries ---
 
   const { data: servicesData, isLoading: loadingServices, isError: errorServices, refetch: refetchServices } = useQuery({
     queryKey: ['services', effectiveShopId],
-    queryFn: () => fetchServicesByShop({ shopId: effectiveShopId }),
-    enabled: step === 'service' && !!effectiveShopId,
+    queryFn: () => fetchServicesByShop({ shopId: effectiveShopId! }),
+    enabled: step === 'service' && !!effectiveShopId && !isReschedule,
   });
 
   const { data: barbersData, isLoading: loadingBarbers, isError: errorBarbers } = useQuery({
     queryKey: ['barbers', effectiveShopId],
-    queryFn: () => fetchBarbersByShop({ shopId: effectiveShopId }),
+    queryFn: () => fetchBarbersByShop({ shopId: effectiveShopId! }),
     enabled: step === 'barber' && !!effectiveShopId,
   });
 
@@ -91,16 +103,19 @@ const BookAppointment = () => {
   const selectedDate = selectedDay === 'today' ? today : tomorrow;
   const dateStr = format(selectedDate, 'yyyy-MM-dd');
 
+  // Use IDs from props for the query if rescheduling, otherwise use state IDs
+  const slotQueryBarberId = isReschedule ? rescheduleBarberId : selectedBarber?.id;
+  const slotQueryServiceIds = isReschedule ? rescheduleServiceIds : selectedServices.map(s => s.id);
+
   const { data: slotsData, isLoading: loadingSlots, isError: errorSlots } = useQuery({
-    queryKey: ['availability', selectedBarber?.id, selectedServices.map(s => s.id), dateStr],
-    queryFn: () => fetchAvailableSlots(selectedBarber!.id, selectedServices.map(s => s.id), dateStr),
-    enabled: step === 'time' && !!selectedBarber && selectedServices.length > 0,
+    queryKey: ['availability', slotQueryBarberId, slotQueryServiceIds, dateStr],
+    queryFn: () => fetchAvailableSlots(slotQueryBarberId!, slotQueryServiceIds, dateStr),
+    // Enable immediately if we have the IDs (which we do from params)
+    enabled: step === 'time' && !!slotQueryBarberId && slotQueryServiceIds.length > 0,
   });
 
   // --- Mutations ---
 
-  // Removed bookAppointment mutation from here; moved to CheckoutScreen
-  
   const { mutate: handleReschedule, isPending: isRescheduling } = useMutation({
     mutationFn: () => rescheduleAppointment(Number(rescheduleData?.appointmentId), selectedTime!),
     onSuccess: () => setStep('rescheduled'),
@@ -120,23 +135,17 @@ const BookAppointment = () => {
     if (!selectedTime) return;
     
     if (isReschedule) {
-      // RESCHEDULE: Direct API call
       handleReschedule();
     } else {
-      // NEW BOOKING: Navigate to Checkout
       if (selectedServices.length === 0 || !selectedBarber) return;
       
-
       navigation.navigate('Checkout', {
-        // Display Data
         amount: totalPrice,
         serviceName: selectedServices.map(s => s.name).join(', '),
         barberName: selectedBarber.name,
         shopName: displayShopName || '',
         date: format(selectedDate, 'EEE, MMM d'),
         time: format(parseISO(selectedTime), 'h:mm a'),
-        
-        // API Data (needed for booking inside Checkout)
         barberId: selectedBarber.id,
         barbershopId: Number(effectiveShopId),
         serviceIds: selectedServices.map(s => s.id),
@@ -163,10 +172,21 @@ const BookAppointment = () => {
     if (errorSlots) return <Text style={styles.emptyText}>Error loading slots.</Text>;
     
     const slots = slotsData?.availableSlots ?? [];
+    const now = new Date();
 
-    if (slots.length === 0) return <Text style={styles.emptyText}>No slots available for this date</Text>;
+    const availableSlots = slots.filter((slot: any) => {
+      const bookingTime = `${dateStr}T${slot.startTime}`;
+      const slotDate = parseISO(bookingTime);
+      
+      if (selectedDay === 'today') {
+        return !isBefore(slotDate, now);
+      }
+      return true;
+    });
 
-    return slots.map((slot: any, index: number) => {
+    if (availableSlots.length === 0) return <Text style={styles.emptyText}>No slots available for this date</Text>;
+
+    return availableSlots.map((slot: any, index: number) => {
       const bookingTime = `${dateStr}T${slot.startTime}`;
       const label = slot.displayTime ? slot.displayTime.split(' - ')[0] : format(parseISO(bookingTime), 'h:mm a');
       return (
@@ -194,11 +214,12 @@ const BookAppointment = () => {
         { key: 'confirm', label: 'Confirm' },
       ];
 
-  if (!effectiveShopId) {
+  // Check if essential reschedule data is missing (prevents rendering if navigation params broke)
+  if (isReschedule && (!rescheduleBarberId || rescheduleServiceIds.length === 0)) {
     return (
       <View style={[styles.centeredContainer, { paddingTop: insets.top }]}>
         <AlertCircle size={48} color={theme.colors.error} />
-        <Text style={styles.errorTitle}>Invalid Shop</Text>
+        <Text style={styles.errorTitle}>Missing Info</Text>
         <TouchableOpacity onPress={() => navigation.goBack()}><Text style={{ color: theme.colors.primary }}>Go Back</Text></TouchableOpacity>
       </View>
     );

@@ -82,14 +82,14 @@ const CustomerAppointments = () => {
     }
 
     const serviceItems: ServiceItemDTO[] = apt.services.map(s => ({
-        serviceId: s.id,
+        serviceId: s.serviceId,
         name: s.name,
         price: s.price,
         durationMinutes: s.durationMinutes
     }));
 
     navigation.navigate('BookAppointment', {
-      shopId: apt.barbershopId.toString(),
+      shopId: apt.barbershopId,
       shopName: apt.barbershopName,
       reschedule: {
         appointmentId: apt.appointmentId,

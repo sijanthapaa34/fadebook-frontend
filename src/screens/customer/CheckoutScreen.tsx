@@ -1,21 +1,22 @@
 // src/screens/customer/CheckoutScreen.tsx
 import React, { useState, useEffect, useRef } from 'react';
 import {
-  View, Text, ScrollView, TouchableOpacity, StyleSheet, ActivityIndicator, Dimensions, TextInput, Animated, KeyboardAvoidingView, Platform, Alert, Image, // <--- ADD Image
+  View, Text, ScrollView, TouchableOpacity, StyleSheet, ActivityIndicator, Dimensions, TextInput, Animated, KeyboardAvoidingView, Platform, Alert, Image,
 } from 'react-native';
 import { useRoute, useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { useSafeAreaInsets } from 'react-native-safe-area-context'; // ✅ FIX: Import
-import { ArrowLeft, ShieldCheck, CheckCircle2, Loader2, Phone, Lock, ChevronRight, AlertCircle } from 'lucide-react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useMutation } from '@tanstack/react-query'; // Import useMutation
+import { ArrowLeft, ShieldCheck, CheckCircle2, Phone, Lock, ChevronRight, AlertCircle } from 'lucide-react-native';
 import { theme } from '../../theme/theme';
 import type { RootStackParamList } from '../../navigation/AppNavigator';
+import { bookAppointment } from '../../api/appointmentService'; // Import the booking service
 
 type PaymentMethod = 'khalti' | 'esewa';
 type CheckoutStep = 'method' | 'details' | 'otp' | 'success';
 
 const { width } = Dimensions.get('window');
 
-/* ─── Payment Methods Config ─── */
 /* ─── Payment Methods Config ─── */
 const METHODS = [
   {
@@ -24,8 +25,6 @@ const METHODS = [
     tagline: 'Pay with Khalti digital wallet',
     color: '#5C2D91',
     bg: 'rgba(92, 45, 145, 0.1)',
-    // ✅ FIX: Use require() for local images
-    // Make sure you actually have this file in your project at this location
     logo: require('../../assets/khalti.png'), 
   },
   {
@@ -34,7 +33,6 @@ const METHODS = [
     tagline: 'Pay with eSewa mobile wallet',
     color: '#60BB46',
     bg: 'rgba(96, 187, 70, 0.1)',
-    // ✅ FIX: Use require()
     logo: require('../../assets/esewa.png'),
   },
 ];
@@ -129,16 +127,20 @@ const StepBar = ({ current }: { current: CheckoutStep }) => {
 const CheckoutScreen = () => {
   const route = useRoute();
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
-  const insets = useSafeAreaInsets(); // ✅ FIX: Get insets
+  const insets = useSafeAreaInsets();
   
-  // Params
+  // Params passed from BookAppointment
   const { 
-    amount = 45, 
-    shopName = 'The Gold Standard', 
-    serviceName = 'Premium Fade', 
-    barberName = 'Marcus B.', 
-    date = 'Today', 
-    time = '10:00 AM' 
+    amount, 
+    shopName, 
+    serviceName, 
+    barberName, 
+    date, 
+    time,
+    barberId,
+    barbershopId,
+    serviceIds,
+    scheduledTime
   } = (route.params as any) || {};
 
   const [step, setStep] = useState<CheckoutStep>('method');
@@ -154,6 +156,31 @@ const CheckoutScreen = () => {
   const scaleAnim = useRef(new Animated.Value(0)).current;
 
   const selectedMethod = METHODS.find((m) => m.id === method);
+
+  // --- Booking Mutation ---
+  const { mutate: createAppointment, isPending: isBooking } = useMutation({
+    mutationFn: () => {
+      // Ensure all required data is present
+      if (!barberId || !barbershopId || !serviceIds || !scheduledTime) {
+        return Promise.reject(new Error("Missing booking details"));
+      }
+      return bookAppointment({
+        barberId,
+        barbershopId,
+        serviceIds,
+        scheduledTime
+      });
+    },
+    onSuccess: () => {
+      // Payment simulation successful & Booking successful -> Move to success screen
+      setLoading(false);
+      setStep('success');
+    },
+    onError: (error: any) => {
+      setLoading(false);
+      Alert.alert('Booking Failed', error.message || 'Could not confirm appointment. Please try again.');
+    }
+  });
 
   /* Resend Countdown */
   useEffect(() => {
@@ -202,6 +229,7 @@ const CheckoutScreen = () => {
   const handleSendOTP = async () => {
     if (!validatePhone()) return;
     setLoading(true);
+    // Simulate sending OTP
     setTimeout(() => {
       setLoading(false);
       setStep('otp');
@@ -210,11 +238,14 @@ const CheckoutScreen = () => {
 
   const handleVerifyOTP = async () => {
     if (otp.length < OTP_LEN) { setOtpError('Enter the 6-digit OTP'); return; }
+    
     setLoading(true);
+    
+    // Simulate Payment Verification Delay
     setTimeout(() => {
-      setLoading(false);
-      setStep('success');
-    }, 1800);
+        // Trigger the actual booking creation
+        createAppointment();
+    }, 1000);
   };
 
   const handleResend = () => {
@@ -287,7 +318,6 @@ const CheckoutScreen = () => {
                     activeOpacity={0.7}
                     >
                     <View style={[styles.methodLogo, { backgroundColor: m.bg }]}>
-                        {/* ✅ FIX: Render Image instead of Text */}
                         <Image 
                         source={m.logo} 
                         style={styles.methodLogoImage} 
@@ -436,7 +466,7 @@ const CheckoutScreen = () => {
               )}
             </TouchableOpacity>
 
-            <Text style={styles.demoText}>Demo: enter any 6 digits to complete</Text>
+            <Text style={styles.demoText}>Demo: enter any 6 digits to complete booking</Text>
           </View>
         )}
 

@@ -10,7 +10,7 @@ import {
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { MapPin, Calendar, Star, Shield, Clock, Scissors } from 'lucide-react-native';
+import { MapPin, Calendar, Star, Shield, Clock, Scissors, UserPlus, Store, ArrowRight } from 'lucide-react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import MaskedView from '@react-native-masked-view/masked-view';
 import { theme } from '../theme/theme';
@@ -134,6 +134,62 @@ const Landing = () => {
         </View>
       </View>
 
+      {/* Network Section (Mobile Optimized) */}
+      <View style={styles.networkSection}>
+        <View style={styles.networkHeader}>
+            <Text style={styles.networkTitle}>Join the</Text>
+            <View style={styles.networkTitleRow}>
+                <MaskedView maskElement={<Text style={styles.networkTitleGold}>FadeBook</Text>}>
+                    <LinearGradient colors={[theme.colors.primary, '#E5C88A']}>
+                        <Text style={[styles.networkTitleGold, { opacity: 0 }]}>FadeBook</Text>
+                    </LinearGradient>
+                </MaskedView>
+                <Text style={styles.networkTitle}> Network</Text>
+            </View>
+        </View>
+        <Text style={styles.networkSubtitle}>
+            Whether you're looking for a fresh cut or ready to grow your business, we have a place for you.
+        </Text>
+
+        <View style={styles.networkCardsContainer}>
+            {/* Become a Barber Card */}
+            <View style={styles.networkCard}>
+                <View style={[styles.networkIconContainer, { backgroundColor: 'rgba(212, 175, 55, 0.1)' }]}>
+                    <UserPlus size={28} color={theme.colors.primary} strokeWidth={2} />
+                </View>
+                <Text style={styles.networkCardTitle}>Become a Barber</Text>
+                <Text style={styles.networkCardDesc}>
+                    Join our team of professionals. Manage your schedule and build your clientele with powerful tools.
+                </Text>
+                <TouchableOpacity 
+                  style={styles.networkButton}
+                  onPress={() => navigation.navigate('Apply', { type: 'barber' })}
+                >
+                    <Text style={styles.networkButtonText}>Apply Now</Text>
+                    <ArrowRight size={14} color="#000" style={{ marginLeft: 4 }} />
+                </TouchableOpacity>
+            </View>
+
+            {/* Register a Shop Card */}
+            <View style={styles.networkCard}>
+                <View style={[styles.networkIconContainer, { backgroundColor: 'rgba(212, 175, 55, 0.1)' }]}>
+                    <Store size={28} color={theme.colors.primary} strokeWidth={2} />
+                </View>
+                <Text style={styles.networkCardTitle}>Register a Shop</Text>
+                <Text style={styles.networkCardDesc}>
+                    Grow your business with FadeBook. Access analytics, manage staff, and reach new customers.
+                </Text>
+                <TouchableOpacity 
+                  style={styles.networkButton}
+                  onPress={() => navigation.navigate('Apply', { type: 'shop' })}
+                >
+                    <Text style={styles.networkButtonText}>Partner With Us</Text>
+                    <ArrowRight size={14} color="#000" style={{ marginLeft: 4 }} />
+                </TouchableOpacity>
+            </View>
+        </View>
+      </View>
+
       {/* CTA Section */}
       <View style={styles.ctaSection}>
         <View style={styles.ctaTitleContainer}>
@@ -170,6 +226,8 @@ const Landing = () => {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: 'transparent' },
+  
+  // Hero
   heroSection: { minHeight: 650, position: 'relative' },
   heroImage: { position: 'absolute', width: '100%', height: '100%' },
   heroOverlay: { position: 'absolute', width: '100%', height: '100%' },
@@ -227,6 +285,92 @@ const styles = StyleSheet.create({
   iconContainer: { width: 48, height: 48, borderRadius: theme.radius.md, backgroundColor: 'rgba(201,169,97,0.1)', alignItems: 'center', justifyContent: 'center', marginBottom: theme.spacing.md },
   featureCardTitle: { fontSize: 18, fontFamily: theme.fonts.sans, fontWeight: '600', color: theme.colors.text, marginBottom: theme.spacing.sm },
   featureCardDesc: { fontSize: 14, fontFamily: theme.fonts.sans, color: theme.colors.muted, lineHeight: 22 },
+
+  // Network (Mobile Optimized)
+  networkSection: { 
+    paddingVertical: 80, 
+    paddingHorizontal: theme.spacing.lg, 
+    borderTopWidth: 1, 
+    borderTopColor: theme.colors.border 
+  },
+  networkHeader: { 
+    alignItems: 'center', 
+    marginBottom: theme.spacing.md 
+  },
+  networkTitle: { 
+    fontSize: 28, // Adjusted for mobile
+    fontFamily: theme.fonts.serif, 
+    fontWeight: '700', 
+    color: theme.colors.text, 
+    textAlign: 'center' 
+  },
+  networkTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  networkTitleGold: { 
+    fontSize: 28, // Adjusted for mobile
+    fontFamily: theme.fonts.serif, 
+    fontWeight: '700', 
+    color: '#000000' 
+  },
+  networkSubtitle: { 
+    fontSize: 14, 
+    fontFamily: theme.fonts.sans, 
+    color: theme.colors.muted, 
+    textAlign: 'center', 
+    maxWidth: 350, // Slightly constrained for readability
+    marginBottom: theme.spacing.xxl,
+    alignSelf: 'center',
+    lineHeight: 20,
+  },
+  networkCardsContainer: { 
+    gap: theme.spacing.lg 
+  },
+  networkCard: { 
+    backgroundColor: theme.colors.card, 
+    borderWidth: 1, 
+    borderColor: 'rgba(40,41,46,0.5)', 
+    borderRadius: theme.radius.lg, 
+    padding: theme.spacing.xl 
+  },
+  networkIconContainer: { 
+    width: 56, 
+    height: 56, 
+    borderRadius: theme.radius.lg, 
+    alignItems: 'center', 
+    justifyContent: 'center', 
+    marginBottom: theme.spacing.lg 
+  },
+  networkCardTitle: { 
+    fontSize: 20, 
+    fontFamily: theme.fonts.sans, 
+    fontWeight: '600', 
+    color: theme.colors.text, 
+    marginBottom: theme.spacing.sm 
+  },
+  networkCardDesc: { 
+    fontSize: 14, 
+    fontFamily: theme.fonts.sans, 
+    color: theme.colors.muted, 
+    lineHeight: 22, 
+    marginBottom: theme.spacing.lg 
+  },
+  networkButton: { 
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: theme.colors.primary, 
+    paddingVertical: 10, 
+    paddingHorizontal: 20, 
+    borderRadius: theme.radius.md, 
+    alignSelf: 'flex-start' 
+  },
+  networkButtonText: { 
+    color: '#000', 
+    fontWeight: '700', 
+    fontSize: 13 
+  },
 
   // CTA
   ctaSection: { borderTopWidth: 1, borderColor: theme.colors.border, paddingVertical: 96, paddingHorizontal: theme.spacing.lg, alignItems: 'center' },

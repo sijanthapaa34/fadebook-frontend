@@ -7,6 +7,7 @@ export interface User {
   role: UserRole;   // from JWT
   name: string;
   phone?: string;
+  profilePicture?: string;
 }
 
 // Customer info (fetched from backend)
@@ -26,6 +27,7 @@ export interface Barber extends User {
   workingHours?: { start: string; end: string };
   rating?: number;
   reviewCount?: number;
+  workImages?: string[];
   available?: boolean;
   isActive?: boolean;
   commissionRate?: number;
@@ -37,10 +39,12 @@ export interface Barber extends User {
 export interface Barbershop {
   id: number;
   name: string;
+  description: string;
   address: string;
   city: string;
   state: string | null;
   postalCode: string;
+  shopImages?: string[];
   phone: string;
   email: string;
   website: string | null;
@@ -64,20 +68,21 @@ export interface Service {
   name: string;
   duration: number; // in minutes
   price: number;
+  serviceImages?: string[];
   category: string;
   shopId: number;
 }
 
 // Appointment info
 export interface Appointment {
-  id: string;
-  customerId: string;
-  barberId: string;
-  shopId: string;
+  id: number;
+  customerId: number;
+  barberId: number;
+  shopId: number;
   customerName: string;
   barberName: string;
   shopName: string;
-  serviceIds: string[];
+  serviceIds: number[];
   date: string;
   time: string;
   status: 'pending' | 'confirmed' | 'completed' | 'cancelled' | 'missed';
@@ -87,12 +92,14 @@ export interface Appointment {
 
 // Review info
 export interface Review {
-  id: string;
-  customerId: string;
+  id: number;
+  customerId: number;
   customerName?: string;
-  barberId: string;
   rating: number;
   comment: string;
+  targetType: string;
+  images?: string[];
+  targetId: number;
   date: string;
 }
 
@@ -108,9 +115,36 @@ export interface ServiceDTO {
   id: number;
   name: string;
   description: string;
+  images: string[];
   price: number;
   durationMinutes: number;
   barberShop: string;
+}
+
+export interface BarbershopDTO {
+  id: number;
+  name: string;
+  description: string;
+  address: string;
+  city: string;
+  state: string | null;
+  postalCode: string;
+  shopImages?: string[];
+  phone: string;
+  email: string;
+  website: string | null;
+  operatingHours: string;
+  profilePicture?: string;
+  rating: number;
+}
+
+export interface CustomerDTO {
+  id: number;
+  name: string;
+  email: string;
+  phone: string;
+  role: string;
+  profilePicture?: string;
 }
 
 export interface BarberDTO {
@@ -121,10 +155,22 @@ export interface BarberDTO {
   email: string;
   phone: string;
   bio: string;
+  workImages?: string[];
   profilePicture: string | null;
   rating: number;
   experienceYears: number;
   available: boolean;
+}
+export interface ReviewDTO {
+  id: number;
+  customerId: number;
+  customerName?: string;
+  rating: number;
+  comment: string;
+  targetType: string;
+  images?: string[];
+  targetId: number;
+  date: string;
 }
 
 export interface TimeSlotDTO {
@@ -157,7 +203,7 @@ export interface AppointmentDetailsResponse {
   barberName: string;
   barbershopId: number;
   barbershopName: string;
-  services: ServiceDTO[];
+  services: ServiceItemDTO[];
   totalPrice: number;
   totalDurationMinutes: number;
   status: AppointmentStatus;
@@ -171,22 +217,45 @@ export interface AppointmentDetailsResponse {
   barberNotes?: string;
   createdAt: string;
 }
-// Add this interface if not already present
+
 export interface ServiceItemDTO {
-  serviceId: number; // Matches your backend
+  serviceId: number; 
   name: string;
   price: number;
   durationMinutes: number;
+
 }
 
-// Update RescheduleData interface
 export interface RescheduleData {
   appointmentId: number;
   shopId: number;
   shopName: string;
-  services: ServiceItemDTO[]; // CHANGED: Pass the whole array
+  services: ServiceItemDTO[]; 
   barberId: number;
   barberName: string;
-  price: number;    // Total price
-  duration: number; // Total duration
+  price: number;    
+  duration: number; 
+}
+
+export interface FetchServicesByShopParams {
+  shopId: number | string;
+  page?: number;
+  size?: number;
+}
+
+export interface FetchBarbersByShopParams {
+  shopId: number | string;
+  page?: number;
+  size?: number;
+}
+
+export interface ReviewsByShopParams {
+  shopId: number | string;
+  page?: number;
+  size?: number;
+}
+export interface ReviewsByBarberParams {
+  barberId: number | string;
+  page?: number;
+  size?: number;
 }

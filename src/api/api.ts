@@ -18,7 +18,6 @@ export const api = axios.create({
 // Request interceptor
 api.interceptors.request.use(async (config) => {
   try {
-    // FIX: Only attach token from Keychain if NOT already set manually
     if (!config.headers.Authorization && !config.headers.authorization) {
       const credentials = await Keychain.getGenericPassword();
       if (credentials) {

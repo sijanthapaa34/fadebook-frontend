@@ -20,14 +20,10 @@ const fetchUserProfile = async (token: string): Promise<User> => {
     
     const rawUser = res.data;
 
-    // FIX: Normalize data to prevent crashes
     const safeUser: User = {
       ...rawUser,
-      // Ensure name is always a string
-      name: rawUser.name || 'User', 
-      // Ensure role is uppercase string
-      role: (rawUser.role || 'CUSTOMER').toString().toUpperCase() as UserRole,
-      // Ensure phone is string
+      name: rawUser.name, 
+      role: (rawUser.role).toString().toUpperCase() as UserRole,
       phone: rawUser.phone || '',
     };
     

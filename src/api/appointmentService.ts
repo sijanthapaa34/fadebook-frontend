@@ -5,32 +5,6 @@ import {
   CreateAppointmentRequest, AppointmentDetailsResponse 
 } from '../models/models';
 
-interface FetchServicesParams {
-  shopId: number | string;
-  page?: number;
-  size?: number;
-}
-
-interface FetchBarbersParams {
-  shopId: number | string;
-  page?: number;
-  size?: number;
-}
-
-export const fetchServicesByShop = async ({ shopId, page = 0, size = 10 }: FetchServicesParams): Promise<PageResponse<ServiceDTO>> => {
-  const response = await api.get(`/service/barberShop/${shopId}`, {
-    params: { page, size },
-  });
-  return response.data;
-};
-
-export const fetchBarbersByShop = async ({ shopId, page = 0, size = 10 }: FetchBarbersParams): Promise<PageResponse<BarberDTO>> => {
-  const response = await api.get(`/barbers/barbershop/${shopId}`, {
-    params: { page, size },
-  });
-  return response.data;
-};
-
 export const fetchAvailableSlots = async (
   barberId: number, 
   serviceIds: number[], 
@@ -63,7 +37,6 @@ export const fetchPastAppointments = async (page = 0, size = 10): Promise<PageRe
 };
 
 export const rescheduleAppointment = async (appointmentId: number, newDateTime: string): Promise<AppointmentDetailsResponse> => {
-  // Backend expects @RequestBody RescheduleAppointmentRequest
   const response = await api.put<AppointmentDetailsResponse>(`/appointment/${appointmentId}/reschedule`, { 
     newDateTime 
   });
@@ -72,4 +45,35 @@ export const rescheduleAppointment = async (appointmentId: number, newDateTime: 
 
 export const cancelAppointment = async (appointmentId: number): Promise<void> => {
   await api.put(`/appointment/${appointmentId}/cancel`);
+};
+
+export const fetchBarberAppointments = async (
+  barberId: number,
+  startDate: string, // format: YYYY-MM-DD
+  endDate: string,   // format: YYYY-MM-DD
+  page = 0,
+  size = 50 
+): Promise<PageResponse<AppointmentDetailsResponse>> => {
+  const response = await api.get(`/appointment/barber/${barberId}`, {
+    params: {
+      startDate,
+      endDate,
+      page,
+      size,
+    },
+  });
+  return response.data;
+};
+export const fetchBarberEarnings = async (
+  barberId: number,
+  startDate: string,
+  endDate: string
+): Promise<number> => {
+  const response = await api.get(`/appointment/barber/${barberId}/earnings`, {
+    params: {
+      startDate,
+      endDate,
+    },
+  });
+  return response.data; // Backend returns a simple Double/Number
 };

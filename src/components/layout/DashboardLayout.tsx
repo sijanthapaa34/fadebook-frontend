@@ -21,6 +21,7 @@ import {
   Store,
   BarChart3,
   Sliders,
+  ClipboardList,
   UserCircle,
   MessageSquare,
   MapPin,
@@ -61,7 +62,8 @@ const navConfig: Record<UserRole, NavItem[]> = {
   BARBER: [
     { label: 'Dashboard', path: 'BarberDashboard', Icon: LayoutDashboard },
     { label: 'Schedule', path: 'BarberSchedule', Icon: Calendar },
-    { label: 'Earnings', path: 'BarberEarnings', Icon: DollarSign },
+    { label: 'Reviews', path: 'BarberReview', Icon: BarChart3 },
+    { label: 'Leave', path: 'BarberLeave', Icon: ClipboardList },
     { label: 'Profile', path: 'BarberProfile', Icon: UserCircle },
   ],
 };
@@ -79,7 +81,6 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ user, children, onLog
   const navigation = useNavigation<NavigationProp>();
   const route = useRoute();
   
-  // FIX: Add fallback to empty array if user.role is missing or invalid
   const navItems = navConfig[user.role] || [];
 
   const currentPath = route.name;

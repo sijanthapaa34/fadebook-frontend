@@ -9,7 +9,7 @@ import { useInfiniteQuery } from '@tanstack/react-query';
 import { Search, MapPin, Star, Clock, Navigation } from 'lucide-react-native';
 import { theme } from '../../theme/theme';
 import { fetchShops } from '../../api/barbershopService';
-import { Barbershop } from '../../models/models';
+import { BarbershopDTO } from '../../models/models'; 
 import type { RootStackParamList } from '../../navigation/AppNavigator';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
@@ -27,7 +27,7 @@ const ListHeader = memo(({ userCoords, search, setSearch, isLoading, listTitle }
   <>
     <View style={styles.headerSection}>
       <Text style={styles.title}>Find Barbershops</Text>
-      <Text style={styles.subtitle}>
+    <Text style={styles.subtitle}>
         {userCoords ? 'Discover top-rated shops near you' : 'Discover the best shops'}
       </Text>
     </View>
@@ -87,6 +87,7 @@ const CustomerDashboard = () => {
     initialPageParam: 0,
   });
 
+  // Explicitly type shops as BarbershopDTO[]
   const shops = useMemo(() => data?.pages.flatMap((page) => page.content) ?? [], [data]);
 
   const listTitle = useMemo(() => {
@@ -95,13 +96,13 @@ const CustomerDashboard = () => {
     return "Top Rated Shops";
   }, [debouncedSearch, userCoords]);
 
-  const renderItem = ({ item }: { item: Barbershop }) => (
+  // Fix: Use BarbershopDTO type
+  const renderItem = ({ item }: { item: BarbershopDTO }) => (
     <TouchableOpacity 
       style={styles.shopCard} 
       activeOpacity={0.7}
-      onPress={() => navigation.navigate('BookAppointment', { 
-        shopId: item.id.toString(), // FIX: Ensure ID is string
-        shopName: item.name 
+      onPress={() => navigation.navigate('ShopDetail', { 
+        shopId: item.id // number matches RootStackParamList
       })}
     >
       <View style={styles.shopHeader}>
@@ -112,9 +113,14 @@ const CustomerDashboard = () => {
             <Text style={styles.addressText}>{item.address}, {item.city}</Text>
           </View>
         </View>
+        
+        {/* RATING SECTION - FIXED */}
         <View style={styles.ratingContainer}>
           <Star size={14} color={theme.colors.primary} fill={theme.colors.primary} />
-          <Text style={styles.ratingText}>{item.rating.toFixed(1)}</Text>
+          <Text style={styles.ratingText}>
+            {/* Safely convert to number, default to 0 if null/undefined */}
+            {item.rating != null ? Number(item.rating).toFixed(1) : '0.0'}
+          </Text>
         </View>
       </View>
 
@@ -131,6 +137,7 @@ const CustomerDashboard = () => {
     <View style={styles.container}>
       <FlatList
         data={shops}
+        // Fix: keyExtractor must return a string
         keyExtractor={(item) => item.id.toString()}
         renderItem={renderItem}
         contentContainerStyle={styles.listContent}
