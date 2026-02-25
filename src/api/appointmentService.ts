@@ -49,8 +49,8 @@ export const cancelAppointment = async (appointmentId: number): Promise<void> =>
 
 export const fetchBarberAppointments = async (
   barberId: number,
-  startDate: string, // format: YYYY-MM-DD
-  endDate: string,   // format: YYYY-MM-DD
+  startDate: string,
+  endDate: string,  
   page = 0,
   size = 50 
 ): Promise<PageResponse<AppointmentDetailsResponse>> => {
@@ -75,5 +75,27 @@ export const fetchBarberEarnings = async (
       endDate,
     },
   });
-  return response.data; // Backend returns a simple Double/Number
+  return response.data; 
+};
+
+export const fetchBarberUpcoming = async (
+  barberId: number,
+  page = 0,
+  size = 10
+): Promise<PageResponse<AppointmentDetailsResponse>> => {
+  const response = await api.get(`/appointment/barber/${barberId}/upcoming`, { 
+    params: { page, size } 
+  });
+  return response.data;
+};
+
+export const fetchBarberPast = async (
+  barberId: number,
+  page = 0,
+  size = 10
+): Promise<PageResponse<AppointmentDetailsResponse>> => {
+  const response = await api.get(`/appointment/barber/${barberId}/past`, { 
+    params: { page, size } 
+  });
+  return response.data;
 };

@@ -5,27 +5,118 @@ import {
   Text,
   StyleSheet,
   ScrollView,
+  ActivityIndicator,
 } from 'react-native';
 import { Clock } from 'lucide-react-native';
 import { theme } from '../../theme/theme';
-
-// Mocking data for demonstration
-const seedAppointments = [
-  { id: '1', barberId: 'b1', customerName: 'John Doe', serviceName: 'Haircut', date: '2026-02-13', time: '09:00 AM', price: 35 },
-  { id: '2', barberId: 'b1', customerName: 'Mike Ross', serviceName: 'Beard Trim', date: '2026-02-13', time: '10:00 AM', price: 25 },
-  { id: '3', barberId: 'b1', customerName: 'Alex Kim', serviceName: 'Fade & Lineup', date: '2026-02-14', time: '11:30 AM', price: 45 },
-];
+import { useAuthStore } from '../../store/authStore';
+import { useQuery } from '@tanstack/react-query';
+import { 
+  fetchBarberAppointments, 
+  fetchBarberUpcoming, 
+  fetchBarberPast 
+} from '../../api/appointmentService';
+import { AppointmentDetailsResponse } from '../../models/models';
 
 const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const hours = ['9 AM', '10 AM', '11 AM', '12 PM', '1 PM', '2 PM', '3 PM', '4 PM'];
 
 const BarberScheduleScreen = () => {
+  const user = useAuthStore((state) => state.user);
+
+  // --- 1. Calculate Current Week Dates ---
+  const getWeekDates = () => {
+    const now = new Date();
+    const dayOfWeek = now.getDay(); // 0 (Sun) - 6 (Sat)
+    const diffToMonday = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+    
+    const monday = new Date(now);
+    monday.setDate(now.getDate() + diffToMonday);
+    
+    const saturday = new Date(monday);
+    saturday.setDate(monday.getDate() + 5); // Mon to Sat
+
+    const formatDate = (d: Date) => d.toISOString().split('T')[0];
+    
+    return {
+      start: formatDate(monday),
+      end: formatDate(saturday)
+    };
+  };
+
+  const weekDates = getWeekDates();
+
+  // --- 2. API Queries ---
+
+  // Weekly Data for Grid
+  const { data: weekData, isLoading: isWeekLoading } = useQuery({
+    queryKey: ['barberWeekSchedule', user?.id, weekDates.start],
+    queryFn: () => fetchBarberAppointments(user!.id, weekDates.start, weekDates.end, 0, 100),
+    enabled: !!user?.id,
+  });
+
+  // Upcoming Appointments
+  const { data: upcomingData, isLoading: isUpcomingLoading } = useQuery({
+    queryKey: ['barberUpcoming', user?.id],
+    queryFn: () => fetchBarberUpcoming(user!.id, 0, 100),
+    enabled: !!user?.id,
+  });
+
+  // Past Appointments
+  const { data: pastData, isLoading: isPastLoading } = useQuery({
+    queryKey: ['barberPast', user?.id],
+    queryFn: () => fetchBarberPast(user!.id, 0, 100),
+    enabled: !!user?.id,
+  });
+
+  // --- 3. Helper Functions ---
+
+  const formatTime = (dateStr: string) => {
+    const date = new Date(dateStr);
+    return date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+  };
+
+  const calculateEndTime = (startStr: string, duration: number) => {
+    const date = new Date(startStr);
+    date.setMinutes(date.getMinutes() + (duration || 0));
+    return formatTime(date.toISOString());
+  };
+
+  const getServiceNames = (services: { name: string }[]) => {
+    return services?.map(s => s.name).join(', ') || 'N/A';
+  };
+
+  const getDateFromString = (dateStr: string) => {
+    return new Date(dateStr).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  };
+
+  // --- 4. Grid Rendering Logic ---
+
+  const weekAppointments = weekData?.content || [];
   
-  // Helper to render the grid rows
+  // Create a map for faster lookup: "DayIndex-HourIndex" -> Appointment
+  // Note: This is a simplified grid match logic for demonstration
+  const appointmentMap: Record<string, AppointmentDetailsResponse> = {};
+  
+  weekAppointments.forEach(apt => {
+    const date = new Date(apt.scheduledTime);
+    let dayIndex = date.getDay(); // 0=Sun, 1=Mon...
+    if (dayIndex === 0) dayIndex = 6; // Adjust for our Mon-Sat array (index 0-5)
+    else dayIndex -= 1; 
+
+    const hour = date.getHours(); // 9, 10, 11...
+    const hourIndex = hour - 9; // Map 9AM to index 0
+
+    // Only map if within our grid bounds
+    if (dayIndex >= 0 && dayIndex < 6 && hourIndex >= 0 && hourIndex < hours.length) {
+      appointmentMap[`${dayIndex}-${hourIndex}`] = apt;
+    }
+  });
+
   const renderGrid = () => {
     const rows = [];
 
-    // 1. Header Row (Days)
+    // Header Row
     rows.push(
       <View key="header" style={styles.gridRow}>
         <View style={styles.timeLabelCell}>
@@ -39,25 +130,26 @@ const BarberScheduleScreen = () => {
       </View>
     );
 
-    // 2. Hour Rows
-    hours.forEach((h) => {
+    // Hour Rows
+    hours.forEach((h, hIndex) => {
       rows.push(
         <View key={h} style={styles.gridRow}>
           <View style={styles.timeLabelCell}>
             <Text style={styles.timeLabelText}>{h}</Text>
           </View>
-          {days.map((d) => {
-            // Mock logic for random bookings
-            const hasAppt = Math.random() > 0.8;
+          {days.map((d, dIndex) => {
+            const key = `${dIndex}-${hIndex}`;
+            const apt = appointmentMap[key];
+            
             return (
               <View
-                key={`${d}-${h}`}
+                key={key}
                 style={[
                   styles.gridCell,
-                  hasAppt ? styles.bookedCell : styles.emptyCell,
+                  apt ? styles.bookedCell : styles.emptyCell,
                 ]}
               >
-                {hasAppt && <Text style={styles.bookedText}>Booked</Text>}
+                {apt && <Text style={styles.bookedText}>Booked</Text>}
               </View>
             );
           })}
@@ -68,9 +160,28 @@ const BarberScheduleScreen = () => {
     return rows;
   };
 
-  const upcomingAppointments = seedAppointments
-    .filter((a) => a.barberId === 'b1')
-    .slice(0, 3);
+  const renderAppointmentCard = (apt: AppointmentDetailsResponse) => (
+    <View key={apt.appointmentId} style={styles.aptCard}>
+      <View style={styles.aptIconContainer}>
+        <Clock size={18} color={theme.colors.primary} />
+      </View>
+      <View style={styles.aptInfo}>
+        <Text style={styles.aptName}>{apt.customerName}</Text>
+        <Text style={styles.aptDetails}>
+          {getServiceNames(apt.services)} · {formatTime(apt.scheduledTime)}-{calculateEndTime(apt.scheduledTime, apt.totalDurationMinutes)}
+        </Text>
+      </View>
+      <Text style={styles.aptPrice}>${apt.totalPrice}</Text>
+    </View>
+  );
+
+  if (isWeekLoading) {
+    return (
+      <View style={styles.centerContainer}>
+        <ActivityIndicator size="large" color={theme.colors.primary} />
+      </View>
+    );
+  }
 
   return (
     <ScrollView 
@@ -97,20 +208,29 @@ const BarberScheduleScreen = () => {
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Upcoming</Text>
         <View style={styles.listContainer}>
-          {upcomingAppointments.map((apt) => (
-            <View key={apt.id} style={styles.aptCard}>
-              <View style={styles.aptIconContainer}>
-                <Clock size={18} color={theme.colors.primary} />
-              </View>
-              <View style={styles.aptInfo}>
-                <Text style={styles.aptName}>{apt.customerName}</Text>
-                <Text style={styles.aptDetails}>
-                  {apt.serviceName} · {apt.date} at {apt.time}
-                </Text>
-              </View>
-              <Text style={styles.aptPrice}>${apt.price}</Text>
-            </View>
-          ))}
+          {isUpcomingLoading ? (
+            <ActivityIndicator color={theme.colors.primary} />
+          ) : (
+            upcomingData?.content.map(renderAppointmentCard)
+          )}
+          {upcomingData?.content.length === 0 && (
+            <Text style={styles.emptyText}>No upcoming appointments.</Text>
+          )}
+        </View>
+      </View>
+
+       {/* Past Section */}
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Past</Text>
+        <View style={styles.listContainer}>
+          {isPastLoading ? (
+             <ActivityIndicator color={theme.colors.primary} />
+          ) : (
+            pastData?.content.map(renderAppointmentCard)
+          )}
+          {pastData?.content.length === 0 && (
+            <Text style={styles.emptyText}>No past appointments.</Text>
+          )}
         </View>
       </View>
     </ScrollView>
@@ -121,6 +241,11 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: theme.colors.background,
+  },
+  centerContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   contentContainer: {
     padding: theme.spacing.lg,
@@ -154,13 +279,12 @@ const styles = StyleSheet.create({
 
   // Grid Styles
   gridContainer: {
-    // Fixed width container to ensure grid layout inside horizontal scroll
     width: 560, 
   },
   gridRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 4, // gap-1 equivalent
+    marginBottom: 4, 
   },
   timeLabelCell: {
     width: 60,
@@ -174,7 +298,7 @@ const styles = StyleSheet.create({
     color: theme.colors.muted,
   },
   dayHeaderCell: {
-    width: 80, // Fixed width for columns
+    width: 80, 
     justifyContent: 'center',
     alignItems: 'center',
     padding: 8,
@@ -186,7 +310,7 @@ const styles = StyleSheet.create({
     color: theme.colors.muted,
   },
   gridCell: {
-    width: 80, // Match header
+    width: 80, 
     height: 40,
     justifyContent: 'center',
     alignItems: 'center',
@@ -200,8 +324,8 @@ const styles = StyleSheet.create({
     opacity: 0.5,
   },
   bookedCell: {
-    borderColor: `${theme.colors.primary}4D`, // ~30% opacity
-    backgroundColor: `${theme.colors.primary}1A`, // ~10% opacity
+    borderColor: `${theme.colors.primary}4D`, 
+    backgroundColor: `${theme.colors.primary}1A`, 
   },
   bookedText: {
     fontSize: 10,
@@ -223,6 +347,11 @@ const styles = StyleSheet.create({
   },
   listContainer: {
     gap: theme.spacing.sm,
+  },
+  emptyText: {
+    color: theme.colors.muted,
+    textAlign: 'center',
+    marginTop: 10,
   },
   
   // Appointment Card
