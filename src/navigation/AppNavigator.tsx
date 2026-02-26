@@ -45,6 +45,7 @@ import { theme } from '../theme/theme';
 
 // Types
 import type { RescheduleData } from '../models/models';
+import BarberProfileScreen from '../screens/barber/BarberProfileScreen';
 
 // ---------------- PLACEHOLDER ----------------
 const PlaceholderScreen = ({ route }: any) => (
@@ -173,9 +174,14 @@ const AppNavigator = () => {
                       <BarberReview />
                     </DashboardLayout>
                   )}
+                </Stack.Screen><Stack.Screen name="BarberProfile">
+                  {() => (
+                    <DashboardLayout user={user} onLogout={logout}>
+                      <BarberProfileScreen />
+                    </DashboardLayout>
+                  )}
                 </Stack.Screen>
                 <Stack.Screen name="BarberEarnings" component={PlaceholderScreen} />
-                <Stack.Screen name="BarberProfile" component={PlaceholderScreen} />
               </>
             )}
 

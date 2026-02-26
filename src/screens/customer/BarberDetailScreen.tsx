@@ -35,7 +35,7 @@ const PLACEHOLDER_GALLERY = [
   'https://images.unsplash.com/photo-1503951914875-452162b0f3f1?w=600&h=600&fit=crop',
 ];
 
-const BarberDetailScreen = () => {
+const BarberDetail = () => {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<NavigationProp>();
   const route = useRoute();
@@ -54,7 +54,7 @@ const BarberDetailScreen = () => {
     isError: isBarberError 
   } = useQuery<ExtendedBarberDTO>({
     queryKey: ['barber', barberId],
-    queryFn: () => fetchBarberById({ barberId }),
+    queryFn: () => fetchBarberById(barberId ),
     enabled: !!barberId,
   });
 
@@ -361,4 +361,4 @@ const styles = StyleSheet.create({
   modalImage: { width: SCREEN_WIDTH, height: SCREEN_WIDTH },
 });
 
-export default BarberDetailScreen;
+export default BarberDetail;

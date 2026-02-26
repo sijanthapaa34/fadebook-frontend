@@ -28,7 +28,7 @@ const { width: SCREEN_WIDTH } = Dimensions.get('window');
 // Placeholder image if service has no specific image
 const PLACEHOLDER_IMAGE = 'https://images.unsplash.com/photo-1599351431202-1e0f0137899a?w=800&h=500&fit=crop';
 
-const ServiceDetailScreen = () => {
+const ServiceDetail = () => {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<NavigationProp>();
   const route = useRoute();
@@ -176,7 +176,7 @@ const ServiceDetailScreen = () => {
               style={styles.bookBtn} 
               onPress={() => navigation.navigate('BookAppointment', { 
                 shopId: shopId, 
-                shopName: service.barberShop || 'Barbershop' 
+                shopName: service.barbershop || 'Barbershop' 
               })}
             >
               <Text style={styles.bookBtnText}>Select Service & Book</Text>
@@ -293,4 +293,4 @@ const styles = StyleSheet.create({
   modalImage: { width: SCREEN_WIDTH, height: SCREEN_WIDTH },
 });
 
-export default ServiceDetailScreen;
+export default ServiceDetail;

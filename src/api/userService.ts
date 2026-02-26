@@ -1,9 +1,6 @@
 // src/api/userService.ts
 import api from './api';
-
-interface UploadResponse {
-  url: string;
-}
+import { UploadResponse } from '../models/models';
 
 export const uploadProfilePicture = async (userId: number, imageUri: string): Promise<string> => {
   const formData = new FormData();

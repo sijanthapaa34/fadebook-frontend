@@ -1,22 +1,9 @@
 // src/api/barbershopService.ts
 import api from './api';
 import { PageResponse, BarbershopDTO } from '../models/models';
+import { FetchShopsParams } from '../models/models';
 
-interface FetchShopsParams {
-  page: number;
-  size: number;
-  search?: string;
-  latitude?: number | null;
-  longitude?: number | null;
-}
-
-export const fetchShops = async ({ 
-  page, 
-  size, 
-  search, 
-  latitude, 
-  longitude 
-}: FetchShopsParams): Promise<PageResponse<BarbershopDTO>> => {
+export const fetchShops = async ({ page, size, search, latitude, longitude }: FetchShopsParams): Promise<PageResponse<BarbershopDTO>> => {
   
   let url = '';
   const params: any = { page, size };
@@ -32,11 +19,11 @@ export const fetchShops = async ({
     url = '/barbershop/top-rated';
   }
 
-  const response = await api.get(url, { params });
+  const response = await api.get<PageResponse<BarbershopDTO>>(url, { params });
   return response.data;
 };
 
 export const fetchBarbershopById = async (id: number): Promise<BarbershopDTO> => {
-  const response = await api.get(`/barbershop/${id}`);
+  const response = await api.get<BarbershopDTO>(`/barbershop/${id}`);
   return response.data;
 };

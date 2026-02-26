@@ -1,16 +1,29 @@
+// src/models/models.ts
+
+// ==========================================
+// 1. ENUMS & BASE TYPES
+// ==========================================
+
 export type UserRole = 'CUSTOMER' | 'BARBER';
 
-// Base user (from JWT)
+export type AppointmentStatus = 'PENDING' | 'CONFIRMED' | 'COMPLETED' | 'CANCELLED' | 'NO_SHOW';
+export type PaymentStatus = 'PENDING' | 'PAID' | 'REFUNDED';
+
+// Base User (from JWT / Auth Store)
 export interface User {
-  id: number;       // from JWT sub
-  email: string;    // from JWT
-  role: UserRole;   // from JWT
+  id: number;
+  email: string;
+  role: UserRole;
   name: string;
   phone?: string;
   profilePicture?: string;
 }
 
-// Customer info (fetched from backend)
+// ==========================================
+// 2. DOMAIN MODELS (Frontend Application State)
+// ==========================================
+
+// Customer Model (Used in App State)
 export interface Customer extends User {
   avatar?: string;
   points?: number;
@@ -19,9 +32,10 @@ export interface Customer extends User {
   status?: 'ACTIVE' | 'INACTIVE' | 'SUSPENDED' | 'VIP';
 }
 
-// Barber info (fetched from backend)
+// Barber Model (Used in App State)
+// Note: Maps from BarberDTO (active -> isActive)
 export interface Barber extends User {
-  avatar?: string; // profilePicture
+  avatar?: string;
   bio?: string;
   experienceYears?: number;
   workingHours?: { start: string; end: string };
@@ -29,98 +43,48 @@ export interface Barber extends User {
   reviewCount?: number;
   workImages?: string[];
   available?: boolean;
-  isActive?: boolean;
+  isActive?: boolean; // Mapped from DTO 'active'
   commissionRate?: number;
   skills?: string[];
   shopId?: number;
 }
 
-// src/types/barbershop.ts
-export interface Barbershop {
+// ==========================================
+// 3. API DTOs (Backend Response Shapes)
+// ==========================================
+
+// --- Barber DTO ---
+export interface BarberDTO {
   id: number;
   name: string;
-  description: string;
-  address: string;
-  city: string;
-  state: string | null;
-  postalCode: string;
-  shopImages?: string[];
-  phone: string;
   email: string;
-  website: string | null;
-  operatingHours: string;
-  profilePicture: string;
+  phone: string;
+  role: string;
+  bio: string;
+  active: boolean; // Backend field
+  available: boolean;
+  experienceYears: number;
+  profilePicture?: string;
   rating: number;
+  reviewCount?: number;
+  shopId?: number;
+  skills?: string[];
+  workImages?: string[];
+  barbershop: string; // Name of shop
 }
 
-export interface PageResponse<T> {
-  content: T[];
-  page: number;
-  size: number;
-  totalElements: number;
-  totalPages: number;
-  last: boolean;
-}
-
-// Service info
-export interface Service {
+// --- Customer DTO ---
+export interface CustomerDTO {
   id: number;
   name: string;
-  duration: number; // in minutes
-  price: number;
-  serviceImages?: string[];
-  category: string;
-  shopId: number;
+  email: string;
+  phone: string;
+  role: string;
+  profilePicture?: string;
+  // Add other fields backend sends (points, status, etc.)
 }
 
-// Appointment info
-export interface Appointment {
-  id: number;
-  customerId: number;
-  barberId: number;
-  shopId: number;
-  customerName: string;
-  barberName: string;
-  shopName: string;
-  serviceIds: number[];
-  date: string;
-  time: string;
-  status: 'pending' | 'confirmed' | 'completed' | 'cancelled' | 'missed';
-  totalPrice: number;
-  loyaltyDiscount?: number;
-}
-
-// Review info
-export interface Review {
-  id: number;
-  customerId: number;
-  customerName?: string;
-  rating: number;
-  comment: string;
-  targetType: string;
-  images?: string[];
-  targetId: number;
-  date: string;
-}
-
-// Loyalty points
-export interface LoyaltyPoints {
-  customerId: string;
-  points: number;
-  history: { date: string; points: number; description: string }[];
-}
-// Add these to your existing models.ts file
-
-export interface ServiceDTO {
-  id: number;
-  name: string;
-  description: string;
-  images: string[];
-  price: number;
-  durationMinutes: number;
-  barberShop: string;
-}
-
+// --- Barbershop DTO ---
 export interface BarbershopDTO {
   id: number;
   name: string;
@@ -135,32 +99,63 @@ export interface BarbershopDTO {
   website: string | null;
   operatingHours: string;
   profilePicture?: string;
+  reviewCount?: number;
   rating: number;
 }
 
-export interface CustomerDTO {
+// --- Service DTOs ---
+export interface ServiceDTO {
   id: number;
   name: string;
-  email: string;
-  phone: string;
-  role: string;
-  profilePicture?: string;
-}
-
-export interface BarberDTO {
-  id: number;
-  name: string;
+  description: string;
+  shopId: number;
   barbershop: string;
-  active: boolean;
-  email: string;
-  phone: string;
-  bio: string;
-  workImages?: string[];
-  profilePicture: string | null;
-  rating: number;
-  experienceYears: number;
-  available: boolean;
+  images: string[];
+  price: number;
+  durationMinutes: number;
 }
+
+export interface ServiceItemDTO {
+  serviceId: number; 
+  name: string;
+  price: number;
+  durationMinutes: number;
+}
+
+// --- Appointment DTOs ---
+export interface AppointmentDetailsResponse {
+  appointmentId: number;
+  
+  customerId: number;
+  customerName: string;
+  
+  barberId: number;
+  barberName: string;
+  
+  barbershopId: number;
+  barbershopName: string;
+  
+  services: ServiceItemDTO[];
+  totalPrice: number;
+  totalDurationMinutes: number;
+  
+  status: AppointmentStatus;
+  scheduledTime: string; // ISO String
+  
+  checkInTime?: string;
+  completedTime?: string;
+  
+  paymentStatus: PaymentStatus;
+  paidAmount?: number;
+  paymentMethod?: string;
+  
+  customerNotes?: string;
+  barberNotes?: string;
+  
+  createdAt: string;
+}
+
+// --- Review DTO ---
 export interface ReviewDTO {
   id: number;
   customerId: number;
@@ -173,8 +168,9 @@ export interface ReviewDTO {
   date: string;
 }
 
+// --- Availability DTOs ---
 export interface TimeSlotDTO {
-  startTime: string; // LocalDateTime string e.g. "2023-10-27T09:00:00"
+  startTime: string; 
   endTime: string;
 }
 
@@ -184,57 +180,71 @@ export interface AvailableSlotsResponseDTO {
   bookedSlots: TimeSlotDTO[];
 }
 
+// ==========================================
+// 4. API REQUEST TYPES
+// ==========================================
+
+export interface RegisterCustomerRequest { 
+  name: string; 
+  email: string; 
+  phone?: string; 
+  password: string; 
+  preferences?: string; 
+}
+
 export interface CreateAppointmentRequest {
   barberId: number;
   barbershopId: number; 
   serviceIds: number[];
-  scheduledTime: string; // Format: "YYYY-MM-DDTHH:mm:ss"
+  scheduledTime: string; 
 }
 
-
-export type AppointmentStatus = 'PENDING' | 'CONFIRMED' | 'COMPLETED' | 'CANCELLED' | 'NO_SHOW';
-export type PaymentStatus = 'PENDING' | 'PAID' | 'REFUNDED';
-
-export interface AppointmentDetailsResponse {
-  appointmentId: number;
-  customerId: number;
-  customerName: string;
-  barberId: number;
-  barberName: string;
-  barbershopId: number;
-  barbershopName: string;
-  services: ServiceItemDTO[];
-  totalPrice: number;
-  totalDurationMinutes: number;
-  status: AppointmentStatus;
-  scheduledTime: string;
-  checkInTime?: string;
-  completedTime?: string;
-  paymentStatus: PaymentStatus;
-  paidAmount?: number;
-  paymentMethod?: string;
-  customerNotes?: string;
-  barberNotes?: string;
-  createdAt: string;
-}
-
-export interface ServiceItemDTO {
-  serviceId: number; 
+export interface UpdateCustomerRequest {
   name: string;
-  price: number;
-  durationMinutes: number;
-
+  phone: string;
 }
 
-export interface RescheduleData {
-  appointmentId: number;
-  shopId: number;
-  shopName: string;
-  services: ServiceItemDTO[]; 
-  barberId: number;
-  barberName: string;
-  price: number;    
-  duration: number; 
+export interface UpdateBarberRequest {
+  name: string;
+  phone: string;
+  bio?: string;
+  experienceYears?: number;
+  skills?: string[];
+  active?: boolean;
+}
+
+export interface ChangePasswordRequest {
+  currentPassword: string;
+  newPassword: string;
+}
+
+// ==========================================
+// 5. WRAPPERS & PAGINATION
+// ==========================================
+
+export interface PageResponse<T> {
+  content: T[];
+  page: number;
+  size: number;
+  totalElements: number;
+  totalPages: number;
+  last: boolean;
+}
+
+export interface UploadResponse {
+  url: string;
+}
+
+// ==========================================
+// 6. QUERY PARAMS
+// ==========================================
+
+export interface FetchShopsParams {
+  page: number;
+  size: number;
+  search?: string;
+  latitude?: number | null;
+  longitude?: number | null;
 }
 
 export interface FetchServicesByShopParams {
@@ -254,8 +264,30 @@ export interface ReviewsByShopParams {
   page?: number;
   size?: number;
 }
+
 export interface ReviewsByBarberParams {
   barberId: number | string;
   page?: number;
   size?: number;
+}
+
+// ==========================================
+// 7. LEGACY / UNUSED (Can be removed if not used elsewhere)
+// ==========================================
+
+export interface LoyaltyPoints {
+  customerId: string;
+  points: number;
+  history: { date: string; points: number; description: string }[];
+}
+
+export interface RescheduleData {
+  appointmentId: number;
+  shopId: number;
+  shopName: string;
+  services: ServiceItemDTO[]; 
+  barberId: number;
+  barberName: string;
+  price: number;    
+  duration: number; 
 }

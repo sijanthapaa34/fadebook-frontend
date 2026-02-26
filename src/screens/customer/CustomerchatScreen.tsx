@@ -6,7 +6,7 @@ import {
 // REMOVED: useSafeAreaInsets - Not needed when inside DashboardLayout
 import { Send, ArrowLeft, Image as ImageIcon, Check, CheckCheck, Circle, Search } from 'lucide-react-native';
 import { theme } from '../../theme/theme';
-import { Service, Barber, BarbershopDTO } from '../../models/models';
+import { ServiceDTO, BarberDTO, BarbershopDTO } from '../../models/models';
 
 // --- SEED DATA (Keep as is) ---
 export const seedShops: BarbershopDTO[] = [
@@ -16,8 +16,8 @@ export const seedShops: BarbershopDTO[] = [
   { id: 4, name: 'Classic Kuts', address: '321 Elm St', city: 'Houston', state: 'TX', postalCode: '77001', phone: '(713) 555-0404', email: 'info@classickuts.com', rating: 4.6, profilePicture: 'https://placehold.co/600x400/27272A/FFFFFF?text=Classic+Kuts', website: 'https://classickuts.com', operatingHours: '9 AM - 7 PM' , shopImages: ['https://placehold.co/600x400/27272A/FFFFFF?text=Shop+Interior', 'https://placehold.co/600x400/27272A/FFFFFF?text=Shop+Exterior'] , description: 'Classic Kuts offers timeless grooming with a modern twist. Our experienced barbers provide expert haircuts, precise shaves, and stylish beard trims in a welcoming atmosphere. Visit us for a grooming experience that combines classic techniques with contemporary style.' },
 ];
 // ... (seedServices and seedBarbers remain the same, truncated for brevity)
-export const seedServices: Service[] = [ { id: 1, shopId: 1, name: 'Premium Fade', category: 'Haircut', price: 45, duration: 30 }, { id: 2, shopId: 1, name: 'Beard Trim', category: 'Beard', price: 20, duration: 15 }, { id: 3, shopId: 1, name: 'Hot Towel Shave', category: 'Shave', price: 35, duration: 30 }, { id: 4, shopId: 2, name: 'Executive Cut', category: 'Haircut', price: 50, duration: 45 }, { id: 5, shopId: 2, name: 'Buzz Cut', category: 'Haircut', price: 20, duration: 15 }, { id: 6, shopId: 3, name: 'Modern Pompadour', category: 'Haircut', price: 55, duration: 45 }, { id: 7, shopId: 3, name: 'Hair & Beard Combo', category: 'Combo', price: 60, duration: 45 }, ];
-export const seedBarbers: Barber[] = [ { id: 1, shopId: 1, name: 'Marcus B.', bio: '15 years experience.', rating: 4.9, avatar: 'https://placehold.co/150', email: 'marcus@goldstandard.com', role: 'BARBER' }, { id: 2, shopId: 1, name: 'James W.', bio: 'Beard expert.', rating: 4.8, avatar: 'https://placehold.co/150', email: 'james@goldstandard.com', role: 'BARBER' }, { id: 3, shopId: 2, name: 'Tony R.', bio: 'Old school vibes.', rating: 4.7, avatar: 'https://placehold.co/150', email: 'tony@crownblade.com', role: 'BARBER' }, { id: 4, shopId: 2, name: 'Mike D.', bio: 'Fast and efficient.', rating: 4.6, avatar: 'https://placehold.co/150', email: 'mike@crownblade.com', role: 'BARBER' }, { id: 5, shopId: 3, name: 'Chris P.', bio: 'Modern styles.', rating: 4.9, avatar: 'https://placehold.co/150', email: 'chris@noircuts.com', role: 'BARBER' }, ];
+export const seedServices: ServiceDTO[] = [ { id: 1, shopId: 1, barbershop: 'GG', name: 'Premium Fade',  price: 45, durationMinutes: 30 , description: 'A precise, clean fade with a modern twist.', images: ['https://placehold.co/600x400/27272A/FFFFFF?text=Premium+Fade']}];
+export const seedBarbers: BarberDTO[] = [ { id: 1, shopId: 1, name: 'Marcus B.', bio: '15 years experience.', rating: 4.9, email:'marcus@goldstandard.com' , role:'BARBER', phone: '(212) 555-0101', active: true, available: true, experienceYears: 15, barbershop: 'The Gold Standard' }];
 
 const { width } = Dimensions.get('window');
 
@@ -83,7 +83,7 @@ const TypingIndicator = () => {
 };
 
 // --- Main Component ---
-const CustomerChatScreen = () => {
+const CustomerChat = () => {
   // Removed: const insets = useSafeAreaInsets();
   
   const [conversations, setConversations] = useState<Conversation[]>(mockConversations);
@@ -385,4 +385,4 @@ const styles = StyleSheet.create({
   emptyText: { color: theme.colors.muted }
 });
 
-export default CustomerChatScreen;
+export default CustomerChat;

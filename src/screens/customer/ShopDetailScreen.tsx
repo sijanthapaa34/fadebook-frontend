@@ -27,7 +27,7 @@ const PLACEHOLDER_IMAGES = [
   'https://images.unsplash.com/photo-1599351431202-1e0f0137899a?w=400&h=300&fit=crop',
 ];
 
-const ShopDetailScreen = () => {
+const ShopDetail = () => {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<NavigationProp>();
   const route = useRoute();
@@ -378,4 +378,4 @@ const styles = StyleSheet.create({
   emptyText: { textAlign: 'center', fontFamily: theme.fonts.sans, color: theme.colors.muted, marginTop: theme.spacing.xl, marginBottom: 20 },
 });
 
-export default ShopDetailScreen;
+export default ShopDetail;

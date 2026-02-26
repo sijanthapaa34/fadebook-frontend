@@ -124,7 +124,7 @@ const StepBar = ({ current }: { current: CheckoutStep }) => {
 };
 
 /* ─── Main Component ─── */
-const CheckoutScreen = () => {
+const Checkout = () => {
   const route = useRoute();
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const insets = useSafeAreaInsets();
@@ -647,4 +647,4 @@ const styles = StyleSheet.create({
   receiptVal: { fontSize: 12, fontWeight: '500', color: theme.colors.text, maxWidth: '55%', textAlign: 'right' },
 });
 
-export default CheckoutScreen;
+export default Checkout;

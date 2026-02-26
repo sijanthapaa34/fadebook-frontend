@@ -2,15 +2,7 @@
 import api from './api';
 import { User, UserRole } from '../models/models';
 import { GoogleSignin, statusCodes } from '@react-native-google-signin/google-signin';
-
-export interface RegisterCustomerRequest { 
-  name: string; 
-  email: string; 
-  phone?: string; 
-  password: string; 
-  preferences?: string; 
-}
-
+import { RegisterCustomerRequest } from '../models/models';
 // --- Helper: Fetch Full Profile ---
 const fetchUserProfile = async (token: string): Promise<User> => {
   try {

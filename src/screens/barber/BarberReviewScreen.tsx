@@ -10,12 +10,12 @@ import {
 } from 'react-native';
 import { Star, MessageSquare } from 'lucide-react-native';
 import { theme } from '../../theme/theme';
-import { Review } from '../../models/models';
+import { ReviewDTO } from '../../models/models';
 
 // --- Local Type Extension ---
 // The provided DTO doesn't have a 'reply' field, but the UI needs it.
 // We create a local type that extends the DTO for state management.
-type ReviewWithReply = Review & {
+type ReviewWithReply = ReviewDTO & {
   reply?: {
     id: string;
     message: string;
