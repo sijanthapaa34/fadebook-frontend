@@ -1,7 +1,7 @@
 // src/api/appointmentService.ts
 import api from './api';
 import { 
-  PageResponse, ServiceDTO, BarberDTO, AvailableSlotsResponseDTO, 
+  PageResponse, AvailableSlotsResponseDTO, 
   CreateAppointmentRequest, AppointmentDetailsResponse 
 } from '../models/models';
 

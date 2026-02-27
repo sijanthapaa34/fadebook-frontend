@@ -1,0 +1,32 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+    /* Smooth font rendering */
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+}
+
+@layer utilities {
+  /* Custom utility for the glass effect used in Login and Dashboard */
+  .glass-card {
+    @apply bg-card backdrop-blur-xl border border-border rounded-lg shadow-2xl;
+  }
+
+  /* Custom gradient for buttons (if needed) */
+  .gold-gradient {
+    @apply bg-gradient-to-r from-yellow-500 via-amber-400 to-yellow-600;
+  }
+  
+  /* Simple stat card style used in Dashboard */
+  .stat-card {
+    @apply bg-card border border-border rounded-lg p-4 transition-all hover:border-primary/50;
+  }
+}
