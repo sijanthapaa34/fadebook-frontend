@@ -1,6 +1,6 @@
 // src/AppNavigator.tsx
-import React, { Suspense, useEffect } from 'react';
-import { BrowserRouter, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
+import React, { Suspense } from 'react';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { useAuthStore } from '@/store/authStore';
 
 // Layouts
@@ -10,12 +10,21 @@ import DashboardLayout from '@/components/layout/DashboardLayout';
 // Pages
 import Login from '@/pages/Login';
 import NotFound from '@/pages/NotFound';
+import Placeholder from '@/pages/Placeholder';
 
-import Placeholder from '@/pages/Placeholder'; // The new placeholder
+// --- Lazy Loaded Pages ---
 
-// Lazy Load Main Pages (Good for performance)
+// Main Admin
 const MainAdminDashboard = React.lazy(() => import('@/pages/admin/MainAdminDashboard'));
+const ShopManagement = React.lazy(() => import('@/pages/admin/ShopManagement'));
+const Applications = React.lazy(() => import('@/pages/admin/Application'));
+
+// Shop Admin
 const ShopAdminDashboard = React.lazy(() => import('@/pages/shopAdmin/ShopAdminDashboard'));
+const BarberManagement = React.lazy(() => import('@/pages/shopAdmin/BarberManagement'));
+const ServiceManagement = React.lazy(() => import('@/pages/shopAdmin/ServiceManagement'));
+const LeaveApproval = React.lazy(() => import('@/pages/shopAdmin/LeaveApproval'));
+const ChatDashboard = React.lazy(() => import('@/pages/shopAdmin/ChatDashboard'));
 
 // --- Protected Route Component ---
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
@@ -24,7 +33,6 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   return <>{children}</>;
 };
 
-// Loading Fallback
 const Loader = () => (
   <div className="min-h-screen bg-background flex items-center justify-center">
     <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
@@ -37,13 +45,23 @@ const AppNavigator = () => {
   return (
     <BrowserRouter>
       <Routes>
-        {/* --- Public Routes --- */}
+        {/* --- ROOT REDIRECT --- */}
+        <Route 
+          path="/" 
+          element={
+            user 
+              ? <Navigate to={`/${user.role === 'MAIN_ADMIN' ? 'admin' : 'shop-admin'}/dashboard`} replace />
+              : <Navigate to="/login" replace />
+          } 
+        />
+
+        {/* --- PUBLIC ROUTES --- */}
         <Route element={<PublicLayout />}>
           <Route path="/login" element={user ? <Navigate to={`/${user.role === 'MAIN_ADMIN' ? 'admin' : 'shop-admin'}/dashboard`}/> : <Login />} />
           <Route path="/register" element={<Placeholder title="Register" />} />
         </Route>
 
-        {/* --- Main Admin Routes --- */}
+        {/* --- MAIN ADMIN ROUTES --- */}
         <Route
           path="/admin"
           element={
@@ -53,19 +71,16 @@ const AppNavigator = () => {
           }
         >
           <Route index element={<Navigate to="dashboard" replace />} />
+          <Route path="dashboard" element={<Suspense fallback={<Loader />}><MainAdminDashboard /></Suspense>} />
+          <Route path="shops" element={<Suspense fallback={<Loader />}><ShopManagement /></Suspense>} />
+          <Route path="applications" element={<Suspense fallback={<Loader />}><Applications /></Suspense>} />
           
-          <Route path="dashboard" element={
-            <Suspense fallback={<Loader />}><MainAdminDashboard /></Suspense>
-          } />
-          
-          {/* Added missing Main Admin routes */}
-          <Route path="shops" element={<Placeholder title="Shops Management" />} />
-          <Route path="applications" element={<Placeholder title="Applications" />} />
+          {/* Placeholders for remaining Main Admin features */}
           <Route path="analytics" element={<Placeholder title="Analytics" />} />
           <Route path="commission" element={<Placeholder title="Commission Settings" />} />
         </Route>
 
-        {/* --- Shop Admin Routes --- */}
+        {/* --- SHOP ADMIN ROUTES --- */}
         <Route
           path="/shop-admin"
           element={
@@ -75,21 +90,20 @@ const AppNavigator = () => {
           }
         >
           <Route index element={<Navigate to="dashboard" replace />} />
+          <Route path="dashboard" element={<Suspense fallback={<Loader />}><ShopAdminDashboard /></Suspense>} />
           
-          <Route path="dashboard" element={
-            <Suspense fallback={<Loader />}><ShopAdminDashboard /></Suspense>
-          } />
+          {/* New Pages Added Here */}
+          <Route path="barbers" element={<Suspense fallback={<Loader />}><BarberManagement /></Suspense>} />
+          <Route path="services" element={<Suspense fallback={<Loader />}><ServiceManagement /></Suspense>} />
+          <Route path="leave" element={<Suspense fallback={<Loader />}><LeaveApproval /></Suspense>} />
+          <Route path="chat" element={<Suspense fallback={<Loader />}><ChatDashboard /></Suspense>} />
 
-          {/* Added missing Shop Admin routes */}
-          <Route path="barbers" element={<Placeholder title="Barbers Management" />} />
-          <Route path="services" element={<Placeholder title="Services Management" />} />
-          <Route path="leave" element={<Placeholder title="Leave Requests" />} />
+          {/* Placeholders for remaining Shop Admin features */}
           <Route path="appointments" element={<Placeholder title="Appointments" />} />
           <Route path="customers" element={<Placeholder title="Customers" />} />
-          <Route path="chat" element={<Placeholder title="Messages" />} />
         </Route>
 
-        {/* --- Fallback --- */}
+        {/* --- 404 --- */}
         <Route path="*" element={<NotFound />} />
       </Routes>
     </BrowserRouter>

@@ -3,8 +3,8 @@ import { useAuthStore } from '@/store/authStore';
 import Logo from '@/components/Logo';
 import { Button } from '@/components/ui/button';
 import {
-  LayoutDashboard, Calendar, DollarSign, Users, Settings, LogOut,
-  Scissors, Store, BarChart3, Sliders, UserCircle, MessageSquare, MapPin, CreditCard, ClipboardList, Image, Star
+  LayoutDashboard, Calendar, Users, Settings, LogOut,
+  Scissors, Store, ClipboardList, MessageSquare
 } from 'lucide-react';
 import type { AdminRole } from '@/models/models';
 
@@ -28,8 +28,7 @@ const navConfig: Record<AdminRole, NavItem[]> = {
     { label: 'Dashboard', path: '/admin/dashboard', icon: <LayoutDashboard size={18} /> },
     { label: 'Shops', path: '/admin/shops', icon: <Store size={18} /> },
     { label: 'Applications', path: '/admin/applications', icon: <ClipboardList size={18} /> },
-    { label: 'Analytics', path: '/admin/analytics', icon: <BarChart3 size={18} /> },
-    { label: 'Commission', path: '/admin/commission', icon: <Sliders size={18} /> },
+    // Add more routes here as needed
   ],
 };
 
@@ -49,12 +48,15 @@ const DashboardLayout = () => {
 
   return (
     <div className="min-h-screen bg-background flex">
-      {/* Sidebar */}
-      <aside className="hidden md:flex w-64 flex-col border-r border-border bg-card/50">
+      {/* --- Permanent Sidebar --- */}
+      <aside className="w-64 flex flex-col border-r border-border bg-card/50 h-screen sticky top-0">
+        {/* Logo Area */}
         <div className="p-6 border-b border-border">
           <Link to="/"><Logo size="sm" /></Link>
         </div>
-        <nav className="flex-1 p-4 space-y-1">
+
+        {/* Navigation Links */}
+        <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
           {navItems.map((item) => (
             <Link
               key={item.path}
@@ -70,6 +72,8 @@ const DashboardLayout = () => {
             </Link>
           ))}
         </nav>
+
+        {/* User Profile Section at Bottom */}
         <div className="p-4 border-t border-border">
           <div className="flex items-center gap-3 px-3 mb-4">
             <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center text-primary text-xs font-bold">
@@ -86,30 +90,9 @@ const DashboardLayout = () => {
         </div>
       </aside>
 
-      {/* Mobile top bar */}
+      {/* --- Main Content Area --- */}
       <div className="flex-1 flex flex-col">
-        <header className="md:hidden flex items-center justify-between p-4 border-b border-border bg-card/50">
-          <Logo size="sm" />
-          <Button variant="ghost" size="icon" onClick={handleLogout}><LogOut size={18} /></Button>
-        </header>
-
-        {/* Mobile bottom nav */}
-        <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-card/95 backdrop-blur border-t border-border flex justify-around py-2 z-50">
-          {navItems.slice(0, 5).map((item) => (
-            <Link
-              key={item.path}
-              to={item.path}
-              className={`flex flex-col items-center gap-1 px-2 py-1 text-xs transition-colors ${
-                location.pathname === item.path ? 'text-primary' : 'text-muted-foreground'
-              }`}
-            >
-              {item.icon}
-              <span>{item.label}</span>
-            </Link>
-          ))}
-        </nav>
-
-        <main className="flex-1 p-4 md:p-8 pb-20 md:pb-8 overflow-auto">
+        <main className="flex-1 p-8 overflow-auto">
           <Outlet />
         </main>
       </div>

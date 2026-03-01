@@ -37,7 +37,7 @@ api.interceptors.response.use(
     if (error.response?.status === 401) {
       try {
         await Keychain.resetGenericPassword();
-        const { reset } = require('../navigation/NavigationService');
+        const { reset } = require('../navigation/AppNavigator'); 
         reset('Login');
       } catch (err) {
         console.error('Error handling 401 response:', err);

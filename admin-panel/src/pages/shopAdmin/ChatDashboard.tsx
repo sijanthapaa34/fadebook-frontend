@@ -168,230 +168,77 @@ const ChatDashboard = () => {
     });
 
   const totalUnread = chats.reduce((a, c) => a + c.unread, 0);
-
-  return (
-    <div className="flex flex-col h-[calc(100vh-8rem)] md:h-[calc(100vh-6rem)]">
-      <div className="flex items-center justify-between pb-4">
-        <div>
-          <h1 className="text-2xl font-display font-bold">Customer Messages</h1>
-          <p className="text-xs text-muted-foreground mt-0.5">
-            {totalUnread > 0 ? `${totalUnread} unread conversations` : 'All caught up'}
-          </p>
-        </div>
+return (
+    <div className="flex flex-col h-[calc(100vh-8rem)]">
+      <div className="pb-4">
+        <h1 className="text-2xl font-display font-bold">Messages</h1>
+        <p className="text-xs text-muted-foreground mt-0.5">Manage customer conversations</p>
       </div>
 
-      <div className="flex flex-1 min-h-0 gap-0 rounded-xl border border-border overflow-hidden bg-card/30">
-        {/* ── LEFT PANEL: Conversation List ── */}
-        <div className={`w-full md:w-80 lg:w-96 flex flex-col border-r border-border shrink-0 ${activeChat ? 'hidden md:flex' : 'flex'}`}>
-          {/* Search + Filter */}
-          <div className="p-3 space-y-2 border-b border-border">
+      <div className="flex-1 min-h-0 flex rounded-xl border border-border overflow-hidden bg-card/30">
+        
+        {/* Left Panel: List */}
+        <div className="w-80 border-r border-border flex flex-col bg-muted/10">
+          <div className="p-3 border-b border-border">
             <div className="relative">
               <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                placeholder="Search customers..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-9 bg-muted/30 border-border h-9 text-sm"
-              />
-            </div>
-            <div className="flex gap-1">
-              {([['all', 'All'], ['unread', 'Unread'], ['active-bookings', 'Bookings']] as const).map(([key, label]) => (
-                <Button
-                  key={key}
-                  variant={filter === key ? 'default' : 'ghost'}
-                  size="sm"
-                  className="h-7 text-xs px-3"
-                  onClick={() => setFilter(key)}
-                >
-                  {label}
-                  {key === 'unread' && totalUnread > 0 && (
-                    <Badge className="ml-1 h-4 w-4 p-0 text-[9px] flex items-center justify-center">{totalUnread}</Badge>
-                  )}
-                </Button>
-              ))}
+              <Input placeholder="Search..." className="pl-9 bg-muted/30 border-border h-9" />
             </div>
           </div>
-
-          {/* Chat List */}
           <ScrollArea className="flex-1">
-            <div className="divide-y divide-border/50">
-              {filteredChats.map(chat => (
-                <button
-                  key={chat.customerId}
-                  onClick={() => setActiveChat(chat.customerId)}
-                  className={`w-full flex items-center gap-3 p-3 transition-colors text-left ${
-                    activeChat === chat.customerId ? 'bg-primary/5' : 'hover:bg-muted/30'
-                  }`}
-                >
-                  <div className="relative">
-                    {/* <Avatar className="h-10 w-10 border border-border">
-                      <AvatarFallback className="bg-secondary text-secondary-foreground text-xs font-bold">
-                        {chat.customerName.split(' ').map(n => n[0]).join('')}
-                      </AvatarFallback>
-                    </Avatar> */}
-                    <Circle
-                      size={9}
-                      className={`absolute -bottom-0.5 -right-0.5 ${chat.online ? 'fill-[hsl(142,70%,45%)] text-[hsl(142,70%,45%)]' : 'fill-muted-foreground text-muted-foreground'}`}
-                    />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex justify-between items-baseline">
-                      <p className="font-medium text-sm truncate">{chat.customerName}</p>
-                      <span className="text-[10px] text-muted-foreground ml-2 shrink-0">{chat.lastTime}</span>
-                    </div>
-                    <div className="flex items-center gap-1 mt-0.5">
-                      {chat.hasActiveBooking && <Calendar size={10} className="text-primary shrink-0" />}
-                      <p className="text-xs text-muted-foreground truncate">{chat.lastMessage}</p>
-                    </div>
-                  </div>
-                  {chat.unread > 0 && (
-                    <Badge className="h-5 w-5 flex items-center justify-center p-0 text-[10px]">
-                      {chat.unread}
-                    </Badge>
-                  )}
+             {/* List items mapped here */}
+             <div className="p-2">
+              {mockChats.map(chat => (
+                <button key={chat.customerId} onClick={() => setActiveChat(chat.customerId)} 
+                  className={`w-full flex items-center gap-3 p-3 rounded-md transition-colors ${activeChat === chat.customerId ? 'bg-primary/10' : 'hover:bg-muted/50'}`}>
+                   <div className="w-9 h-9 rounded-full bg-muted flex items-center justify-center text-xs font-bold">
+                     {chat.customerName.charAt(0)}
+                   </div>
+                   <div className="flex-1 text-left">
+                     <p className="text-sm font-medium truncate">{chat.customerName}</p>
+                     <p className="text-xs text-muted-foreground truncate">{chat.lastMessage}</p>
+                   </div>
                 </button>
               ))}
-              {filteredChats.length === 0 && (
-                <div className="text-center py-12 text-muted-foreground text-sm">No conversations found</div>
-              )}
-            </div>
+             </div>
           </ScrollArea>
         </div>
 
-        {/* ── RIGHT PANEL: Active Chat ── */}
-        <div className={`flex-1 flex flex-col ${!activeChat ? 'hidden md:flex' : 'flex'}`}>
+        {/* Right Panel: Chat */}
+        <div className="flex-1 flex flex-col">
           {currentChat ? (
             <>
-              {/* Chat Header */}
-              <div className="flex items-center justify-between p-3 border-b border-border">
-                <div className="flex items-center gap-3">
-                  <Button variant="ghost" size="icon" className="md:hidden shrink-0" onClick={() => setActiveChat(null)}>
-                    <MessageSquare size={18} />
-                  </Button>
-                  <div className="relative">
-                    {/* <Avatar className="h-9 w-9 border border-border">
-                      <AvatarFallback className="bg-secondary text-secondary-foreground text-xs font-bold">
-                        {currentChat.customerName.split(' ').map(n => n[0]).join('')}
-                      </AvatarFallback>
-                    </Avatar> */}
-                    <Circle
-                      size={8}
-                      className={`absolute -bottom-0.5 -right-0.5 ${currentChat.online ? 'fill-[hsl(142,70%,45%)] text-[hsl(142,70%,45%)]' : 'fill-muted-foreground text-muted-foreground'}`}
-                    />
-                  </div>
-                  <div>
-                    <p className="font-medium text-sm">{currentChat.customerName}</p>
-                    <p className="text-[10px] text-muted-foreground">
-                      {currentChat.online ? 'Online' : 'Offline'}
-                      {currentChat.hasActiveBooking && ' · Has active booking'}
-                    </p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-1">
-                  {/* Assign barber */}
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="sm" className="h-8 text-xs gap-1 text-muted-foreground">
-                        <UserPlus size={14} />
-                        <span className="hidden sm:inline">
-                          {currentChat.assignedBarber
-                            // ? shopBarbers.find(b => b.id === currentChat.assignedBarber)?.name?.split(' ')[0]
-                            // : 'Assign'
-                            }
-                        </span>
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      {shopBarbers.map(barber => (
-                        <DropdownMenuItem key={barber.id} onClick={() => handleAssignBarber(barber.id)}>
-                          <div className="flex items-center gap-2">
-                            {/* <Avatar className="h-6 w-6">
-                              <AvatarFallback className="text-[10px] bg-primary/10 text-primary">{barber.name.charAt(0)}</AvatarFallback>
-                            </Avatar>
-                            <span className="text-sm">{barber.name}</span>
-                            {currentChat.assignedBarber === barber.id && <Check size={14} className="ml-auto text-primary" />} */}
-                          </div>
-                        </DropdownMenuItem>
-                      ))}
-                      {currentChat.assignedBarber && (
-                        <>
-                          <DropdownMenuSeparator />
-                          <DropdownMenuItem onClick={() => handleAssignBarber(0)} className="text-destructive">
-                            Unassign
-                          </DropdownMenuItem>
-                        </>
-                      )}
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </div>
+              {/* Header */}
+              <div className="p-4 border-b border-border flex items-center gap-3">
+                 <div className="w-9 h-9 rounded-full bg-muted flex items-center justify-center font-bold text-sm">
+                   {currentChat.customerName.charAt(0)}
+                 </div>
+                 <div>
+                   <p className="font-medium text-sm">{currentChat.customerName}</p>
+                   <p className="text-xs text-muted-foreground">{currentChat.online ? 'Online' : 'Offline'}</p>
+                 </div>
               </div>
 
               {/* Messages */}
               <ScrollArea className="flex-1 p-4">
-                <div className="space-y-3">
-                  {currentChat.messages.map(msg => (
-                    <div key={msg.id} className={`flex ${msg.sender === 'admin' ? 'justify-end' : 'justify-start'}`}>
-                      <div className={`max-w-[75%] rounded-2xl text-sm p-3 ${
-                        msg.sender === 'admin'
-                          ? 'bg-primary text-primary-foreground rounded-br-sm'
-                          : 'glass-card rounded-bl-sm'
-                      }`}>
-                        {msg.image && (
-                          <img src={msg.image} alt="Shared" className="rounded-lg mb-2 max-h-48 object-cover w-full" />
-                        )}
-                        <p>{msg.text}</p>
-                        <div className={`flex items-center gap-1 justify-end mt-1 ${
-                          msg.sender === 'admin' ? 'text-primary-foreground/50' : 'text-muted-foreground'
-                        }`}>
-                          <span className="text-[10px]">{msg.time}</span>
-                          {msg.sender === 'admin' && <StatusIcon status={msg.status} />}
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                  {isTyping && (
-                    <div className="flex justify-start">
-                      <div className="glass-card rounded-2xl rounded-bl-sm px-4 py-3">
-                        <div className="flex gap-1">
-                          <span className="w-2 h-2 rounded-full bg-muted-foreground animate-bounce" style={{ animationDelay: '0ms' }} />
-                          <span className="w-2 h-2 rounded-full bg-muted-foreground animate-bounce" style={{ animationDelay: '150ms' }} />
-                          <span className="w-2 h-2 rounded-full bg-muted-foreground animate-bounce" style={{ animationDelay: '300ms' }} />
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                  <div ref={messagesEndRef} />
-                </div>
+                 {/* Message bubbles mapped here */}
               </ScrollArea>
 
               {/* Input */}
-              <div className="flex items-center gap-2 p-3 border-t border-border">
-                <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleFileChange} />
-                <Button variant="ghost" size="icon" className="shrink-0 text-muted-foreground" onClick={() => fileInputRef.current?.click()}>
-                  <Image size={18} />
-                </Button>
-                <Input
-                  placeholder="Type a reply..."
-                  value={message}
-                  onChange={(e) => setMessage(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && handleSend()}
-                  className="bg-muted/30 border-border"
-                />
-                <Button variant="hero" size="icon" className="shrink-0" onClick={handleSend} disabled={!message.trim()}>
-                  <Send size={16} />
-                </Button>
+              <div className="p-3 border-t border-border flex items-center gap-2">
+                <Button variant="ghost" size="icon"><Image size={18} className="text-muted-foreground"/></Button>
+                <Input placeholder="Type a reply..." className="bg-muted/30 border-border" />
+                <Button variant="hero" size="icon"><Send size={16}/></Button>
               </div>
             </>
           ) : (
-            <div className="flex-1 flex flex-col items-center justify-center text-muted-foreground gap-3">
-              <MessageSquare size={48} className="text-muted-foreground/30" />
-              <p className="text-sm">Select a conversation to start replying</p>
-            </div>
+             <div className="flex-1 flex items-center justify-center text-muted-foreground">
+               Select a conversation
+             </div>
           )}
         </div>
       </div>
     </div>
   );
 };
-
 export default ChatDashboard;

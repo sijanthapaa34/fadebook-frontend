@@ -8,6 +8,7 @@ export type AdminRole = 'BARBERSHOP_ADMIN' | 'MAIN_ADMIN';
 
 export type AppointmentStatus = 'PENDING' | 'CONFIRMED' | 'COMPLETED' | 'CANCELLED' | 'NO_SHOW';
 export type PaymentStatus = 'PENDING' | 'PAID' | 'REFUNDED';
+export type LeaveStatus = 'PENDING' | 'APPROVED' | 'REJECTED';
 
 export type ApplicationStatus = 
   | 'PENDING' 
@@ -107,6 +108,7 @@ export interface BarbershopDTO {
   shopImages?: string[];
   phone: string;
   email: string;
+  active: boolean;
   website: string | null;
   operatingHours: string;
   profilePicture?: string;
@@ -276,10 +278,10 @@ export interface ReviewsByBarberParams {
 // ==========================================
 
 export interface LeaveRequest {
-  id: string;
-  barberId: string;
+  id: number;
+  barberId: number;
   barberName: string;
-  shopId: string;
+  shopId: number;
   startDate: string;
   endDate: string;
   reason: string;
@@ -326,4 +328,38 @@ export interface PlatformStats {
   monthlyRevenue: number;
   avgRating: number;
   activeBarbers: number;
+}
+// src/models/models.ts
+
+// ... existing imports and types
+
+// Status specifically for Barbers (2-step approval)
+export type BarberApprovalStatus = 
+  | 'PENDING_SHOP_APPROVAL'
+  | 'PENDING_MAIN_APPROVAL'
+  | 'APPROVED'
+  | 'REJECTED';
+
+// Status specifically for Shops (1-step approval by Main Admin)
+export type ShopApprovalStatus = 
+  | 'PENDING'
+  | 'APPROVED'
+  | 'REJECTED';
+
+
+// Updated ApplicationRecord interface
+export interface ApplicationRecord {
+  id: string;
+  type: 'BARBER' | 'SHOP';
+  name: string;
+  email: string;
+  phone: string;
+  city: string;
+  status: ApplicationStatus; // Uses the union type above
+  submittedAt: string;
+  assignedShopId?: string;
+  details: Record<string, string>;
+  photos: string[];
+  shopAdminNotes?: string;
+  mainAdminNotes?: string;
 }

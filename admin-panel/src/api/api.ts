@@ -1,34 +1,70 @@
-// src/api/api.ts
-import axios from 'axios';
+// src/api/client.ts
+import axios, { AxiosError, InternalAxiosRequestConfig } from 'axios';
 
-const API_BASE_URL = 'http://localhost:8080/api'; 
+// Use environment variable for the base URL
+const API_BASE_URL = 'http://localhost:8080/api';
 
 export const api = axios.create({
   baseURL: API_BASE_URL,
   headers: { 'Content-Type': 'application/json' },
-  timeout: 10000,
+  timeout: 15000, // 15 seconds timeout
 });
 
-// Request interceptor: Attaches the token to every request
-api.interceptors.request.use(async (config) => {
-  // Use the same key as defined in authService
-  const token = localStorage.getItem('admin_token');
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
-  }
-  return config;
-}, (error) => Promise.reject(error));
-
-// Response interceptor: Handles global errors like 401
-api.interceptors.response.use(
-  (res) => res,
-  async (error) => {
-    if (error.response?.status === 401) {
-      // Token expired or invalid
-      localStorage.removeItem('admin_token');
-      // Force reload to trigger logout state
-      window.location.href = '/login'; 
+// Request Interceptor: Automatically attach the token
+api.interceptors.request.use(
+  (config: InternalAxiosRequestConfig) => {
+    const token = localStorage.getItem('admin_token');
+    if (token && config.headers) {
+      config.headers.Authorization = `Bearer ${token}`;
     }
+    return config;
+  },
+  (error) => Promise.reject(error)
+);
+
+// Response Interceptor: Handle global errors
+let isRefreshing = false;
+let failedQueue: any[] = [];
+
+const processQueue = (error: AxiosError | null) => {
+  failedQueue.forEach((prom) => {
+    if (error) {
+      prom.reject(error);
+    } else {
+      prom.resolve();
+    }
+  });
+  failedQueue = [];
+};
+
+api.interceptors.response.use(
+  (response) => response,
+  async (error: AxiosError) => {
+    const originalRequest = error.config as InternalAxiosRequestConfig & { _retry?: boolean };
+
+    // Handle 401 Unauthorized
+    if (error.response?.status === 401 && !originalRequest._retry) {
+      // If your backend supports refresh tokens, handle it here.
+      // For now, we assume token is invalid and force logout.
+      
+      if (isRefreshing) {
+        return new Promise((resolve, reject) => {
+          failedQueue.push({ resolve, reject });
+        }).then(() => api(originalRequest)).catch((err) => Promise.reject(err));
+      }
+
+      originalRequest._retry = true;
+      isRefreshing = true;
+
+      // Clear token and redirect to login
+      localStorage.removeItem('admin_token');
+      window.location.href = '/login';
+      
+      processQueue(error);
+      isRefreshing = false;
+      return Promise.reject(error);
+    }
+
     return Promise.reject(error);
   }
 );
