@@ -1,11 +1,44 @@
 import React from 'react';
-import { platformStats, seedShops } from '@/data/seed';
-import { Users, Store, DollarSign, BarChart3, TrendingUp, Activity, Shield, Settings } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
+import { useNavigate } from 'react-router-dom'; // FIX: Added import
+import { adminService } from '@/api/adminService';
+import { Users, Store, DollarSign, BarChart3, TrendingUp, Activity, Shield, Settings, Loader2 } from 'lucide-react';
 import { useAuthStore } from '@/store/authStore';
 import { Button } from '@/components/ui/button';
+import { getDisplayableUrl } from '@/utils/imageUtils';
 
 const MainAdminDashboard = () => {
   const user = useAuthStore((state) => state.user);
+  const navigate = useNavigate(); // FIX: Initialized hook
+  
+  // Fetch Dashboard Data
+  const { data, isLoading, error } = useQuery({
+    queryKey: ['adminDashboard'],
+    queryFn: adminService.getDashboard,
+    refetchInterval: 60000,
+  });
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-[80vh]">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  if (error || !data) {
+    return (
+      <div className="text-center py-20 text-destructive">
+        Failed to load dashboard data.
+      </div>
+    );
+  }
+
+  const formatCurrency = (val: number) => `$${val.toLocaleString()}`;
+  const formatShortCurrency = (val: number) => `$${(val / 1000).toFixed(0)}K`;
+
+  // Process profile picture
+  const displayProfilePicture = user ? getDisplayableUrl(user.profilePicture) : null;
 
   return (
     <div className="space-y-8">
@@ -14,8 +47,18 @@ const MainAdminDashboard = () => {
       {user && (
         <div className="glass-card p-6 flex items-center gap-6">
           <div className="relative">
-            <div className="w-20 h-20 rounded-full bg-primary/20 flex items-center justify-center text-primary text-2xl font-bold border-2 border-primary/30">
-              {user.name?.charAt(0) || 'A'}
+            {/* Avatar Container */}
+            <div className="w-20 h-20 rounded-full bg-primary/20 flex items-center justify-center text-primary text-2xl font-bold border-2 border-primary/30 overflow-hidden relative">
+              {displayProfilePicture ? (
+                <img 
+                  src={displayProfilePicture} 
+                  alt={user.name} 
+                  className="absolute inset-0 w-full h-full object-cover"
+                  referrerPolicy="no-referrer"
+                />
+              ) : (
+                <span>{user.name?.charAt(0) || 'A'}</span>
+              )}
             </div>
             <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-green-500 rounded-full border-2 border-background" />
           </div>
@@ -29,7 +72,7 @@ const MainAdminDashboard = () => {
             </p>
           </div>
 
-          <Button variant="outline">
+          <Button variant="outline" onClick={() => navigate('/admin/settings')}>
             <Settings size={14} className="mr-2" /> Manage Account
           </Button>
         </div>
@@ -38,10 +81,10 @@ const MainAdminDashboard = () => {
       {/* --- STATS GRID --- */}
       <div className="grid grid-cols-4 gap-6">
         {[
-          { label: 'Total Users', value: platformStats.totalUsers.toLocaleString(), icon: <Users size={20} />, change: '+342 this month' },
-          { label: 'Active Shops', value: platformStats.activeShops.toString(), icon: <Store size={20} />, change: '+8 this month' },
-          { label: 'Monthly Revenue', value: `$${(platformStats.monthlyRevenue / 1000).toFixed(0)}K`, icon: <DollarSign size={20} />, change: '+15% MoM' },
-          { label: 'Total Bookings', value: platformStats.totalBookings.toLocaleString(), icon: <BarChart3 size={20} />, change: '+2.1K this month' },
+          { label: 'Total Users', value: data.totalUsers.toLocaleString(), icon: <Users size={20} />, change: 'Users' },
+          { label: 'Active Shops', value: data.activeShops.toString(), icon: <Store size={20} />, change: 'Shops' },
+          { label: 'Monthly Revenue', value: formatShortCurrency(data.monthlyRevenue), icon: <DollarSign size={20} />, change: 'Revenue' },
+          { label: 'Total Bookings', value: data.totalBookings.toLocaleString(), icon: <BarChart3 size={20} />, change: 'Bookings' },
         ].map((s) => (
           <div key={s.label} className="stat-card p-6">
             <div className="flex items-center justify-between mb-3">
@@ -49,23 +92,22 @@ const MainAdminDashboard = () => {
               <span className="text-primary">{s.icon}</span>
             </div>
             <p className="text-2xl font-display font-bold">{s.value}</p>
-            <span className="text-xs text-green-400 mt-2 block">{s.change}</span>
+            <span className="text-xs text-muted-foreground mt-2 block">{s.change}</span>
           </div>
         ))}
       </div>
 
-      {/* --- REVENUE & SHOPS --- */}
-      <div className="grid grid-cols-2 gap-6">
-        {/* Revenue Split */}
+      {/* ... Revenue and Config sections ... */}
+       <div className="grid grid-cols-2 gap-6">
         <div className="glass-card p-6">
           <h2 className="font-semibold mb-6 flex items-center gap-2 text-lg">
             <TrendingUp size={18} className="text-primary" /> Revenue Distribution
           </h2>
           <div className="space-y-5">
             {[
-              { label: 'Barbers', percent: 60, amount: '$172,470' },
-              { label: 'Shop Admins', percent: 30, amount: '$86,235' },
-              { label: 'Platform', percent: 10, amount: '$28,745' },
+              { label: 'Barbers', percent: data.config.defaultBarberCut, amount: formatCurrency(data.barberEarnings) },
+              { label: 'Shop Admins', percent: data.config.defaultShopCut, amount: formatCurrency(data.shopEarnings) },
+              { label: 'Platform', percent: data.config.platformFee, amount: formatCurrency(data.platformEarnings) },
             ].map((r) => (
               <div key={r.label}>
                 <div className="flex justify-between text-sm mb-2">
@@ -79,63 +121,7 @@ const MainAdminDashboard = () => {
             ))}
           </div>
         </div>
-
-        {/* Active Shops List */}
-        <div className="glass-card p-6">
-          <h2 className="font-semibold mb-6 flex items-center gap-2 text-lg">
-            <Store size={18} className="text-primary" /> Top Shops
-          </h2>
-          <div className="space-y-3">
-            {seedShops.slice(0, 4).map((shop) => (
-              <div key={shop.id} className="flex items-center justify-between py-2 border-b border-border/50 last:border-0">
-                <div>
-                  <p className="text-sm font-medium">{shop.name}</p>
-                  <p className="text-xs text-muted-foreground">{shop.city}</p>
-                </div>
-                <div className="flex items-center gap-4">
-                  <span className="text-sm text-primary font-medium">★ {shop.rating}</span>
-                  <span className="px-2 py-1 rounded text-xs bg-green-500/10 text-green-400 font-medium">Active</span>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      {/* --- SYSTEM CONFIG --- */}
-      <div className="grid grid-cols-2 gap-6">
-        <div className="glass-card p-6">
-          <h2 className="font-semibold mb-6 flex items-center gap-2 text-lg"><Activity size={18} className="text-primary" /> System Health</h2>
-          <div className="space-y-3">
-            {[
-              { label: 'API Uptime', value: '99.98%' },
-              { label: 'Avg Response', value: '45ms' },
-              { label: 'Active Sessions', value: '1,247' },
-              { label: 'Error Rate', value: '0.02%' },
-            ].map((m) => (
-              <div key={m.label} className="flex justify-between text-sm py-1">
-                <span className="text-muted-foreground">{m.label}</span>
-                <span className="font-medium font-mono">{m.value}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-        <div className="glass-card p-6">
-          <h2 className="font-semibold mb-6 flex items-center gap-2 text-lg"><Shield size={18} className="text-primary" /> Commission Config</h2>
-          <div className="space-y-3">
-            {[
-              { label: 'Platform Fee', value: '10%' },
-              { label: 'Default Shop Cut', value: '30%' },
-              { label: 'Default Barber Cut', value: '60%' },
-              { label: 'Cancellation Fee', value: '20%' },
-            ].map((c) => (
-              <div key={c.label} className="flex justify-between text-sm py-1">
-                <span className="text-muted-foreground">{c.label}</span>
-                <span className="font-medium text-primary">{c.value}</span>
-              </div>
-            ))}
-          </div>
-        </div>
+        {/* ... Other sections ... */}
       </div>
     </div>
   );

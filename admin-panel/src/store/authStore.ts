@@ -18,9 +18,9 @@ interface AuthState {
   // Actions
   initialize: () => Promise<void>;
   login: (email: string, password: string) => Promise<void>;
-  loginAs: (role: AdminRole) => void; // For Demo
   logout: () => void;
   resetError: () => void;
+  setUser: (user: AdminUser) => void; // <--- FIX: Added this line
 }
 
 export const useAuthStore = create<AuthState>()(
@@ -57,7 +57,7 @@ export const useAuthStore = create<AuthState>()(
       login: async (email, password) => {
         set({ isLoading: true, error: null });
         try {
-          const { token} = await authService.login(email, password);
+          const { token } = await authService.login(email, password);
           
           // Store token separately for Axios interceptor access
           localStorage.setItem('admin_token', token);
@@ -73,24 +73,15 @@ export const useAuthStore = create<AuthState>()(
         }
       },
 
-      loginAs: (role) => {
-        const mockUser: AdminUser = 
-          role === 'MAIN_ADMIN'
-            ? { id: 0, email: 'main@admin.com', name: 'Super Admin', role: 'MAIN_ADMIN' }
-            : { id: 1, email: 'shop@admin.com', name: 'Shop Admin', role: 'BARBERSHOP_ADMIN', shopId: 1 };
-
-        const mockToken = 'demo-mock-token';
-        
-        localStorage.setItem('admin_token', mockToken);
-        set({ user: mockUser, token: mockToken });
-      },
-
       logout: () => {
         localStorage.removeItem('admin_token');
         set({ user: null, token: null });
       },
 
       resetError: () => set({ error: null }),
+      
+      // FIX: Implementation of setUser
+      setUser: (user) => set({ user }),
     }),
     {
       name: 'admin-auth-storage',

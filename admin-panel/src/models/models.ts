@@ -4,7 +4,7 @@
 // 1. ENUMS & BASE TYPES
 // ==========================================
 
-export type AdminRole = 'BARBERSHOP_ADMIN' | 'MAIN_ADMIN';
+export type AdminRole = 'SHOP_ADMIN' | 'MAIN_ADMIN';
 
 export type AppointmentStatus = 'PENDING' | 'CONFIRMED' | 'COMPLETED' | 'CANCELLED' | 'NO_SHOW';
 export type PaymentStatus = 'PENDING' | 'PAID' | 'REFUNDED';
@@ -164,7 +164,7 @@ export interface ReviewDTO {
   customerId: number;
   customerName?: string;
   rating: number;
-  comment: string;
+  reply?: string;
   targetType: string;
   images?: string[];
   targetId: number;
@@ -362,4 +362,57 @@ export interface ApplicationRecord {
   photos: string[];
   shopAdminNotes?: string;
   mainAdminNotes?: string;
+}
+
+export interface SystemHealth {
+  uptime: string;
+  avgResponseTime: string;
+  activeSessions: number;
+  errorRate: string;
+}
+
+export interface CommissionConfig {
+  platformFee: number;
+  defaultShopCut: number;
+  defaultBarberCut: number;
+  cancellationFee: number;
+}
+
+export interface AdminDashboardResponse {
+  totalUsers: number;
+  activeShops: number;
+  monthlyRevenue: number;
+  totalBookings: number;
+  barberEarnings: number;
+  shopEarnings: number;
+  platformEarnings: number;
+  health: SystemHealth;
+  config: CommissionConfig;
+  topShops: BarbershopDTO[];
+}
+
+export interface ShopAdminDashboardResponse {
+  totalReviews: number;
+  totalBarbers: number;
+
+  // 2. Today
+  todayAppointments: number;
+  todayRevenue: number;
+  pendingAppointments: number;
+  availableBarbers: number;
+
+  // 3. Monthly
+  monthlyRevenue: number;
+  monthlyAppointments: number;
+  revenueGrowth: number;
+
+  // 4. Distribution
+  shopEarnings: number;
+  barbersEarnings: number;
+  platformFees: number;
+
+  // 5. Lists
+  topBarbers: BarberDTO[];
+  popularServices: ServiceDTO[];
+  upcomingAppointments: AppointmentDetailsResponse[];
 }

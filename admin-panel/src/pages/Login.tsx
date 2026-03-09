@@ -10,19 +10,16 @@ import { useToast } from '@/hooks/use-toast';
 import { ToastAction } from '@/components/ui/toast';
 
 const roleRedirects: Record<AdminRole, string> = {
-  BARBERSHOP_ADMIN: '/shop-admin/dashboard',
+  SHOP_ADMIN: '/shop-admin/dashboard',
   MAIN_ADMIN: '/admin/dashboard',
 };
 
-const demoRoles: { role: AdminRole; label: string; desc: string }[] = [
-  { role: 'BARBERSHOP_ADMIN', label: 'Shop Admin', desc: 'Run your shop' },
-  { role: 'MAIN_ADMIN', label: 'Platform Admin', desc: 'System overview' },
-];
-
 const Login = () => {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const { login, loginAs, isLoading, error, resetError, user } = useAuthStore();
+  // Pre-fill for easy testing (remove value="" for production)
+  const [email, setEmail] = useState('admin@barberapp.com');
+  const [password, setPassword] = useState('admin123');
+  
+  const { login, isLoading, error, resetError, user } = useAuthStore();
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -33,7 +30,7 @@ const Login = () => {
     }
   }, [user, navigate]);
 
-  // Show error toast if login fails
+  // Show error toast
   useEffect(() => {
     if (error) {
       toast({
@@ -49,15 +46,10 @@ const Login = () => {
     e.preventDefault();
     try {
       await login(email, password);
-      // Navigation is handled by useEffect watching `user`
+      // Navigation handled by useEffect
     } catch (err) {
-      // Error is already handled in store and toast
+      // Handled by store
     }
-  };
-
-  const handleDemoLogin = (role: AdminRole) => {
-    loginAs(role);
-    // Navigation handled by useEffect
   };
 
   return (
@@ -65,7 +57,7 @@ const Login = () => {
       <div className="w-full max-w-md space-y-8">
         <div className="text-center">
           <Link to="/"><Logo size="lg" /></Link>
-          <p className="mt-4 text-muted-foreground">Sign in to your account</p>
+          <p className="mt-4 text-muted-foreground">Sign in to your Admin Panel</p>
         </div>
 
         <div className="glass-card p-8">
@@ -96,23 +88,8 @@ const Login = () => {
               {isLoading ? 'Signing in...' : 'Sign In'}
             </Button>
           </form>
-
-          <div className="mt-6 pt-6 border-t border-border">
-            <p className="text-xs text-muted-foreground text-center mb-4">Quick Demo Access</p>
-            <div className="grid grid-cols-2 gap-3">
-              {demoRoles.map((d) => (
-                <button
-                  key={d.role}
-                  type="button"
-                  onClick={() => handleDemoLogin(d.role)}
-                  className="p-4 rounded-lg border border-border bg-background/50 hover:border-primary hover:bg-primary/5 transition-all text-left group"
-                >
-                  <p className="text-sm font-medium text-foreground group-hover:text-primary">{d.label}</p>
-                  <p className="text-xs text-muted-foreground mt-1">{d.desc}</p>
-                </button>
-              ))}
-            </div>
-          </div>
+          
+          {/* Demo buttons removed as requested */}
         </div>
       </div>
     </div>

@@ -7,6 +7,7 @@ import {
   Scissors, Store, ClipboardList, MessageSquare
 } from 'lucide-react';
 import type { AdminRole } from '@/models/models';
+import { getDisplayableUrl } from '@/utils/imageUtils'; // Import helper
 
 interface NavItem {
   label: string;
@@ -15,8 +16,9 @@ interface NavItem {
 }
 
 const navConfig: Record<AdminRole, NavItem[]> = {
-  BARBERSHOP_ADMIN: [
+  SHOP_ADMIN: [
     { label: 'Dashboard', path: '/shop-admin/dashboard', icon: <LayoutDashboard size={18} /> },
+    { label: 'Manage Shop', path: '/shop-admin/manage-shop', icon: <Store size={18} /> },
     { label: 'Barbers', path: '/shop-admin/barbers', icon: <Scissors size={18} /> },
     { label: 'Services', path: '/shop-admin/services', icon: <Settings size={18} /> },
     { label: 'Leave Requests', path: '/shop-admin/leave', icon: <ClipboardList size={18} /> },
@@ -28,7 +30,6 @@ const navConfig: Record<AdminRole, NavItem[]> = {
     { label: 'Dashboard', path: '/admin/dashboard', icon: <LayoutDashboard size={18} /> },
     { label: 'Shops', path: '/admin/shops', icon: <Store size={18} /> },
     { label: 'Applications', path: '/admin/applications', icon: <ClipboardList size={18} /> },
-    // Add more routes here as needed
   ],
 };
 
@@ -40,6 +41,9 @@ const DashboardLayout = () => {
   if (!user) return null;
 
   const navItems = navConfig[user.role];
+  
+  // FIX: Process image URL for display
+  const displayProfilePicture = getDisplayableUrl(user.profilePicture);
 
   const handleLogout = () => {
     logout();
@@ -76,9 +80,21 @@ const DashboardLayout = () => {
         {/* User Profile Section at Bottom */}
         <div className="p-4 border-t border-border">
           <div className="flex items-center gap-3 px-3 mb-4">
-            <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center text-primary text-xs font-bold">
-              {user.name.charAt(0)}
+            
+            {/* Avatar Container */}
+            <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center text-primary text-xs font-bold overflow-hidden shrink-0 border border-border">
+              {displayProfilePicture ? (
+                <img 
+                  src={displayProfilePicture} 
+                  alt={user.name} 
+                  className="w-full h-full object-cover"
+                  referrerPolicy="no-referrer"
+                />
+              ) : (
+                <span>{user.name.charAt(0)}</span>
+              )}
             </div>
+
             <div className="flex-1 min-w-0">
               <p className="text-sm font-medium truncate">{user.name}</p>
               <p className="text-xs text-muted-foreground truncate">{user.role.replace('_', ' ')}</p>

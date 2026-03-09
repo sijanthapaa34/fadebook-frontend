@@ -1,20 +1,14 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import {
-  Send, Search, Filter, Check, CheckCheck, Circle, Image,
-  Users, Calendar, MessageSquare, UserPlus, MoreVertical
+  Send, Search, Check, CheckCheck, Circle, Image,
+  MessageSquare
 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-// import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import {
-  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator
-} from '@/components/ui/dropdown-menu';
 import { seedBarbers } from '@/data/seed';
 
 type MessageStatus = 'sent' | 'delivered' | 'seen';
-type ChatFilter = 'all' | 'unread' | 'active-bookings';
 
 interface AdminMessage {
   id: string;
@@ -98,8 +92,6 @@ const ChatDashboard = () => {
   const [activeChat, setActiveChat] = useState<string | null>(mockChats[0].customerId);
   const [message, setMessage] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
-  const [filter, setFilter] = useState<ChatFilter>('all');
-  const [isTyping, setIsTyping] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -134,14 +126,6 @@ const ChatDashboard = () => {
     }, 800);
   };
 
-  const handleAssignBarber = (barberId: number) => {
-    if (!activeChat) return;
-    const barber = shopBarbers.find(b => b.id === barberId);
-    // setChats(prev => prev.map(c =>
-    //   c.customerId === activeChat ? { ...c, assignedBarber: barberId } : c
-    // ));
-  };
-
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !activeChat) return;
@@ -159,16 +143,9 @@ const ChatDashboard = () => {
     e.target.value = '';
   };
 
-  const filteredChats = chats
-    .filter(c => c.customerName.toLowerCase().includes(searchQuery.toLowerCase()))
-    .filter(c => {
-      if (filter === 'unread') return c.unread > 0;
-      if (filter === 'active-bookings') return c.hasActiveBooking;
-      return true;
-    });
+  const filteredChats = chats.filter(c => c.customerName.toLowerCase().includes(searchQuery.toLowerCase()));
 
-  const totalUnread = chats.reduce((a, c) => a + c.unread, 0);
-return (
+  return (
     <div className="flex flex-col h-[calc(100vh-8rem)]">
       <div className="pb-4">
         <h1 className="text-2xl font-display font-bold">Messages</h1>
@@ -182,17 +159,28 @@ return (
           <div className="p-3 border-b border-border">
             <div className="relative">
               <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-              <Input placeholder="Search..." className="pl-9 bg-muted/30 border-border h-9" />
+              <Input 
+                placeholder="Search..." 
+                className="pl-9 bg-muted/30 border-border h-9" 
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
             </div>
           </div>
           <ScrollArea className="flex-1">
              {/* List items mapped here */}
              <div className="p-2">
-              {mockChats.map(chat => (
+              {filteredChats.map(chat => (
                 <button key={chat.customerId} onClick={() => setActiveChat(chat.customerId)} 
                   className={`w-full flex items-center gap-3 p-3 rounded-md transition-colors ${activeChat === chat.customerId ? 'bg-primary/10' : 'hover:bg-muted/50'}`}>
-                   <div className="w-9 h-9 rounded-full bg-muted flex items-center justify-center text-xs font-bold">
-                     {chat.customerName.charAt(0)}
+                   <div className="relative">
+                     <div className="w-9 h-9 rounded-full bg-muted flex items-center justify-center text-xs font-bold">
+                       {chat.customerName.charAt(0)}
+                     </div>
+                     <Circle
+                        size={8}
+                        className={`absolute -bottom-0.5 -right-0.5 ${chat.online ? 'fill-[hsl(142,70%,45%)] text-[hsl(142,70%,45%)]' : 'fill-muted-foreground text-muted-foreground'}`}
+                      />
                    </div>
                    <div className="flex-1 text-left">
                      <p className="text-sm font-medium truncate">{chat.customerName}</p>
@@ -210,8 +198,14 @@ return (
             <>
               {/* Header */}
               <div className="p-4 border-b border-border flex items-center gap-3">
-                 <div className="w-9 h-9 rounded-full bg-muted flex items-center justify-center font-bold text-sm">
-                   {currentChat.customerName.charAt(0)}
+                 <div className="relative">
+                    <div className="w-9 h-9 rounded-full bg-muted flex items-center justify-center font-bold text-sm">
+                      {currentChat.customerName.charAt(0)}
+                    </div>
+                    <Circle
+                      size={8}
+                      className={`absolute -bottom-0.5 -right-0.5 ${currentChat.online ? 'fill-[hsl(142,70%,45%)] text-[hsl(142,70%,45%)]' : 'fill-muted-foreground text-muted-foreground'}`}
+                    />
                  </div>
                  <div>
                    <p className="font-medium text-sm">{currentChat.customerName}</p>
@@ -221,14 +215,47 @@ return (
 
               {/* Messages */}
               <ScrollArea className="flex-1 p-4">
-                 {/* Message bubbles mapped here */}
+                <div className="space-y-3">
+                  {currentChat.messages.map(msg => (
+                    <div key={msg.id} className={`flex ${msg.sender === 'admin' ? 'justify-end' : 'justify-start'}`}>
+                      <div className={`max-w-[75%] rounded-2xl text-sm p-3 ${
+                        msg.sender === 'admin'
+                          ? 'bg-primary text-primary-foreground rounded-br-sm'
+                          : 'glass-card rounded-bl-sm'
+                      }`}>
+                        {msg.image && (
+                          <img src={msg.image} alt="Shared" className="rounded-lg mb-2 max-h-48 object-cover w-full" />
+                        )}
+                        <p>{msg.text}</p>
+                        <div className={`flex items-center gap-1 justify-end mt-1 ${
+                          msg.sender === 'admin' ? 'text-primary-foreground/50' : 'text-muted-foreground'
+                        }`}>
+                          <span className="text-[10px]">{msg.time}</span>
+                          {msg.sender === 'admin' && <StatusIcon status={msg.status} />}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                  <div ref={messagesEndRef} />
+                </div>
               </ScrollArea>
 
               {/* Input */}
               <div className="p-3 border-t border-border flex items-center gap-2">
-                <Button variant="ghost" size="icon"><Image size={18} className="text-muted-foreground"/></Button>
-                <Input placeholder="Type a reply..." className="bg-muted/30 border-border" />
-                <Button variant="hero" size="icon"><Send size={16}/></Button>
+                <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleFileChange} />
+                <Button variant="ghost" size="icon" onClick={() => fileInputRef.current?.click()}>
+                  <Image size={18} className="text-muted-foreground"/>
+                </Button>
+                <Input 
+                  placeholder="Type a reply..." 
+                  className="bg-muted/30 border-border" 
+                  value={message}
+                  onChange={(e) => setMessage(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && handleSend()}
+                />
+                <Button variant="hero" size="icon" onClick={handleSend} disabled={!message.trim()}>
+                  <Send size={16}/>
+                </Button>
               </div>
             </>
           ) : (

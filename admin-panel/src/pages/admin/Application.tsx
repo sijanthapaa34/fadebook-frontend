@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Search, CheckCircle, XCircle, Clock, Scissors, Store, ArrowRight, ShieldCheck } from 'lucide-react';
-import type { ApplicationRecord, BarberApprovalStatus, ShopApprovalStatus } from '@/models/models';
+import type { ApplicationRecord, BarberApprovalStatus } from '@/models/models';
 import { seedApplications } from '@/data/seed';
 import { useToast } from '@/hooks/use-toast';
 
@@ -20,7 +20,7 @@ const Applications = () => {
   const { toast } = useToast();
   const [apps, setApps] = useState<ApplicationRecord[]>(seedApplications);
   const [filter, setFilter] = useState<'ALL' | string>('ALL');
-  const [typeFilter, setTypeFilter] = useState<'ALL' | 'BARBER' | 'SHOP'>('ALL');
+  const [typeFilter] = useState<'ALL' | 'BARBER' | 'SHOP'>('ALL');
   const [search, setSearch] = useState('');
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [noteInput, setNoteInput] = useState('');
