@@ -23,7 +23,7 @@ const navConfig: Record<AdminRole, NavItem[]> = {
     { label: 'Services', path: '/shop-admin/services', icon: <Settings size={18} /> },
     { label: 'Leave Requests', path: '/shop-admin/leave', icon: <ClipboardList size={18} /> },
     { label: 'Appointments', path: '/shop-admin/appointments', icon: <Calendar size={18} /> },
-    { label: 'Customers', path: '/shop-admin/customers', icon: <Users size={18} /> },
+    { label: 'Applications', path: '/shop-admin/applications', icon: <Users size={18} /> },
     { label: 'Messages', path: '/shop-admin/chat', icon: <MessageSquare size={18} /> },
   ],
   MAIN_ADMIN: [

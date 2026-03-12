@@ -416,3 +416,80 @@ export interface ShopAdminDashboardResponse {
   popularServices: ServiceDTO[];
   upcomingAppointments: AppointmentDetailsResponse[];
 }
+
+
+export interface BarberApplicationData {
+  type: 'BARBER';
+  name: string;
+  email: string;
+  password: string;
+  phone: string;
+  city: string;
+  profilePictureUrl?: string;
+  experienceYears: number;
+  skills: string[];
+  bio: string;
+  licenseUrl?: string;
+  barbershopId: number;
+  barbershopName: string;
+}
+
+export interface ShopApplicationData {
+  type: 'BARBER_SHOP';
+  name: string; // Owner Name
+  email: string; // Admin Email
+  password: string;
+  phone: string;
+  shopName: string;
+  address: string;
+  city: string;
+  state: string;
+  postalCode: string;
+  country?: string;
+  latitude: number;
+  longitude: number;
+  website?: string;
+  operatingHours?: string;
+  description?: string;
+  documentUrl?: string;
+  shopImages?: string[]; 
+}
+export interface ApplicationResponseDTO {
+  id: number;
+  type: 'BARBER' | 'BARBER_SHOP';
+  status: 'PENDING' | 'PENDING_MAIN_APPROVAL' | 'APPROVED' | 'REJECTED';
+
+  // Common Account Info
+  name: string;
+  email: string;
+  phone: string;
+  createdAt: string; // ISO Date string
+
+  // Barber Specific
+  experienceYears?: number;
+  skills?: string[];
+  bio?: string;
+  city?: string;
+  profilePictureUrl?: string;
+  licenseUrl?: string;
+  barbershopName?: string;
+
+  // Shop Specific
+  shopName?: string;
+  address?: string;
+  state?: string;
+  postalCode?: string;
+  latitude?: number; // BigDecimal maps to number in TS
+  longitude?: number;
+  website?: string;
+  operatingHours?: string;
+  description?: string;
+  documentUrl?: string;
+  shopImages?: string[]; 
+
+
+  // Admin Review Info
+  reviewedBy?: string;
+  reviewedAt?: string; // ISO Date string
+  rejectionReason?: string;
+}

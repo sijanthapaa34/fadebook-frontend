@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { useAuthStore } from '@/store/authStore';
-import { fetchBarbershopById, updateBarbershop, uploadShopImage, removeShopImage } from '@/api/barbershopService';
+import { fetchBarbershopById, updateBarbershop, uploadShopImage, removeShopImage } from '@/services/barbershopService';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';

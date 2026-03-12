@@ -1,5 +1,5 @@
 // src/api/adminService.ts
-import api from './api';
+import api from '../api/api';
 import type { AdminDashboardResponse, ShopAdminDashboardResponse } from '@/models/models';
 
 export const adminService = {

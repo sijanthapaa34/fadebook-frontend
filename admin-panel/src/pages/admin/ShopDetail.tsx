@@ -1,10 +1,10 @@
 import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { fetchBarbershopById } from '@/api/barbershopService';
-import { fetchBarbersByShop } from '@/api/barberService';
-import { fetchServicesByShop } from '@/api/serviceService';
-import { getReviewsofShop } from '@/api/reviewService';
+import { fetchBarbershopById } from '@/services/barbershopService';
+import { fetchBarbersByShop } from '@/services/barberService';
+import { fetchServicesByShop } from '@/services/serviceService';
+import { getReviewsofShop } from '@/services/reviewService';
 import { getDisplayableUrl } from '@/utils/imageUtils'; // Ensure this is imported
 
 import { MapPin, Phone, Clock, Star, Scissors, Mail, Globe, 

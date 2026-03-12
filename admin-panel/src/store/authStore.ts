@@ -1,7 +1,7 @@
 // src/stores/authStore.ts
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
-import { authService } from '@/api/authService';
+import { authService } from '@/services/authService';
 import type { AdminRole, User } from '@/models/models';
 
 export interface AdminUser extends User {

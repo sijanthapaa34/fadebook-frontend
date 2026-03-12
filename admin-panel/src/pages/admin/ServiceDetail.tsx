@@ -1,6 +1,6 @@
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { fetchServiceById } from '@/api/serviceService';
+import { fetchServiceById } from '@/services/serviceService';
 import { ArrowLeft, Clock, Tag, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 

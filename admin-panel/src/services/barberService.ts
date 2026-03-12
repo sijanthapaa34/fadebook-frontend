@@ -1,5 +1,5 @@
 // src/api/barberService.ts
-import api from './api';
+import api from '../api/api';
 import { BarberDTO, PageResponse, FetchBarbersByShopParams ,UpdateBarberRequest, ChangePasswordRequest} from '../models/models';
 
 export const fetchBarbersByShop = async ({ shopId, page = 0, size = 10 }: FetchBarbersByShopParams): Promise<PageResponse<BarberDTO>> => {

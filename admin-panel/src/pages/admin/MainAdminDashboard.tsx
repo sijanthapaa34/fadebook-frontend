@@ -1,22 +1,57 @@
-import React from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { useNavigate } from 'react-router-dom'; // FIX: Added import
-import { adminService } from '@/api/adminService';
-import { Users, Store, DollarSign, BarChart3, TrendingUp, Activity, Shield, Settings, Loader2 } from 'lucide-react';
+import React, { useState, useRef } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useNavigate } from 'react-router-dom';
+import { adminService } from '@/services/adminService';
+import { uploadProfilePicture } from '@/services/userService';
+import { Users, Store, DollarSign, BarChart3, TrendingUp, Activity, Settings, Loader2, Plus } from 'lucide-react'; // Fixed Import
 import { useAuthStore } from '@/store/authStore';
 import { Button } from '@/components/ui/button';
 import { getDisplayableUrl } from '@/utils/imageUtils';
+import { useToast } from '@/hooks/use-toast';
 
 const MainAdminDashboard = () => {
   const user = useAuthStore((state) => state.user);
-  const navigate = useNavigate(); // FIX: Initialized hook
-  
+  const setUser = useAuthStore((state) => state.setUser);
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
+  // State for Upload
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
   // Fetch Dashboard Data
   const { data, isLoading, error } = useQuery({
     queryKey: ['adminDashboard'],
     queryFn: adminService.getDashboard,
     refetchInterval: 60000,
   });
+
+  // --- Handlers ---
+
+  const handleUploadClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file || !user) return;
+
+    setIsUploadingImage(true);
+    try {
+      const newImageUrl = await uploadProfilePicture(user.id, file);
+      
+      setUser({ ...user, profilePicture: newImageUrl });
+      queryClient.invalidateQueries({ queryKey: ['auth', 'me'] });
+      
+      toast({ title: "Success", description: "Profile picture updated" });
+    } catch (error: any) {
+      toast({ variant: "destructive", title: "Error", description: error.response?.data?.message || "Failed to upload image" });
+    } finally {
+      setIsUploadingImage(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
 
   if (isLoading) {
     return (
@@ -37,18 +72,29 @@ const MainAdminDashboard = () => {
   const formatCurrency = (val: number) => `$${val.toLocaleString()}`;
   const formatShortCurrency = (val: number) => `$${(val / 1000).toFixed(0)}K`;
 
-  // Process profile picture
   const displayProfilePicture = user ? getDisplayableUrl(user.profilePicture) : null;
 
   return (
     <div className="space-y-8">
       
+      {/* Hidden File Input */}
+      <input 
+        type="file" 
+        ref={fileInputRef} 
+        onChange={handleFileChange} 
+        className="hidden" 
+        accept="image/*" 
+      />
+
       {/* --- PROFILE GREETING --- */}
       {user && (
         <div className="glass-card p-6 flex items-center gap-6">
           <div className="relative">
             {/* Avatar Container */}
-            <div className="w-20 h-20 rounded-full bg-primary/20 flex items-center justify-center text-primary text-2xl font-bold border-2 border-primary/30 overflow-hidden relative">
+            <div 
+              className="w-20 h-20 rounded-full bg-primary/20 flex items-center justify-center text-primary text-2xl font-bold border-2 border-primary/30 overflow-hidden relative cursor-pointer group"
+              onClick={handleUploadClick}
+            >
               {displayProfilePicture ? (
                 <img 
                   src={displayProfilePicture} 
@@ -59,8 +105,23 @@ const MainAdminDashboard = () => {
               ) : (
                 <span>{user.name?.charAt(0) || 'A'}</span>
               )}
+              
+              {isUploadingImage && (
+                <div className="absolute inset-0 bg-black/60 flex items-center justify-center z-10">
+                  <Loader2 className="h-6 w-6 animate-spin text-white" />
+                </div>
+              )}
             </div>
-            <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-green-500 rounded-full border-2 border-background" />
+
+            {/* Plus Button Overlay */}
+            <Button 
+              size="icon" 
+              className="absolute bottom-0 right-0 h-6 w-6 rounded-full" 
+              onClick={handleUploadClick}
+              disabled={isUploadingImage}
+            >
+              <Plus size={14} />
+            </Button>
           </div>
 
           <div className="flex-1">
@@ -97,7 +158,6 @@ const MainAdminDashboard = () => {
         ))}
       </div>
 
-      {/* ... Revenue and Config sections ... */}
        <div className="grid grid-cols-2 gap-6">
         <div className="glass-card p-6">
           <h2 className="font-semibold mb-6 flex items-center gap-2 text-lg">
@@ -121,7 +181,16 @@ const MainAdminDashboard = () => {
             ))}
           </div>
         </div>
-        {/* ... Other sections ... */}
+        
+        {/* Activity Section */}
+        <div className="glass-card p-6">
+           <h2 className="font-semibold mb-6 flex items-center gap-2 text-lg">
+            <Activity size={18} className="text-primary" /> Recent Activity
+          </h2>
+          <div className="text-center text-muted-foreground py-10 text-sm">
+            No recent activity to display.
+          </div>
+        </div>
       </div>
     </div>
   );

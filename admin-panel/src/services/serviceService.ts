@@ -1,4 +1,4 @@
-import api from './api';
+import api from '../api/api';
 import {ServiceDTO, PageResponse , FetchServicesByShopParams} from '../models/models';
 
 export const fetchServicesByShop = async ({ shopId, page = 0, size = 10 }: FetchServicesByShopParams): Promise<PageResponse<ServiceDTO>> => {

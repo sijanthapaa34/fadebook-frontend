@@ -1,4 +1,4 @@
-import api from './api';
+import api from '../api/api';
 import { PageResponse, ReviewDTO } from '../models/models';
 
 export const getReviewsofShop = async (shopId: number): Promise<PageResponse<ReviewDTO>> => {

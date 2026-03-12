@@ -307,10 +307,12 @@ export interface BarberApplicationData {
   skills: string[];
   bio: string;
   licenseUrl?: string;
+  barbershopId: number;
+  barbershopName: string;
 }
 
 export interface ShopApplicationData {
-  type: 'SHOP';
+  type: 'BARBER_SHOP';
   name: string; // Owner Name
   email: string; // Admin Email
   password: string;
@@ -327,10 +329,11 @@ export interface ShopApplicationData {
   operatingHours?: string;
   description?: string;
   documentUrl?: string;
+  shopImages?: string[]; 
 }
 export interface ApplicationResponseDTO {
   id: number;
-  type: 'BARBER' | 'SHOP';
+  type: 'BARBER' | 'BARBER_SHOP';
   status: 'PENDING' | 'APPROVED' | 'REJECTED';
 
   // Common Account Info
@@ -346,6 +349,7 @@ export interface ApplicationResponseDTO {
   city?: string;
   profilePictureUrl?: string;
   licenseUrl?: string;
+  barbershop: string;
 
   // Shop Specific
   shopName?: string;
@@ -358,6 +362,7 @@ export interface ApplicationResponseDTO {
   operatingHours?: string;
   description?: string;
   documentUrl?: string;
+  shopImages?: string[]; 
 
   // Admin Review Info
   reviewedBy?: string;

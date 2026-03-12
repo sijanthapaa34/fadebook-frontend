@@ -12,7 +12,7 @@ import {
   DropdownMenuTrigger 
 } from '@/components/ui/dropdown-menu';
 import AddShopModal from '@/pages/admin/AddShopModal';
-import { fetchAllBarbershop, fetchShopsBySearch } from '@/api/barbershopService';
+import { fetchAllBarbershop, fetchShopsBySearch } from '@/services/barbershopService';
 
 const ShopManagement = () => {
   const navigate = useNavigate();

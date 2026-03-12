@@ -12,13 +12,14 @@ import ManageShop from '@/pages/shopAdmin/ManageShop';
 // Lazy Loaded Pages
 const MainAdminDashboard = React.lazy(() => import('@/pages/admin/MainAdminDashboard'));
 const ShopManagement = React.lazy(() => import('@/pages/admin/ShopManagement'));
-const Applications = React.lazy(() => import('@/pages/admin/Application'));
+const AdminApplications = React.lazy(() => import('@/pages/admin/Application'));
 const ShopDetail = React.lazy(() => import('@/pages/admin/ShopDetail'));
 const BarberDetail = React.lazy(() => import('@/pages/admin/BarberDetail'));
 const ServiceDetail = React.lazy(() => import('@/pages/admin/ServiceDetail'));
 const ShopAdminDashboard = React.lazy(() => import('@/pages/shopAdmin/ShopAdminDashboard'));
 const BarberManagement = React.lazy(() => import('@/pages/shopAdmin/BarberManagement'));
 const ServiceManagement = React.lazy(() => import('@/pages/shopAdmin/ServiceManagement'));
+const ShopAdminApplications = React.lazy(() => import('@/pages/shopAdmin/Applications'));
 const LeaveApproval = React.lazy(() => import('@/pages/shopAdmin/LeaveApproval'));
 const ChatDashboard = React.lazy(() => import('@/pages/shopAdmin/ChatDashboard'));
 
@@ -84,7 +85,7 @@ const AppNavigator = () => {
           <Route path="dashboard" element={<Suspense fallback={<Loader />}><MainAdminDashboard /></Suspense>} />
           <Route path="shops" element={<Suspense fallback={<Loader />}><ShopManagement /></Suspense>} />
           <Route path="shops/:shopId" element={<Suspense fallback={<Loader />}><ShopDetail /></Suspense>} />
-          <Route path="applications" element={<Suspense fallback={<Loader />}><Applications /></Suspense>} />
+          <Route path="applications" element={<Suspense fallback={<Loader />}><AdminApplications /></Suspense>} />
           <Route path="barbers/:barberId" element={<Suspense fallback={<Loader />}><BarberDetail /></Suspense>} />
           <Route path="services/:serviceId" element={<Suspense fallback={<Loader />}><ServiceDetail /></Suspense>} />
           <Route path="settings" element={<Suspense fallback={<Loader />}><Settings /></Suspense>} />
@@ -105,6 +106,7 @@ const AppNavigator = () => {
           <Route path="manage-shop" element={<Suspense fallback={<Loader />}><ManageShop /></Suspense>} />
           <Route path="barbers" element={<Suspense fallback={<Loader />}><BarberManagement /></Suspense>} />
           <Route path="services" element={<Suspense fallback={<Loader />}><ServiceManagement /></Suspense>} />
+          <Route path="applications" element={<Suspense fallback={<Loader />}><ShopAdminApplications /></Suspense>} />
           <Route path="leave" element={<Suspense fallback={<Loader />}><LeaveApproval /></Suspense>} />
           <Route path="settings" element={<Suspense fallback={<Loader />}><Settings /></Suspense>} />
           <Route path="chat" element={<Suspense fallback={<Loader />}><ChatDashboard /></Suspense>} />

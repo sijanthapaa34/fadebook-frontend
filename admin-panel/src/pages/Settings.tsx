@@ -4,8 +4,8 @@ import { useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { useAuthStore } from '@/store/authStore';
 import type { AdminUser } from '@/store/authStore'; // Import type for casting
-import { updateAdminProfile, changeAdminPassword } from '@/api/adminService';
-import { uploadProfilePicture } from '@/api/userService'; 
+import { updateAdminProfile, changeAdminPassword } from '@/services/adminService';
+import { uploadProfilePicture } from '@/services/userService'; 
 import { getDisplayableUrl } from '@/utils/imageUtils';
 import { 
   Button 

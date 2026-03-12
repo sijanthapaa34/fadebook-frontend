@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { fetchBarberById } from '@/api/barberService';
-import { getReviewsofBarber } from '@/api/reviewService'; // Import the review fetcher
+import { fetchBarberById } from '@/services/barberService';
+import { getReviewsofBarber } from '@/services/reviewService'; // Import the review fetcher
 import { ArrowLeft, Star, Award, Scissors, Loader2, ImageOff } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';

@@ -1,5 +1,5 @@
 // src/api/barbershopService.ts
-import api from './api';
+import api from '../api/api';
 import { PageResponse, BarbershopDTO } from '../models/models';
 
 export const fetchShopsBySearch = async (search: string): Promise<PageResponse<BarbershopDTO>> => {

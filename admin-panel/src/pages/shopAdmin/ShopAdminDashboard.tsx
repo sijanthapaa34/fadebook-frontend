@@ -1,7 +1,7 @@
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useAuthStore } from '@/store/authStore';
-import { getShopAdminDashboard } from '@/api/adminService';
+import { getShopAdminDashboard } from '@/services/adminService';
 import { getDisplayableUrl } from '@/utils/imageUtils';
 import { Users, Scissors, Calendar, DollarSign, TrendingUp, BarChart3, Settings, Loader2, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
