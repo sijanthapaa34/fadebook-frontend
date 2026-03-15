@@ -1,7 +1,5 @@
-// src/api/userService.ts
+// src/services/userService.ts
 import api from '../api/api';
-
-// Existing imports...
 
 // Update this function to accept 'File' for Web
 export const uploadProfilePicture = async (userId: number, file: File): Promise<string> => {

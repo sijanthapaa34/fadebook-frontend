@@ -53,7 +53,8 @@ const Login = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center p-4">
+    // Added fixed inset-0 to force full screen without layout wrappers
+    <div className="fixed inset-0 bg-background flex items-center justify-center p-4 overflow-y-auto">
       <div className="w-full max-w-md space-y-8">
         <div className="text-center">
           <Link to="/"><Logo size="lg" /></Link>
@@ -84,12 +85,16 @@ const Login = () => {
                 className="bg-muted/30 border-border focus:border-primary" 
               />
             </div>
-            <Button type="submit" className="w-full bg-primary text-primary-foreground hover:bg-primary/90" disabled={isLoading}>
+            {/* UPDATED: Added variant="hero" for gradient style */}
+            <Button 
+              type="submit" 
+              variant="hero"
+              className="w-full" 
+              disabled={isLoading}
+            >
               {isLoading ? 'Signing in...' : 'Sign In'}
             </Button>
           </form>
-          
-          {/* Demo buttons removed as requested */}
         </div>
       </div>
     </div>

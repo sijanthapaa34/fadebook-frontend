@@ -1,6 +1,6 @@
-import  { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query'; // 1. Import useQueryClient
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Plus, MapPin, Star, MoreVertical, Edit, Trash2, Search, Loader2 } from 'lucide-react';
@@ -16,13 +16,14 @@ import { fetchAllBarbershop, fetchShopsBySearch } from '@/services/barbershopSer
 
 const ShopManagement = () => {
   const navigate = useNavigate();
+  const queryClient = useQueryClient(); // 2. Initialize the client
   const [isModalOpen, setIsModalOpen] = useState(false);
   
   // Search State
   const [searchInput, setSearchInput] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
 
-  // Debounce Effect: Wait 500ms after user stops typing
+  // Debounce Effect
   useEffect(() => {
     const timer = setTimeout(() => {
       setDebouncedSearch(searchInput);
@@ -30,7 +31,7 @@ const ShopManagement = () => {
     return () => clearTimeout(timer);
   }, [searchInput]);
 
-  // Query Logic: Use different endpoint based on search term
+  // Query Logic
   const { 
     data: shopsData, 
     isLoading, 
@@ -41,7 +42,6 @@ const ShopManagement = () => {
       debouncedSearch.length > 0 
         ? fetchShopsBySearch(debouncedSearch) 
         : fetchAllBarbershop(),
-    // Ensure we always return the content array, even if empty
     select: (data) => data.content || [], 
   });
 
@@ -105,7 +105,6 @@ const ShopManagement = () => {
                 <div>
                   <div className="flex items-center gap-2 mb-1">
                     <h3 className="font-semibold text-foreground">{shop.name}</h3>
-                    {/* Assuming 'active' field exists in your DTO, otherwise default to true */}
                     <Badge variant="outline" className="text-xs bg-green-500/10 text-green-400 border-green-500/20">
                       {shop.active !== false ? 'Active' : 'Inactive'}
                     </Badge>
@@ -146,9 +145,8 @@ const ShopManagement = () => {
         isOpen={isModalOpen} 
         onClose={() => setIsModalOpen(false)} 
         onSuccess={() => {
-          // Optional: Invalidate queries to refresh the list
-          // queryClient.invalidateQueries({ queryKey: ['shops'] });
-          console.log("Shop added, list should refresh");
+          // 3. Now this works correctly
+          queryClient.invalidateQueries({ queryKey: ['shops'] });
         }} 
       />
     </>

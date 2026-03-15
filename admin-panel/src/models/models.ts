@@ -55,7 +55,7 @@ export interface Barber extends User {
 }
 
 export interface AdminDTO extends User {
-  shopId?: number;
+  barbershopId?: number;
   barbershopName?: string;
   adminLevel: AdminRole;
   lastLoginAt?: string;
@@ -492,4 +492,27 @@ export interface ApplicationResponseDTO {
   reviewedBy?: string;
   reviewedAt?: string; // ISO Date string
   rejectionReason?: string;
+}
+
+export interface RegisterBarbershopRequest {
+  // Shop Details
+  shopName: string;
+  shopEmail: string;
+  phone: string;
+  website?: string;
+  operatingHours?: string;
+  description?: string;
+  address: string;
+  city: string;
+  state?: string;
+  postalCode?: string;
+  latitude: number;
+  longitude: number;
+  shopImages?: string[];
+  
+  // Admin Details
+  adminName: string;
+  adminEmail: string;
+  password: string;
+  adminProfile?: string;
 }

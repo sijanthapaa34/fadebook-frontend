@@ -67,11 +67,7 @@ const AppNavigator = () => {
               : <Navigate to="/login" replace />
           } 
         />
-
-        <Route element={<PublicLayout />}>
-          <Route path="/login" element={user ? <Navigate to={`/${user.role === 'MAIN_ADMIN' ? 'admin' : 'shop-admin'}/dashboard`}/> : <Login />} />
-          <Route path="/register" element={<Placeholder title="Register" />} />
-        </Route>
+        <Route path="/login" element={user ? <Navigate to={`/${user.role === 'MAIN_ADMIN' ? 'admin' : 'shop-admin'}/dashboard`}/> : <Login />} />
 
         <Route
           path="/admin"

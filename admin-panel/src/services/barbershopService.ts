@@ -1,6 +1,6 @@
 // src/api/barbershopService.ts
 import api from '../api/api';
-import { PageResponse, BarbershopDTO } from '../models/models';
+import { PageResponse, BarbershopDTO, RegisterBarbershopRequest, AdminDTO } from '../models/models';
 
 export const fetchShopsBySearch = async (search: string): Promise<PageResponse<BarbershopDTO>> => {
   const response = await api.get<PageResponse<BarbershopDTO>>(`/barbershop/search/${encodeURIComponent(search)}`, { params: { page: 0, size: 100 } });
@@ -37,5 +37,10 @@ export const removeShopImage = async (shopId: number, imageUrl: string): Promise
     data: imageUrl,
     headers: { 'Content-Type': 'application/json' } 
   });
+  return response.data;
+};
+
+export const createBarbershop = async (data: RegisterBarbershopRequest): Promise<AdminDTO> => {
+  const response = await api.post<AdminDTO>('/auth/barbershop', data);
   return response.data;
 };
