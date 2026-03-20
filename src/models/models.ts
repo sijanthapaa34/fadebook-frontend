@@ -369,3 +369,9 @@ export interface ApplicationResponseDTO {
   reviewedAt?: string; // ISO Date string
   rejectionReason?: string;
 }
+
+
+export interface OtpResponse {
+  message: string;
+  success: boolean;
+}

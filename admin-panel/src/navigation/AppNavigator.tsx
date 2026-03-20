@@ -1,7 +1,6 @@
 import React, { Suspense, useEffect, useState } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { useAuthStore } from '@/store/authStore';
-import PublicLayout from '@/components/layout/PublicLayout';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import Login from '@/pages/Login';
 import NotFound from '@/pages/NotFound';
@@ -14,8 +13,8 @@ const MainAdminDashboard = React.lazy(() => import('@/pages/admin/MainAdminDashb
 const ShopManagement = React.lazy(() => import('@/pages/admin/ShopManagement'));
 const AdminApplications = React.lazy(() => import('@/pages/admin/Application'));
 const ShopDetail = React.lazy(() => import('@/pages/admin/ShopDetail'));
-const BarberDetail = React.lazy(() => import('@/pages/admin/BarberDetail'));
-const ServiceDetail = React.lazy(() => import('@/pages/admin/ServiceDetail'));
+const BarberDetail = React.lazy(() => import('@/pages/BarberDetail'));
+const ServiceDetail = React.lazy(() => import('@/pages/ServiceDetail'));
 const ShopAdminDashboard = React.lazy(() => import('@/pages/shopAdmin/ShopAdminDashboard'));
 const BarberManagement = React.lazy(() => import('@/pages/shopAdmin/BarberManagement'));
 const ServiceManagement = React.lazy(() => import('@/pages/shopAdmin/ServiceManagement'));
@@ -103,6 +102,8 @@ const AppNavigator = () => {
           <Route path="barbers" element={<Suspense fallback={<Loader />}><BarberManagement /></Suspense>} />
           <Route path="services" element={<Suspense fallback={<Loader />}><ServiceManagement /></Suspense>} />
           <Route path="applications" element={<Suspense fallback={<Loader />}><ShopAdminApplications /></Suspense>} />
+          <Route path="barbers/:barberId" element={<Suspense fallback={<Loader />}><BarberDetail /></Suspense>} />
+          <Route path="services/:serviceId" element={<Suspense fallback={<Loader />}><ServiceDetail /></Suspense>} />
           <Route path="leave" element={<Suspense fallback={<Loader />}><LeaveApproval /></Suspense>} />
           <Route path="settings" element={<Suspense fallback={<Loader />}><Settings /></Suspense>} />
           <Route path="chat" element={<Suspense fallback={<Loader />}><ChatDashboard /></Suspense>} />

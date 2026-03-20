@@ -20,14 +20,20 @@ api.interceptors.request.use(async (config) => {
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
-    if (error.response?.status === 401) {
-      // FIX: Clear BOTH keys to fully log out
+    const originalRequest = error.config;
+    
+    // If 401 and NOT a login request, clear storage and redirect
+    // We don't want to redirect if the user is just typing the wrong password on the login screen
+    const isLoginRequest = originalRequest.url?.includes('/auth/login');
+    
+    if (error.response?.status === 401 && !isLoginRequest) {
       localStorage.removeItem('admin_token');
-      localStorage.removeItem('admin-auth-storage'); // <--- This is the crucial fix
+      localStorage.removeItem('admin-auth-storage');
       
       // Force reload to clear Zustand's memory state
       window.location.href = '/login'; 
     }
+    
     return Promise.reject(error);
   }
 );

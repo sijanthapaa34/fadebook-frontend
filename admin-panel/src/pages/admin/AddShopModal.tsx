@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -8,7 +8,7 @@ import { useToast } from '@/hooks/use-toast';
 import { createBarbershop } from '@/services/barbershopService';
 import { uploadProfilePicture } from '@/services/userService'; // IMPORTED FROM USER SERVICE
 import type { RegisterBarbershopRequest } from '@/models/models';
-import { Loader2, MapPin, Store, User, Mail, Phone, Globe, Clock, Lock, Navigation, Upload, X } from 'lucide-react';
+import { Loader2, MapPin, Store, User, Mail, Phone, Globe, Clock, Navigation, Upload, X } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 import api from '@/api/api';
 

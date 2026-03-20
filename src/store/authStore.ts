@@ -1,18 +1,30 @@
 // src/store/authStore.ts
 import { create } from 'zustand';
 import * as Keychain from 'react-native-keychain';
-import { User } from '../models/models';
+import { User, UserRole, RegisterCustomerRequest } from '../models/models'; // Ensure UserRole is imported
 import { 
   loginRequest, 
   registerRequest, 
-  googleSignInRequest,
-  RegisterCustomerRequest 
+  googleSignInRequest 
 } from '../api/authService';
 
-// Helper to ensure role is always standardized
-const normalizeRole = (role: any): 'CUSTOMER' | 'BARBER' => {
-  if (!role) return 'CUSTOMER';
-  return role.toString().toUpperCase() as any;
+// FIX: Return the proper UserRole type instead of hardcoded strings
+const normalizeRole = (role: any): UserRole => {
+  if (!role) return 'CUSTOMER'; // Default fallback
+  
+  const upperRole = role.toString().toUpperCase();
+  
+  // Validate against known roles to prevent invalid data
+  // Adjust this list to match your `UserRole` type in models.ts
+  const validRoles: UserRole[] = ['CUSTOMER', 'BARBER'];
+  
+  if (validRoles.includes(upperRole as UserRole)) {
+    return upperRole as UserRole;
+  }
+  
+  // Fallback if role is unknown
+  console.warn(`Unknown role detected: ${role}, defaulting to CUSTOMER`);
+  return 'CUSTOMER';
 };
 
 interface AuthState {
@@ -40,31 +52,40 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     try {
       set({ isLoading: true });
       const credentials = await Keychain.getGenericPassword();
+      
       if (credentials) {
+        // 1. Parse User
         const parsedUser: User = JSON.parse(credentials.username);
         
-        // 1. Validate & Normalize role on init
+        // 2. Validate & Normalize role on init
         parsedUser.role = normalizeRole(parsedUser.role);
+        
+        // 3. Optional: Check if token is expired here (if you have logic for it)
+        // otherwise, the API interceptor will handle 401s
         
         set({ 
           user: parsedUser, 
           token: credentials.password, 
           isAuthenticated: true 
         });
+      } else {
+        // No credentials found
+        set({ user: null, token: null, isAuthenticated: false });
       }
     } catch (error) {
-      console.error('Error initializing auth:', error);
+      console.error('Error initializing auth store:', error);
       // Clear potentially corrupt storage
       await Keychain.resetGenericPassword();
+      set({ user: null, token: null, isAuthenticated: false });
     } finally {
       set({ isLoading: false });
     }
   },
 
   login: async (email, password) => {
+    // Service throws error -> UI catches it. Good.
     const { user, token } = await loginRequest(email, password);
     
-    // 2. Normalize role on login
     const safeUser = { ...user, role: normalizeRole(user.role) };
     
     await Keychain.setGenericPassword(JSON.stringify(safeUser), token);
@@ -74,7 +95,6 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   register: async (data) => {
     const { user, token } = await registerRequest(data);
     
-    // 3. Normalize role on register (defaults to CUSTOMER usually)
     const userWithRole = { ...user, role: normalizeRole(user.role || 'CUSTOMER') };
     
     await Keychain.setGenericPassword(JSON.stringify(userWithRole), token);
@@ -85,7 +105,6 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   googleLogin: async () => {
     const { user, token } = await googleSignInRequest();
     
-    // 4. Normalize role on Google Sign-in
     const userWithRole = { ...user, role: normalizeRole(user.role || 'CUSTOMER') };
     
     await Keychain.setGenericPassword(JSON.stringify(userWithRole), token);
@@ -93,7 +112,11 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   },
 
   logout: async () => {
-    await Keychain.resetGenericPassword();
+    try {
+      await Keychain.resetGenericPassword();
+    } catch (e) {
+      console.warn('Failed to reset keychain on logout', e);
+    }
     set({ user: null, token: null, isAuthenticated: false });
   },
 
@@ -102,7 +125,11 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     const safeUser = { ...updatedUser, role: normalizeRole(updatedUser.role) };
 
     if (token) {
-        await Keychain.setGenericPassword(JSON.stringify(safeUser), token);
+        try {
+            await Keychain.setGenericPassword(JSON.stringify(safeUser), token);
+        } catch (e) {
+            console.warn('Failed to update user in Keychain', e);
+        }
     }
     set({ user: safeUser });
   },

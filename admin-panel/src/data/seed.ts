@@ -3,67 +3,34 @@ import type {
   LeaveRequest, CustomerWallet, ApplicationRecord, PlatformStats
 } from '@/models/models';
 
-export const seedShops: BarbershopDTO[] = [
-  {
-    id: 1, name: 'The Gold Standard', address: '123 Main St', city: 'New York',
-    latitude: 40.7128, longitude: -74.006, rating: 4.9, reviewCount: 312,
-    shopImages: [], phone: '+1 555-1001', email: 'ssss@gmail.com',
-    operatingHours: '9:00 AM - 8:00 PM', description: 'Premium barbershop in Manhattan', website: 'https://thegoldstandard.com', profilePicture: '', state: 'NY', postalCode: '10001',
-  },
-  {
-    id: 2, name: 'Crown & Blade', address: '456 Broadway', city: 'New York',
-    latitude: 40.7208, longitude: -73.998, rating: 4.7, reviewCount: 189,
-    shopImages: [], phone: '+1 555-1002', email: 'crownblade@gmail.com',
-    operatingHours: '10:00 AM - 9:00 PM', description: 'Modern barbershop with premium services', website: 'https://crownblade.com', profilePicture: '', state: 'NY', postalCode: '10002',
-  },
-  {
-    id: 3, name: 'Noir Cuts', address: '789 5th Ave', city: 'New York',
-    latitude: 40.7648, longitude: -73.973, rating: 4.8, reviewCount: 256,
-    shopImages: [], phone: '+1 555-1003', email: 'noircuts@gmail.com',
-    operatingHours: '8:00 AM - 7:00 PM', description: 'Elegant barbershop with a noir aesthetic', website: 'https://noircuts.com', profilePicture: '', state: 'NY', postalCode: '10003',
-  },
-  {
-    id: 4, name: 'Precision Fades', address: '321 Park Ave', city: 'Brooklyn',
-    latitude: 40.6782, longitude: -73.944, rating: 4.6, reviewCount: 143,
-    shopImages: [], phone: '+1 555-1004', email: 'precisionfades@gmail.com',
-    operatingHours: '9:00 AM - 8:00 PM', description: 'Specialized in precision fades and modern cuts', website: 'https://precisionfades.com', profilePicture: '', state: 'NY', postalCode: '11201',
-  },
-];
+
 
 export const seedBarbers: BarberDTO[] = [
   { 
     id: 1, name: 'Marcus Johnson', email: 'marcus@fadebook.com', phone: '555-0101', role: 'BARBER',
-    shopId: 1, rating: 4.9, reviewCount: 120, barbershop: 'The Gold Standard',
+    shopId: 1, rating: 4.9, reviewCount: 120, barbershop: 'The Gold Standard', commissionRate: 30,
     bio: 'Expert in fades and beard styling.', active: true, available: true, experienceYears: 8, skills: ['Fades', 'Beard'], workImages: [] 
   },
   { 
     id: 2, name: 'Andre Williams', email: 'andre@fadebook.com', phone: '555-0102', role: 'BARBER',
-    shopId: 1, rating: 4.8, reviewCount: 95, barbershop: 'The Gold Standard',
+    shopId: 1, rating: 4.8, reviewCount: 95, barbershop: 'The Gold Standard', commissionRate: 30,
     bio: 'Classic cuts specialist.', active: true, available: true, experienceYears: 6, skills: ['Classic', 'Shaves'], workImages: [] 
   },
   { 
     id: 3, name: 'Terrence Brooks', email: 'terrence@fadebook.com', phone: '555-0103', role: 'BARBER',
-    shopId: 2, rating: 4.7, reviewCount: 80, barbershop: 'Crown & Blade',
+    shopId: 2, rating: 4.7, reviewCount: 80, barbershop: 'Crown & Blade', commissionRate: 25,
     bio: 'Modern styles and designs.', active: true, available: true, experienceYears: 4, skills: ['Designs', 'Color'], workImages: [] 
   },
   { 
     id: 4, name: 'DeShawn Carter', email: 'deshawn@fadebook.com', phone: '555-0104', role: 'BARBER',
-    shopId: 2, rating: 4.6, reviewCount: 60, barbershop: 'Crown & Blade',
+    shopId: 2, rating: 4.6, reviewCount: 60, barbershop: 'Crown & Blade', commissionRate: 25,
     bio: 'Quick and precise.', active: true, available: false, experienceYears: 3, skills: ['Fades'], workImages: [] 
   },
   { 
     id: 5, name: 'Jamal Thompson', email: 'jamal@fadebook.com', phone: '555-0105', role: 'BARBER',
-    shopId: 3, rating: 4.9, reviewCount: 150, barbershop: 'Noir Cuts',
+    shopId: 3, rating: 4.9, reviewCount: 150, barbershop: 'Noir Cuts', commissionRate: 35,
     bio: 'The artist.', active: true, available: true, experienceYears: 10, skills: ['Art', 'Fades'], workImages: [] 
   },
-];
-
-export const seedServices: ServiceDTO[] = [
-  { id: 1, name: 'Classic Haircut', description: 'Traditional cut', price: 35, durationMinutes: 30, shopId: 1, barbershop: 'The Gold Standard', images: []},
-  { id: 2, name: 'Premium Fade', description: 'Skin fade with lineup', price: 45, durationMinutes: 45, shopId: 1, barbershop: 'The Gold Standard', images: [] },
-  { id: 3, name: 'Beard Trim', description: 'Beard grooming', price: 25, durationMinutes: 20, shopId: 1, barbershop: 'The Gold Standard', images: []},
-  { id: 4, name: 'Hot Towel Shave', description: 'Luxury shave', price: 40, durationMinutes: 35, shopId: 1, barbershop: 'The Gold Standard', images: [] },
-  { id: 5, name: 'Haircut + Beard', description: 'Full package', price: 55, durationMinutes: 50, shopId: 1, barbershop: 'The Gold Standard', images: [] },
 ];
 
 export const seedAppointments: AppointmentDetailsResponse[] = [
@@ -159,29 +126,29 @@ export const platformStats: PlatformStats = {
 };
 
 export const seedReviews: ReviewDTO[] = [
-  { id: 1, customerId: 101, customerName: 'James Wilson', targetType: 'SHOP', targetId: 1, rating: 5, comment: 'Absolutely phenomenal experience.', images: [], date: '2026-02-10' },
-  { id: 2, customerId: 102, customerName: 'Robert Taylor', targetType: 'BARBER', targetId: 1, rating: 5, comment: 'Marcus is a true artist.', images: [], date: '2026-02-11' },
-  { id: 3, customerId: 103, customerName: 'Mike Davis', targetType: 'SERVICE', targetId: 4, rating: 4, comment: 'Great hot towel shave.', images: [], date: '2026-02-10' },
-  { id: 4, customerId: 104, customerName: 'Chris Brown', targetType: 'SHOP', targetId: 1, rating: 5, comment: 'Best barbershop in the city.', images: [], date: '2026-02-09' },
-  { id: 5, customerId: 101, customerName: 'James Wilson', targetType: 'BARBER', targetId: 3, rating: 4, comment: 'Terrence does solid work.', images: [], date: '2026-02-08' },
-  { id: 6, customerId: 102, customerName: 'Robert Taylor', targetType: 'SHOP', targetId: 2, rating: 4, comment: 'Crown & Blade has a great vibe.', images: [], date: '2026-02-07' },
-  { id: 7, customerId: 103, customerName: 'Mike Davis', targetType: 'BARBER', targetId: 2, rating: 5, comment: 'Andre is the best.', images: [], date: '2026-02-06' },
-  { id: 8, customerId: 104, customerName: 'Chris Brown', targetType: 'SERVICE', targetId: 2, rating: 5, comment: 'Premium Fade is worth every penny.', images: [], date: '2026-02-05' },
+  { id: 1, customerId: 101, customerName: 'James Wilson', targetType: 'SHOP', targetId: 1, rating: 5, reply: 'Absolutely phenomenal experience.', images: [], date: '2026-02-10' },
+  { id: 2, customerId: 102, customerName: 'Robert Taylor', targetType: 'BARBER', targetId: 1, rating: 5, reply: 'Marcus is a true artist.', images: [], date: '2026-02-11' },
+  { id: 3, customerId: 103, customerName: 'Mike Davis', targetType: 'SERVICE', targetId: 4, rating: 4, reply: 'Great hot towel shave.', images: [], date: '2026-02-10' },
+{ id: 4, customerId: 104, customerName: 'Chris Brown', targetType: 'SHOP', targetId: 1, rating: 5, reply: 'Best barbershop in the city.', images: [], date: '2026-02-09' },
+  { id: 5, customerId: 101, customerName: 'James Wilson', targetType: 'BARBER', targetId: 3, rating: 4, reply: 'Terrence does solid work.', images: [], date: '2026-02-08' },
+  { id: 6, customerId: 102, customerName: 'Robert Taylor', targetType: 'SHOP', targetId: 2, rating: 4, reply: 'Crown & Blade has a great vibe.', images: [], date: '2026-02-07' },
+  { id: 7, customerId: 103, customerName: 'Mike Davis', targetType: 'BARBER', targetId: 2, rating: 5, reply: 'Andre is the best.', images: [], date: '2026-02-06' },
+  { id: 8, customerId: 104, customerName: 'Chris Brown', targetType: 'SERVICE', targetId: 2, rating: 5, reply: 'Premium Fade is worth every penny.', images: [], date: '2026-02-05' },
 ];
 
 export const seedLeaveRequests: LeaveRequest[] = [
   {
-    id: 'lr1', barberId: '1', barberName: 'Marcus Johnson', shopId: '1',
+    id: 1, barberId: 1, barberName: 'Marcus Johnson', shopId: 1,
     startDate: '2026-03-01', endDate: '2026-03-02', reason: 'Family event',
     status: 'APPROVED', appliedAt: '2026-02-20', reviewedAt: '2026-02-21', adminNotes: 'Approved. No conflicts.',
   },
   {
-    id: 'lr2', barberId: '1', barberName: 'Marcus Johnson', shopId: '1',
+    id: 2, barberId: 1, barberName: 'Marcus Johnson', shopId: 1,
     startDate: '2026-03-10', endDate: '2026-03-10', reason: 'Medical appointment',
     status: 'PENDING', appliedAt: '2026-02-22',
   },
   {
-    id: 'lr3', barberId: '2', barberName: 'Andre Williams', shopId: '1',
+    id: 3, barberId: 2, barberName: 'Andre Williams', shopId: 1,
     startDate: '2026-02-28', endDate: '2026-02-28', reason: 'Personal day',
     status: 'REJECTED', appliedAt: '2026-02-18', reviewedAt: '2026-02-19', adminNotes: 'High booking volume that day.',
   },

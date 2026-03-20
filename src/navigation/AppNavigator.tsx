@@ -11,6 +11,7 @@ import { useAuthStore } from '../store/authStore';
 import Landing from '../screens/LandingScreen';
 import Login from '../screens/LoginScreen';
 import Register from '../screens/RegisterScreen';
+import OtpVerification from '../screens/OtpScreen'; // <--- IMPORT NEW SCREEN
 import About from '../screens/AboutScreen';
 import Contact from '../screens/ContactScreen';
 import Apply from '../screens/ApplyScreen';
@@ -32,6 +33,7 @@ import BarberDashboard from '../screens/barber/BarberDashboardScreen';
 import BarberSchedule from '../screens/barber/BarberScheduleScreen';
 import BarberLeave from '../screens/barber/BarberLeaveScreen';
 import BarberReview from '../screens/barber/BarberReviewScreen';
+import BarberProfileScreen from '../screens/barber/BarberProfileScreen';
 
 import NotFound from '../screens/NotFoundScreen';
 
@@ -45,7 +47,6 @@ import { theme } from '../theme/theme';
 
 // Types
 import type { RescheduleData } from '../models/models';
-import BarberProfileScreen from '../screens/barber/BarberProfileScreen';
 
 // ---------------- PLACEHOLDER ----------------
 const PlaceholderScreen = ({ route }: any) => (
@@ -59,6 +60,23 @@ export type RootStackParamList = {
   Landing: undefined;
   Login: undefined;
   Register: undefined;
+  OtpVerification: {
+    mode: 'REGISTER' | 'APPLICATION';
+    email: string; // Used for sending/resending OTP
+    
+    // For Registration Mode
+    userData?: { name: string; email: string; password: string; phone: string };
+    photoUri?: string | null;
+
+    // For Application Mode
+    applicationData?: any; // The raw form data
+    imageUris?: { 
+        profile?: string; 
+        license?: string; 
+        doc?: string; 
+        shopImages: string[] 
+    };
+  };
   About: undefined;
   Contact: undefined;
   Apply: { type: 'barber' | 'shop' };
@@ -132,6 +150,10 @@ const AppNavigator = () => {
             </Stack.Screen>
             <Stack.Screen name="Login" component={Login} />
             <Stack.Screen name="Register" component={Register} />
+            
+            {/* ADDED: OTP Verification Screen */}
+            <Stack.Screen name="OtpVerification" component={OtpVerification} />
+            
             <Stack.Screen name="Apply" component={Apply} />
             <Stack.Screen name="About">
               {() => <PublicLayout><About /></PublicLayout>}
@@ -174,7 +196,8 @@ const AppNavigator = () => {
                       <BarberReview />
                     </DashboardLayout>
                   )}
-                </Stack.Screen><Stack.Screen name="BarberProfile">
+                </Stack.Screen>
+                <Stack.Screen name="BarberProfile">
                   {() => (
                     <DashboardLayout user={user} onLogout={logout}>
                       <BarberProfileScreen />

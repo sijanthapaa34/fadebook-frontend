@@ -13,8 +13,8 @@ import { User } from 'lucide-react-native';
 
 import Logo from '../components/Logo';
 import { theme } from '../theme/theme';
+import { sendOtp } from '../api/authService';
 import { useAuthStore } from '../store/authStore';
-import { uploadProfilePicture } from '../api/userService';
 
 import type { RootStackParamList } from '../navigation/AppNavigator';
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
@@ -55,10 +55,9 @@ const Register = () => {
   const navigation = useNavigation<NavigationProp>();
   const insets = useSafeAreaInsets();
   
-  const register = useAuthStore((s) => s.register);
-  const setUser = useAuthStore((s) => s.setUser);
+  // FIX: Moved inside component
   const googleLogin = useAuthStore((s) => s.googleLogin);
-
+  
   const [form, setForm] = useState<FormState>({
     name: '',
     email: '',
@@ -88,36 +87,38 @@ const Register = () => {
     });
   };
 
-  const handleSubmit = async () => {
+  const handleInitiateRegister = async () => {
     const { name, email, password, phone, photoUri } = form;
     
-    if (!photoUri) {
-      Alert.alert('Error', 'Profile photo is required');
-      return;
-    }
+    // Validations
+    // REMOVED: Photo requirement check
+    
     if (!name || !email || !password) {
       Alert.alert('Error', 'Please fill all required fields');
+      return;
+    }
+    if (password.length < 6) {
+      Alert.alert('Error', 'Password must be at least 6 characters');
       return;
     }
 
     try {
       setForm((prev) => ({ ...prev, isLoading: true }));
+      
+      // 1. Call Send OTP API
+      await sendOtp(email);
+      
+      // 2. If success, navigate to OTP Screen with data
+      navigation.navigate('OtpVerification', {
+        mode: 'REGISTER',
+        email: email,
+        userData: { name, email, password, phone },
+        photoUri: photoUri
+      });
 
-      const newUser = await register({ name, email, password, phone });
-      
-      if (newUser && newUser.id) {
-        try {
-          const profileUrl = await uploadProfilePicture(newUser.id, photoUri);
-          setUser({ ...newUser, profilePicture: profileUrl });
-        } catch (uploadError) {
-          console.warn("Registration ok, but photo upload failed:", uploadError);
-          Alert.alert('Warning', 'Account created, but photo failed to upload.');
-        }
-      }
-      
     } catch (err: any) {
-      console.error('Registration error:', err);
-      Alert.alert('Registration failed', err.message || 'Unknown error');
+      console.error('Send OTP error:', err);
+      Alert.alert('Error', err.message || 'Failed to send OTP. Please check your email.');
     } finally {
       setForm((prev) => ({ ...prev, isLoading: false }));
     }
@@ -167,7 +168,7 @@ const Register = () => {
                 </View>
               </TouchableOpacity>
               <TouchableOpacity onPress={handleSelectPhoto}>
-                <Text style={styles.uploadText}>Upload Profile Photo</Text>
+                <Text style={styles.uploadText}>Upload Profile Photo (Optional)</Text>
               </TouchableOpacity>
             </View>
 
@@ -189,13 +190,13 @@ const Register = () => {
 
             <TouchableOpacity
               style={[styles.button, form.isLoading && styles.buttonDisabled]}
-              onPress={handleSubmit}
+              onPress={handleInitiateRegister}
               disabled={form.isLoading}
             >
               {form.isLoading ? (
                 <ActivityIndicator color={theme.colors.primaryText} />
               ) : (
-                <Text style={styles.buttonText}>Create Account</Text>
+                <Text style={styles.buttonText}>Continue</Text>
               )}
             </TouchableOpacity>
           </View>
@@ -229,7 +230,6 @@ const styles = StyleSheet.create({
   container: {
     flexGrow: 1,
     backgroundColor: theme.colors.background,
-    // paddingTop is now set dynamically via insets.top + 16
     paddingBottom: theme.spacing.xxl,
     paddingHorizontal: theme.spacing.lg,
   },
@@ -256,9 +256,9 @@ const styles = StyleSheet.create({
     marginBottom: theme.spacing.sm,
   },
   avatarPlaceholder: {
-    width: 150,
-    height: 150,
-    borderRadius: 40,
+    width: 100, // Reduced size slightly since it's optional
+    height: 100,
+    borderRadius: 50,
     backgroundColor: theme.colors.surface,
     borderWidth: 1,
     borderColor: theme.colors.border,
@@ -266,9 +266,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   avatarImage: {
-    width: 150,
-    height: 150,
-    borderRadius: 40,
+    width: 100,
+    height: 100,
+    borderRadius: 50,
     backgroundColor: theme.colors.surface,
   },
   plusButton: {

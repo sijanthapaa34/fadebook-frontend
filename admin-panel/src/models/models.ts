@@ -79,6 +79,7 @@ export interface BarberDTO {
   active: boolean;
   available: boolean;
   experienceYears: number;
+  commissionRate: number;
   profilePicture?: string;
   rating: number;
   reviewCount?: number;
@@ -122,10 +123,13 @@ export interface ServiceDTO {
   id: number;
   name: string;
   description: string;
-  shopId: number;
+  barbershopId: number;
   barbershop: string;
-  images: string[];
+  serviceImages: string[];
   price: number;
+  category: string;
+  available: boolean;
+  targetGender?: string;
   durationMinutes: number;
 }
 
@@ -207,12 +211,23 @@ export interface UpdateCustomerRequest {
 }
 
 export interface UpdateBarberRequest {
-  name: string;
-  phone: string;
+  name?: string;
+  phone?: string;
   bio?: string;
   experienceYears?: number;
   skills?: string[];
-  active?: boolean;
+  workImages?: string[];
+  commissionRate?: number;
+}
+
+export interface ServiceUpdateRequest {
+  name?: string;
+  durationMinutes?: number;
+  price?: number;
+  available?: boolean;
+  category?: string;
+  serviceImages?: string[];
+  targetGender?: string;
 }
 
 export interface ChangePasswordRequest {
@@ -516,3 +531,31 @@ export interface RegisterBarbershopRequest {
   password: string;
   adminProfile?: string;
 }
+// Service Request
+export interface RegisterServiceRequest {
+  name: string;
+  description: string;
+  durationMinutes: number;
+  price: number;
+  category: ServiceCategory;
+  available: boolean;
+  serviceImage?: string;
+  serviceImages?: string[];
+  targetGender?: string;
+}
+
+export type ServiceCategory = 'HAIRCUT' | 'SHAVE' | 'BEARD' | 'COLOR' | 'TREATMENT' | 'PACKAGE';
+
+// Barber Request
+export interface RegisterBarberRequest {
+  name: string;
+  email: string;
+  password: string;
+  phone: string;
+  bio?: string;
+  experienceYears?: number;
+  skills?: string[];
+  workImages?: string[];
+  commissionRate?: number;
+}
+

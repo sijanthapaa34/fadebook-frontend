@@ -21,22 +21,25 @@ const Login = () => {
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
-  // REMOVED: useEffect redirect logic. 
-  // AppNavigator automatically switches to Dashboard when 'user' state changes.
-
   const handleSubmit = async () => {
     if (!email || !password) {
-      Alert.alert('Error', 'Please enter email and password');
+      Alert.alert('Missing Fields', 'Please enter both email and password');
       return;
     }
 
     setIsLoading(true);
     try {
+      // The authStore.login should ideally call authService.loginRequest
+      // and throw the error message from there.
       await login(email, password);
-      // AppNavigator will detect the new 'user' state and switch screens automatically
+      // Navigation is handled by AppNavigator based on user state
     } catch (err: any) {
-      console.error('login error:', err);
-      Alert.alert('Login failed', err.message || 'Invalid credentials');
+      console.error('Login Screen Error:', err);
+      
+      // err.message is now guaranteed to be a string from authService
+      const errorMessage = err.message || 'An unknown error occurred';
+      
+      Alert.alert('Login Failed', errorMessage);
     } finally {
       setIsLoading(false);
     }

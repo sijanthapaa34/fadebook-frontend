@@ -16,15 +16,15 @@ import {
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Scissors, Store, CheckCircle, Upload, ArrowLeft, X, Plus, User, FileText, MapPin, Navigation, Search } from 'lucide-react-native';
+import { Scissors, Store, Upload, ArrowLeft, X, Plus, User, FileText, Navigation, Search } from 'lucide-react-native';
 import { launchImageLibrary, ImagePickerResponse } from 'react-native-image-picker';
 import Geolocation from '@react-native-community/geolocation';
 import { theme } from '../theme/theme';
 import type { RootStackParamList } from '../navigation/AppNavigator';
-import { submitApplication } from '../api/applicationService';
-import { fetchShops } from '../api/barbershopService'; // Import Shop Service
-import type { BarbershopDTO } from '../models/models'; // Import Type
-import api from '../api/api'; 
+// FIX: Ensure sendOtp is imported from authService
+import { sendOtp } from '../api/authService'; 
+import { fetchShops } from '../api/barbershopService'; 
+import type { BarbershopDTO } from '../models/models'; 
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
@@ -137,7 +137,6 @@ const Apply = () => {
   const insets = useSafeAreaInsets();
   
   const [formType, setFormType] = useState<'barber' | 'shop'>(route.params?.type || 'barber');
-  const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
   const [loadingText, setLoadingText] = useState('Submitting...');
   const [locLoading, setLocLoading] = useState(false);
@@ -188,7 +187,6 @@ const Apply = () => {
   useEffect(() => {
     if (formType !== 'barber') return;
     
-    // Debounce search
     const timer = setTimeout(async () => {
       if (shopSearch.length > 1) {
         setIsSearchingShops(true);
@@ -257,23 +255,6 @@ const Apply = () => {
     );
   };
 
-  // --- Upload Helper ---
-  const uploadSingleFile = async (file: ImageData, type: string): Promise<string> => {
-    const formData = new FormData();
-    formData.append('file', {
-      uri: file.uri,
-      type: file.type || 'image/jpeg',
-      name: file.fileName || `upload_${Date.now()}.jpg`,
-    });
-    formData.append('type', type);
-    formData.append('email', email); 
-
-    const res = await api.post('/upload', formData, {
-      headers: { 'Content-Type': 'multipart/form-data' },
-    });
-    return res.data;
-  };
-
   // --- Validation ---
   const validate = () => {
     const errs: Record<string, string> = {};
@@ -299,121 +280,65 @@ const Apply = () => {
   };
 
   // --- Submit Logic ---
-  const handleSubmit = async () => {
+  const handleInitiateApplication = async () => {
     if (!validate()) return;
 
     setLoading(true);
-    setLoadingText('Preparing...');
-
+    setLoadingText('Sending verification code...');
+    
     try {
-      const commonData = { name, email, password, phone };
-
-      // --- BARBER SUBMISSION ---
-      if (formType === 'barber') {
-        let profileUrl: string | undefined = undefined;
-        let licenseUrl: string | undefined = undefined;
-
-        if (bProfilePic) {
-          setLoadingText('Uploading profile picture...');
-          profileUrl = await uploadSingleFile(bProfilePic, 'profile');
-        }
-        if (bLicense) {
-          setLoadingText('Uploading license...');
-          licenseUrl = await uploadSingleFile(bLicense, 'doc');
-        }
-
-        setLoadingText('Submitting application...');
-        const skillsArray = bSkills ? bSkills.split(',').map(s => s.trim()).filter(s => s) : [];
-        
-        await submitApplication({
-          ...commonData,
-          type: 'BARBER',
-          city: bCity,
-          experienceYears: parseInt(bExp) || 0,
-          skills: skillsArray,
-          bio: bBio,
-          profilePictureUrl: profileUrl,
-          licenseUrl: licenseUrl,
-          // ADD SHOP DATA
-          barbershopId: selectedShop!.id,
-          barbershopName: selectedShop!.name,
-        });
-      } 
+      // 1. Send OTP
+      await sendOtp(email);
       
-      // --- SHOP SUBMISSION ---
-      else {
-        let docUrl: string | undefined = undefined;
-        let shopImageUrls: string[] = [];
+      // 2. Prepare Image URIs to pass (raw URIs only)
+      const imageUris = {
+        profile: bProfilePic?.uri,
+        license: bLicense?.uri,
+        doc: sDoc?.uri,
+        shopImages: sShopImages.map(img => img.uri)
+      };
 
-        if (sDoc) {
-          setLoadingText('Uploading business document...');
-          docUrl = await uploadSingleFile(sDoc, 'doc');
-        }
-        if (sShopImages.length > 0) {
-          for (let i = 0; i < sShopImages.length; i++) {
-            setLoadingText(`Uploading shop photo ${i + 1}/${sShopImages.length}...`);
-            const url = await uploadSingleFile(sShopImages[i], 'shop_image');
-            shopImageUrls.push(url);
-          }
-        }
-
-        const lat = parseFloat(sLat);
-        const long = parseFloat(sLong);
-
-        if (isNaN(lat) || isNaN(long)) {
-          throw new Error('Invalid coordinates');
-        }
-
-        setLoadingText('Submitting application...');
-
-        await submitApplication({
-          ...commonData,
-          type: 'BARBER_SHOP',
+      // 3. Serialize Form Data
+      const formData = {
+        formType,
+        common: { name, email, password, phone },
+        barberData: formType === 'barber' ? {
+          city: bCity,
+          exp: bExp,
+          skills: bSkills,
+          bio: bBio,
+          selectedShopId: selectedShop?.id,
+          selectedShopName: selectedShop?.name,
+        } : undefined,
+        shopData: formType === 'shop' ? {
           shopName: sShopName,
           address: sAddress,
           city: sCity,
           state: sState,
-          postalCode: sPostal,
-          latitude: lat,
-          longitude: long,
+          postal: sPostal,
+          lat: sLat,
+          long: sLong,
           website: sWebsite,
-          operatingHours: sHours,
-          description: sDesc,
-          documentUrl: docUrl,
-          shopImages: shopImageUrls.length > 0 ? shopImageUrls : undefined,
-        });
-      }
-      
-      setSubmitted(true);
+          hours: sHours,
+          desc: sDesc,
+        } : undefined,
+      };
 
-    } catch (error: any) {
-      const msg = error.response?.data?.message || error.message || 'Failed to submit. Check inputs and try again.';
-      Alert.alert('Submission Failed', msg);
+      // 4. Navigate
+      navigation.navigate('OtpVerification', {
+        mode: 'APPLICATION',
+        email: email,
+        applicationData: formData,
+        imageUris: imageUris
+      });
+
+    } catch (err: any) {
+      console.error("Apply Error:", err);
+      Alert.alert('Error', err.message || 'Failed to send OTP');
     } finally {
       setLoading(false);
-      setLoadingText('Submitting...');
     }
   };
-
-  if (submitted) {
-    return (
-      <View style={[styles.centeredContainer, { paddingTop: insets.top }]}>
-        <View style={styles.glassCard}>
-          <CheckCircle size={48} color={theme.colors.primary} />
-          <Text style={styles.successTitle}>Application Submitted!</Text>
-          <Text style={styles.successText}>
-            Thank you for applying. Our team will review your application and get back to you within 24–48 hours.
-          </Text>
-          <View style={styles.statusBadge}>
-            <Text style={styles.statusText}>Status: Pending Review</Text>
-          </View>
-          <TouchableOpacity style={styles.homeButton} onPress={() => navigation.navigate('Landing')}>
-            <Text style={styles.homeButtonText}>Back to Home</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
-    );
-  }
 
   return (
     <KeyboardAvoidingView 
@@ -604,14 +529,14 @@ const Apply = () => {
             </>
           )}
 
-          <TouchableOpacity style={styles.submitBtn} onPress={handleSubmit} disabled={loading}>
+          <TouchableOpacity style={styles.submitBtn} onPress={handleInitiateApplication} disabled={loading}>
             {loading ? (
               <View style={{flexDirection: 'row', alignItems: 'center'}}>
                 <ActivityIndicator color="#000" style={{marginRight: 10}} />
                 <Text style={styles.submitBtnText}>{loadingText}</Text>
               </View>
             ) : (
-              <Text style={styles.submitBtnText}>Submit Application</Text>
+              <Text style={styles.submitBtnText}>Continue</Text>
             )}
           </TouchableOpacity>
         </View>
@@ -622,9 +547,6 @@ const Apply = () => {
 
 // Styles
 const styles = StyleSheet.create({
-  // ... (Previous styles remain the same) ...
-  // Add these new styles for Search:
-
   searchInputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -695,7 +617,6 @@ const styles = StyleSheet.create({
   smallRemoveBtn: { position: 'absolute', top: 2, right: 2, backgroundColor: 'rgba(0,0,0,0.6)', padding: 2, borderRadius: 10 },
   addSmallImageBtn: { width: 70, height: 70, borderRadius: theme.radius.sm, borderWidth: 1, borderColor: theme.colors.border, borderStyle: 'dashed', alignItems: 'center', justifyContent: 'center' },
   removeBtn: { position: 'absolute', top: 6, right: 6, width: 20, height: 20, borderRadius: 10, backgroundColor: 'rgba(0,0,0,0.6)', alignItems: 'center', justifyContent: 'center' },
-  centeredContainer: { flex: 1, backgroundColor: theme.colors.background, justifyContent: 'center', alignItems: 'center', padding: theme.spacing.lg },
   scrollContent: { padding: theme.spacing.lg, paddingBottom: 40 },
   header: { alignItems: 'center', marginBottom: theme.spacing.xl },
   backBtn: { position: 'absolute', left: 0, top: 0, padding: 8 },
@@ -720,13 +641,6 @@ const styles = StyleSheet.create({
   submitBtn: { backgroundColor: theme.colors.primary, paddingVertical: 16, borderRadius: theme.radius.md, alignItems: 'center', marginTop: theme.spacing.lg },
   submitBtnText: { color: '#000', fontWeight: '700', fontSize: 16 },
   errorText: { color: theme.colors.error, fontSize: 11, marginTop: 4 },
-  glassCard: { backgroundColor: theme.colors.card, borderRadius: theme.radius.lg, borderWidth: 1, borderColor: theme.colors.border, padding: theme.spacing.xl, width: '100%', maxWidth: 400, alignItems: 'center' },
-  successTitle: { fontSize: 22, fontFamily: theme.fonts.serif, fontWeight: '700', color: theme.colors.text, marginTop: theme.spacing.lg, marginBottom: theme.spacing.sm },
-  successText: { color: theme.colors.muted, textAlign: 'center', lineHeight: 20, marginBottom: theme.spacing.md },
-  statusBadge: { backgroundColor: 'rgba(212, 175, 55, 0.1)', paddingHorizontal: 16, paddingVertical: 6, borderRadius: 20 },
-  statusText: { color: theme.colors.primary, fontWeight: '600', fontSize: 12 },
-  homeButton: { marginTop: theme.spacing.xl, borderWidth: 1, borderColor: theme.colors.border, paddingVertical: 12, paddingHorizontal: 24, borderRadius: theme.radius.md },
-  homeButtonText: { color: theme.colors.text, fontWeight: '600' },
 });
 
 export default Apply;
