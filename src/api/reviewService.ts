@@ -1,21 +1,35 @@
 import api from './api';
-import { PageResponse, ReviewDTO, ReviewsByBarberParams, ReviewsByShopParams } from '../models/models';
+import { 
+  ReviewDTO, 
+  CreateReviewRequest, 
+  CreateReplyRequest, 
+  ReviewType,
+  PageResponse
+} from '../models/models';
 
-export const getReviewsofShop = async ({ shopId, page = 0, size = 10 }: ReviewsByShopParams): Promise<PageResponse<ReviewDTO>> => {
-  const response = await api.get(`/review/shop/${shopId}`, {
-    params: { page, size },
+// FIX: Added customerId parameter to match backend controller
+export const createReview = async (customerId: number, data: CreateReviewRequest): Promise<ReviewDTO> => {
+  const response = await api.post(`/reviews/${customerId}`, data);
+  return response.data;
+};
+
+export const getReviews = async (
+  type: ReviewType, 
+  targetId: number, 
+  page = 0, 
+  size = 10
+): Promise<PageResponse<ReviewDTO>> => {
+  const response = await api.get('/reviews', {
+    params: { type, targetId, page, size }
   });
   return response.data;
 };
-export const getReviewsofBarber = async ({ barberId, page = 0, size = 10 }: ReviewsByBarberParams): Promise<PageResponse<ReviewDTO>> => {
-  const response = await api.get(`/review/barber/${barberId}`, {
-    params: { page, size },
-  });
-  return response.data;
-};
-export const fetchReviewOfService = async ({ shopId, serviceId, page = 0, size = 10 }: ReviewsByShopParams & { serviceId: number }): Promise<PageResponse<ReviewDTO>> => {
-  const response = await api.get(`/review/service/${serviceId}`, {
-    params: { page, size },
-  });
+
+export const replyToReview = async (
+  reviewId: number, 
+  replierId: number, 
+  data: CreateReplyRequest
+): Promise<ReviewDTO> => {
+  const response = await api.post(`/reviews/${reviewId}/reply/${replierId}`, data);
   return response.data;
 };

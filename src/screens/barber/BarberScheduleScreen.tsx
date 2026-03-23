@@ -171,7 +171,7 @@ const BarberScheduleScreen = () => {
           {getServiceNames(apt.services)} · {formatTime(apt.scheduledTime)}-{calculateEndTime(apt.scheduledTime, apt.totalDurationMinutes)}
         </Text>
       </View>
-      <Text style={styles.aptPrice}>${apt.totalPrice}</Text>
+      <Text style={styles.aptPrice}>Rs. {apt.totalPrice}</Text>
     </View>
   );
 

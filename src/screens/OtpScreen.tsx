@@ -15,11 +15,16 @@ import api from '../api/api';
 import type { RootStackParamList } from '../navigation/AppNavigator';
 
 type OtpRouteProp = RouteProp<RootStackParamList, 'OtpVerification'>;
-// FIX: Add Navigation Type
 type NavigationProp = NativeStackNavigationProp<RootStackParamList, 'OtpVerification'>;
 
+// Define constants to match Backend Enum EXACTLY
+const APP_MODE = {
+  BARBER: 'BARBER',
+  BARBER_SHOP: 'BARBER_SHOP',
+  SERVICE: 'SERVICE'
+};
+
 const OtpVerificationScreen = () => {
-  // FIX: Apply Navigation Type
   const navigation = useNavigation<NavigationProp>();
   const route = useRoute<OtpRouteProp>();
   const insets = useSafeAreaInsets();
@@ -112,89 +117,109 @@ const OtpVerificationScreen = () => {
         Alert.alert('Warning', 'Account created, but profile photo failed to upload.');
       }
     }
-    // Navigation handled by AppNavigator
   };
 
-  // --- Application Logic ---
-    // --- Application Logic ---
+  // --- Application Logic (FIXED) ---
   const handleApplicationFlow = async () => {
     if (!applicationData) return;
 
-    // Helper to upload files
+    // Helper to upload files to /api/upload
     const uploadFile = async (uri: string, type: string): Promise<string> => {
       const formData = new FormData();
       formData.append('file', { uri, type: 'image/jpeg', name: `upload_${Date.now()}.jpg` });
       formData.append('type', type);
       formData.append('email', email);
-      const res = await api.post('/upload', formData, { headers: { 'Content-Type': 'multipart/form-data' } });
-      return res.data;
+      
+      const res = await api.post('/upload', formData, { 
+        headers: { 'Content-Type': 'multipart/form-data' } 
+      });
+      
+      // Safety check: Backend might return string directly or JSON object
+      if (typeof res.data === 'string') return res.data;
+      if (res.data && res.data.url) return res.data.url;
+      return res.data; 
     };
 
+    // 1. Construct Base Payload
+    // Use the constant to ensure correct string comparison
+    const formType = applicationData.formType; 
+
     let payload: any = {
-      ...applicationData.common,
-      type: applicationData.formType,
+      type: formType, // 'BARBER' or 'BARBER_SHOP'
+      name: applicationData.common.name,
+      email: applicationData.common.email,
+      password: applicationData.common.password,
+      phone: applicationData.common.phone,
       otp: otp,
     };
 
-    // Handle Barber Data & Uploads
-    if (applicationData.formType === 'barber' && applicationData.barberData) {
-      let profileUrl, licenseUrl;
+    // 2. Handle Barber Specific
+    // Check against the CONSTANT string to be safe
+    if (formType === APP_MODE.BARBER && applicationData.barberData) {
       
+      // Upload Profile Picture
       if (imageUris?.profile) {
-        profileUrl = await uploadFile(imageUris.profile, 'profile');
+        payload.profilePictureUrl = await uploadFile(imageUris.profile, 'profile');
       }
+      
+      // Upload License
       if (imageUris?.license) {
-        licenseUrl = await uploadFile(imageUris.license, 'license');
+        payload.licenseUrl = await uploadFile(imageUris.license, 'license');
       }
 
-      // --- FIX STARTS HERE ---
-      // Convert skills string to array
+      payload.experienceYears = parseInt(applicationData.barberData.exp) || 0;
+      payload.city = applicationData.barberData.city;
+      payload.bio = applicationData.barberData.bio;
+      payload.barbershopId = applicationData.barberData.selectedShopId;
+      payload.barbershopName = applicationData.barberData.selectedShopName;
+
+      // Convert Skills string to Array
       let skillsArray: string[] = [];
       if (applicationData.barberData.skills) {
-        if (typeof applicationData.barberData.skills === 'string') {
-             skillsArray = (applicationData.barberData.skills as string)
-                .split(',')
-                .map((s: string) => s.trim())
-                .filter((s: string) => s);
-        } else {
-            skillsArray = applicationData.barberData.skills;
-        }
+        skillsArray = (applicationData.barberData.skills as string)
+          .split(',')
+          .map((s: string) => s.trim())
+          .filter((s: string) => s);
       }
-      // --- FIX ENDS HERE ---
-
-      payload = {
-        ...payload,
-        ...applicationData.barberData,
-        skills: skillsArray, // Overwrite the string with the array
-        profilePictureUrl: profileUrl,
-        licenseUrl: licenseUrl,
-      };
+      payload.skills = skillsArray;
     }
 
-    // Handle Shop Data & Uploads
-    if (applicationData.formType === 'shop' && applicationData.shopData) {
-      let docUrl;
-      let shopImageUrls: string[] = [];
-
+    // 3. Handle Shop Specific
+    // ** CRITICAL CHECK **: Must match 'BARBER_SHOP'
+    if (formType === APP_MODE.BARBER_SHOP && applicationData.shopData) {
+      
+      // Upload Business Document
       if (imageUris?.doc) {
-        docUrl = await uploadFile(imageUris.doc, 'doc');
+        console.log("Uploading document...");
+        payload.documentUrl = await uploadFile(imageUris.doc, 'doc');
+        console.log("Document URL:", payload.documentUrl);
       }
+
+      // Upload Shop Photos
       if (imageUris?.shopImages && imageUris.shopImages.length > 0) {
-        shopImageUrls = await Promise.all(
+        console.log("Uploading shop images...");
+        const shopImageUrls = await Promise.all(
           imageUris.shopImages.map((uri: string) => uploadFile(uri, 'shop_image'))
         );
+        payload.shopImages = shopImageUrls;
+        console.log("Shop Image URLs:", payload.shopImages);
       }
 
-      payload = {
-        ...payload,
-        ...applicationData.shopData,
-        latitude: parseFloat(applicationData.shopData.lat),
-        longitude: parseFloat(applicationData.shopData.long),
-        documentUrl: docUrl,
-        shopImages: shopImageUrls
-      };
+      // Map Shop Fields
+      payload.shopName = applicationData.shopData.shopName;
+      payload.address = applicationData.shopData.address;
+      payload.city = applicationData.shopData.city;
+      payload.state = applicationData.shopData.state;
+      payload.postalCode = applicationData.shopData.postal;
+      payload.latitude = parseFloat(applicationData.shopData.lat);
+      payload.longitude = parseFloat(applicationData.shopData.long);
+      payload.website = applicationData.shopData.website;
+      payload.operatingHours = applicationData.shopData.hours;
+      payload.description = applicationData.shopData.desc;
     }
 
+    // 4. Submit Application
+    console.log("Submitting payload:", payload);
     await submitApplication(payload);
     Alert.alert('Success', 'Application submitted successfully!');
     navigation.navigate('Landing'); 

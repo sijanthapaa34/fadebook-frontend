@@ -60,7 +60,7 @@ const ShopApplications = () => {
     initialData: EMPTY_RESPONSE
   });
 
-  const approveMutation = useMutation({
+    const approveMutation = useMutation({
     mutationFn: (id: number) => approveByShopAdmin(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['shopAdminApplications'] });
@@ -68,7 +68,11 @@ const ShopApplications = () => {
       setSelectedId(null);
       setNoteInput('');
     },
-    onError: () => toast({ variant: 'destructive', title: 'Error', description: 'Failed to approve.' })
+    onError: (error: any) => {
+      // FIX: Extract specific message
+      const message = error?.response?.data?.message || 'Failed to approve.';
+      toast({ variant: 'destructive', title: 'Error', description: message });
+    }
   });
 
   const rejectMutation = useMutation({
@@ -76,12 +80,15 @@ const ShopApplications = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['shopAdminApplications'] });
       toast({ title: 'Rejected', description: 'Application has been rejected.' });
-      // Close modal and reset state
       setIsRejectModalOpen(false);
       setSelectedId(null);
       setNoteInput('');
     },
-    onError: () => toast({ variant: 'destructive', title: 'Error', description: 'Failed to reject.' })
+    onError: (error: any) => {
+      // FIX: Extract specific message
+      const message = error?.response?.data?.message || 'Failed to reject.';
+      toast({ variant: 'destructive', title: 'Error', description: message });
+    }
   });
 
   const apps: ApplicationResponseDTO[] = pageData?.content || [];

@@ -291,7 +291,7 @@ const BookAppointment = () => {
                       <Text style={styles.cardDesc}>{s.description}</Text>
                     </View>
                     <View style={styles.cardRight}>
-                      <Text style={styles.priceText}>${s.price}</Text>
+                      <Text style={styles.priceText}>Rs. {s.price}</Text>
                       <Text style={styles.durationText}>{s.durationMinutes} min</Text>
                     </View>
                     <View style={[styles.checkbox, isSelected && styles.checkboxActive]}>
@@ -381,7 +381,7 @@ const BookAppointment = () => {
               </View>
               <View style={styles.confirmRow}>
                 <DollarSign size={16} color={theme.colors.primary} />
-                <Text style={[styles.confirmText, { fontWeight: '700' }]}>${totalPrice.toFixed(2)}</Text>
+                <Text style={[styles.confirmText, { fontWeight: '700' }]}>Rs. {totalPrice.toFixed(2)}</Text>
                 {isReschedule && (
                    <Text style={styles.paidBadge}>Already paid — no charge</Text>
                 )}

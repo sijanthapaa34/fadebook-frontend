@@ -220,7 +220,7 @@ const AddServiceModal: React.FC<AddServiceModalProps> = ({ isOpen, onClose, onSu
             {/* Disabled in Edit Mode as backend only updates Price/Duration/Images */}
             <Field label="Name" name="name" value={formData.name} onChange={handleChange} required icon={Tag} error={errors.name} disabled={isEditMode} />
             
-            <Field label="Price ($)" name="price" type="number" value={formData.price || ''} onChange={handleChange} required icon={DollarSign} error={errors.price} />
+            <Field label="Price (Rs. )" name="price" type="number" value={formData.price || ''} onChange={handleChange} required icon={DollarSign} error={errors.price} />
 
             <div className="space-y-1.5">
               <Label className="text-xs text-muted-foreground flex items-center gap-1.5"><Clock size={12} /> Duration <span className="text-destructive">*</span></Label>

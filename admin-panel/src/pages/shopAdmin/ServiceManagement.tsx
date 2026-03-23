@@ -73,7 +73,8 @@ const ServiceManagement = () => {
                 <p className="text-xs text-muted-foreground mt-1 line-clamp-1">{srv.description}</p>
                 <div className="flex items-center gap-6 mt-3 text-xs font-medium">
                   <span className="text-primary flex items-center gap-1">
-                    <DollarSign size={12} /> {srv.price}
+                    {/* <DollarSign size={12} /> */}
+                     Rs. {srv.price}
                   </span>
                   <span className="text-muted-foreground flex items-center gap-1">
                     <Clock size={12} /> {srv.durationMinutes} min

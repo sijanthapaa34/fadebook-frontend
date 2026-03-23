@@ -230,7 +230,7 @@ const ShopDetail = () => {
                     <span className="flex items-center gap-1"><Clock size={10} /> {s.durationMinutes} min</span>
                   </div>
                 </div>
-                <span className="font-bold text-primary">${s.price}</span>
+                <span className="font-bold text-primary">Rs. {s.price}</span>
               </div>
             ))}
           </div>

@@ -21,7 +21,6 @@ import { launchImageLibrary, ImagePickerResponse } from 'react-native-image-pick
 import Geolocation from '@react-native-community/geolocation';
 import { theme } from '../theme/theme';
 import type { RootStackParamList } from '../navigation/AppNavigator';
-// FIX: Ensure sendOtp is imported from authService
 import { sendOtp } from '../api/authService'; 
 import { fetchShops } from '../api/barbershopService'; 
 import type { BarbershopDTO } from '../models/models'; 
@@ -136,7 +135,9 @@ const Apply = () => {
   const route = useRoute<RouteProp<RootStackParamList, 'Apply'>>();
   const insets = useSafeAreaInsets();
   
-  const [formType, setFormType] = useState<'barber' | 'shop'>(route.params?.type || 'barber');
+  // FIX: Use Backend Enum Strings directly
+  const [formType, setFormType] = useState<'BARBER' | 'BARBER_SHOP'>(route.params?.type === 'shop' ? 'BARBER_SHOP' : 'BARBER');
+  
   const [loading, setLoading] = useState(false);
   const [loadingText, setLoadingText] = useState('Submitting...');
   const [locLoading, setLocLoading] = useState(false);
@@ -179,13 +180,13 @@ const Apply = () => {
 
   useEffect(() => {
     if (route.params?.type) {
-      setFormType(route.params.type);
+      setFormType(route.params.type === 'shop' ? 'BARBER_SHOP' : 'BARBER');
     }
   }, [route.params?.type]);
 
   // --- SHOP SEARCH LOGIC ---
   useEffect(() => {
-    if (formType !== 'barber') return;
+    if (formType !== 'BARBER') return;
     
     const timer = setTimeout(async () => {
       if (shopSearch.length > 1) {
@@ -263,7 +264,7 @@ const Apply = () => {
     if (!password.trim() || password.length < 6) errs.password = 'Min 6 characters required';
     if (!phone.trim()) errs.phone = 'Phone required';
 
-    if (formType === 'barber') {
+    if (formType === 'BARBER') {
       if (!bCity.trim()) errs.bCity = 'City required';
       if (!bExp.trim()) errs.bExp = 'Experience required';
       if (!bBio.trim()) errs.bBio = 'Bio required';
@@ -300,9 +301,9 @@ const Apply = () => {
 
       // 3. Serialize Form Data
       const formData = {
-        formType,
+        formType, // This now sends 'BARBER' or 'BARBER_SHOP'
         common: { name, email, password, phone },
-        barberData: formType === 'barber' ? {
+        barberData: formType === 'BARBER' ? {
           city: bCity,
           exp: bExp,
           skills: bSkills,
@@ -310,7 +311,7 @@ const Apply = () => {
           selectedShopId: selectedShop?.id,
           selectedShopName: selectedShop?.name,
         } : undefined,
-        shopData: formType === 'shop' ? {
+        shopData: formType === 'BARBER_SHOP' ? {
           shopName: sShopName,
           address: sAddress,
           city: sCity,
@@ -360,19 +361,19 @@ const Apply = () => {
         {/* Toggle */}
         <View style={styles.toggleContainer}>
           <TouchableOpacity
-            onPress={() => { setFormType('barber'); setErrors({}); }}
-            style={[styles.toggleBtn, formType === 'barber' && styles.toggleBtnActive]}
+            onPress={() => { setFormType('BARBER'); setErrors({}); }}
+            style={[styles.toggleBtn, formType === 'BARBER' && styles.toggleBtnActive]}
           >
-            <Scissors size={18} color={formType === 'barber' ? theme.colors.primary : theme.colors.muted} />
-            <Text style={[styles.toggleText, formType === 'barber' && styles.toggleTextActive]}>Barber</Text>
+            <Scissors size={18} color={formType === 'BARBER' ? theme.colors.primary : theme.colors.muted} />
+            <Text style={[styles.toggleText, formType === 'BARBER' && styles.toggleTextActive]}>Barber</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
-            onPress={() => { setFormType('shop'); setErrors({}); }}
-            style={[styles.toggleBtn, formType === 'shop' && styles.toggleBtnActive]}
+            onPress={() => { setFormType('BARBER_SHOP'); setErrors({}); }}
+            style={[styles.toggleBtn, formType === 'BARBER_SHOP' && styles.toggleBtnActive]}
           >
-            <Store size={18} color={formType === 'shop' ? theme.colors.primary : theme.colors.muted} />
-            <Text style={[styles.toggleText, formType === 'shop' && styles.toggleTextActive]}>Shop</Text>
+            <Store size={18} color={formType === 'BARBER_SHOP' ? theme.colors.primary : theme.colors.muted} />
+            <Text style={[styles.toggleText, formType === 'BARBER_SHOP' && styles.toggleTextActive]}>Shop</Text>
           </TouchableOpacity>
         </View>
 
@@ -391,7 +392,7 @@ const Apply = () => {
           </View>
           <Field label="Phone" value={phone} onChange={setPhone} error={errors.phone} keyboardType="phone-pad" required />
 
-          {formType === 'barber' ? (
+          {formType === 'BARBER' ? (
             <>
               <Text style={styles.formTitle}>Barber Info</Text>
               
@@ -545,7 +546,7 @@ const Apply = () => {
   );
 };
 
-// Styles
+// Styles remain the same...
 const styles = StyleSheet.create({
   searchInputContainer: {
     flexDirection: 'row',

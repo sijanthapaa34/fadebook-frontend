@@ -178,7 +178,7 @@ const CustomerAppointments = () => {
                 <Text style={[styles.infoText, { marginBottom: 10 }]}>with {apt.barberName}</Text>
 
                 <View style={styles.cardFooter}>
-                  <Text style={styles.priceText}>${apt.totalPrice.toFixed(2)}</Text>
+                  <Text style={styles.priceText}>Rs. {apt.totalPrice.toFixed(2)}</Text>
                   <View style={styles.actionRow}>
                     <TouchableOpacity style={styles.rescheduleBtn} onPress={() => handleReschedule(apt)}>
                       <RefreshCw size={13} color={theme.colors.text} />
@@ -216,7 +216,7 @@ const CustomerAppointments = () => {
                         {format(parseISO(apt.scheduledTime), 'MMM d')} · {apt.barbershopName}
                       </Text>
                     </View>
-                    <Text style={styles.priceText}>${apt.totalPrice.toFixed(2)}</Text>
+                    <Text style={styles.priceText}>Rs. {apt.totalPrice.toFixed(2)}</Text>
                   </View>
                 </View>
               );

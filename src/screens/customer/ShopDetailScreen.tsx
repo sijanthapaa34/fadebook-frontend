@@ -1,4 +1,3 @@
-// src/screens/customer/ShopDetailScreen.tsx
 import React, { useState } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Image, ActivityIndicator } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
@@ -11,15 +10,16 @@ import { theme } from '../../theme/theme';
 import { fetchBarbershopById } from '../../api/barbershopService';
 import { fetchBarbersByShop } from '../../api/barberService';
 import { fetchServicesByShop } from '../../api/serviceService';
-import { getReviewsofShop } from '../../api/reviewService';
+import { getReviews } from '../../api/reviewService';
 import StarRating from '../../components/StarRating';
 import ReviewCard from '../../components/ReviewCard';
 import WriteReviewDialog from '../../components/WriteReviewDialog';
 import type { RootStackParamList } from '../../navigation/AppNavigator';
+import { ReviewType } from '../../models/models';
+import { useAuthStore } from '../../store/authStore'; // <--- IMPORT AUTH STORE
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
-// Fallback images if shop has no images
 const PLACEHOLDER_IMAGES = [
   'https://images.unsplash.com/photo-1503951914875-452162b0f3f1?w=400&h=300&fit=crop',
   'https://images.unsplash.com/photo-1585747860019-8e4b67e3149c?w=400&h=300&fit=crop',
@@ -33,11 +33,12 @@ const ShopDetail = () => {
   const route = useRoute();
   const { shopId } = route.params as { shopId: number };
 
+  // Get current logged in user
+  const user = useAuthStore((state) => state.user); 
+
   const [activeTab, setActiveTab] = useState<'overview' | 'services' | 'barbers' | 'reviews' | 'photos'>('overview');
+  const [reviewModalVisible, setReviewModalVisible] = useState(false);
 
-  // --- API Integration ---
-
-  // 1. Fetch Shop Details
   const { 
     data: shop, 
     isLoading: isShopLoading, 
@@ -48,7 +49,6 @@ const ShopDetail = () => {
     enabled: !!shopId,
   });
 
-  // 2. Fetch Barbers (Parallel Fetch)
   const { data: barbersPage, isLoading: isBarbersLoading } = useQuery({
     queryKey: ['barbers', shopId],
     queryFn: () => fetchBarbersByShop({ shopId, page: 0, size: 20 }),
@@ -56,7 +56,6 @@ const ShopDetail = () => {
   });
   const barbers = barbersPage?.content || [];
 
-  // 3. Fetch Services (Parallel Fetch)
   const { data: servicesPage, isLoading: isServicesLoading } = useQuery({
     queryKey: ['services', shopId],
     queryFn: () => fetchServicesByShop({ shopId, page: 0, size: 20 }),
@@ -64,20 +63,16 @@ const ShopDetail = () => {
   });
   const services = servicesPage?.content || [];
 
-  // 4. Fetch Reviews (Parallel Fetch)
-  const { data: reviewsPage } = useQuery({
-    queryKey: ['reviews', 'SHOP', shopId],
-    queryFn: () => getReviewsofShop({ shopId, page: 0, size: 20 }),
+  const { data: reviewsPage, refetch: refetchReviews } = useQuery({
+    queryKey: ['reviews', ReviewType.BARBER_SHOP, shopId],
+    queryFn: () => getReviews(ReviewType.BARBER_SHOP, shopId, 0, 20),
     enabled: !!shopId,
   });
   const reviews = reviewsPage?.content || [];
 
-  // Calculate Rating
   const avgRating = reviews.length > 0 
-    ? (reviews.reduce((a, r) => a + r.rating, 0) / reviews.length).toFixed(1) 
+    ? (reviews.reduce((a, r) => a + (r.rating || 0), 0) / reviews.length).toFixed(1) 
     : shop?.rating?.toFixed(1) || '0.0';
-
-  // --- Render States ---
 
   if (isShopLoading) {
     return (
@@ -98,7 +93,6 @@ const ShopDetail = () => {
     );
   }
 
-  // Use shop images if available, otherwise use placeholders
   const displayImages = shop.shopImages && shop.shopImages.length > 0 
     ? shop.shopImages 
     : PLACEHOLDER_IMAGES;
@@ -113,6 +107,18 @@ const ShopDetail = () => {
 
   return (
     <View style={styles.container}>
+       <WriteReviewDialog 
+        visible={reviewModalVisible}
+        onClose={() => setReviewModalVisible(false)}
+        targetId={shopId}
+        targetType={ReviewType.BARBER_SHOP}
+        currentUserId={user?.id || 0} // <--- PASS USER ID
+        onSuccess={() => {
+            refetchReviews();
+            setReviewModalVisible(false);
+        }}
+      />
+      
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         {/* Header */}
         <View style={[styles.header, { paddingTop: insets.top + theme.spacing.sm }]}>
@@ -183,7 +189,6 @@ const ShopDetail = () => {
               <Text style={styles.sectionTitle}>About</Text>
               <Text style={styles.description}>{shop.description || 'No description available'}</Text>
             </View>
-            {/* Show first 4 images in overview */}
             <View style={styles.galleryGrid}>
               {displayImages.slice(0, 4).map((img, i) => (
                 <View key={i} style={styles.galleryItem}>
@@ -211,7 +216,7 @@ const ShopDetail = () => {
                       <Text style={styles.itemTitle}>{s.name}</Text>
                       <Text style={styles.itemSub} numberOfLines={1}>{s.description}</Text>
                     </View>
-                    <Text style={styles.itemPrice}>${s.price}</Text>
+                    <Text style={styles.itemPrice}>Rs. {s.price}</Text>
                   </TouchableOpacity>
                 ))}
               </>
@@ -258,9 +263,11 @@ const ShopDetail = () => {
           <View style={styles.section}>
             <View style={styles.reviewHeader}>
               <Text style={styles.reviewCountText}>{reviews.length} reviews</Text>
-              <WriteReviewDialog targetName={shop.name} targetType="SHOP" onSubmit={(data) => console.log(data)} />
+              <TouchableOpacity style={styles.writeReviewBtn} onPress={() => setReviewModalVisible(true)}>
+                  <Text style={styles.writeReviewBtnText}>Write a Review</Text>
+              </TouchableOpacity>
             </View>
-            {reviews.length === 0 ? <Text style={styles.emptyText}>No reviews yet.</Text> : reviews.map((r) => <ReviewCard key={r.id} review={r} />)}
+            {reviews.length === 0 ? <Text style={styles.emptyText}>No reviews yet.</Text> : reviews.map((r) => <ReviewCard key={r.id} review={r} canReply={false} />)}
           </View>
         )}
 
@@ -290,7 +297,6 @@ const styles = StyleSheet.create({
   centerContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   scrollContent: { paddingBottom: 40 },
   
-  // Header
   header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: theme.spacing.lg, paddingBottom: theme.spacing.md, borderBottomWidth: 1, borderBottomColor: theme.colors.border },
   backBtn: { padding: theme.spacing.sm, marginLeft: -theme.spacing.sm },
   headerContent: { flex: 1, marginLeft: theme.spacing.sm },
@@ -300,7 +306,6 @@ const styles = StyleSheet.create({
   bookNowBtn: { backgroundColor: theme.colors.primary, paddingVertical: 8, paddingHorizontal: 16, borderRadius: theme.radius.md },
   bookNowText: { color: '#000', fontFamily: theme.fonts.sans, fontWeight: '700', fontSize: 13 },
 
-  // Hero
   heroCard: { margin: theme.spacing.lg, padding: theme.spacing.lg, backgroundColor: theme.colors.card, borderRadius: theme.radius.lg, borderWidth: 1, borderColor: theme.colors.border },
   heroRow: { flexDirection: 'row', alignItems: 'flex-start' },
   avatar: { width: 64, height: 64, borderRadius: theme.radius.lg, backgroundColor: 'rgba(212, 175, 55, 0.1)', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
@@ -314,44 +319,18 @@ const styles = StyleSheet.create({
   infoItem: { flexDirection: 'row', alignItems: 'center', marginRight: 12, marginTop: 4 },
   infoText: { fontSize: 11, fontFamily: theme.fonts.sans, color: theme.colors.muted, marginLeft: 4 },
 
-  // Tabs
-  tabsContainer: { 
-    borderBottomWidth: 1, 
-    borderBottomColor: theme.colors.border, 
-  },
-  tabsScrollContent: {
-    paddingHorizontal: theme.spacing.lg,
-  },
-  tabBtn: { 
-    paddingVertical: theme.spacing.md, 
-    marginRight: theme.spacing.lg 
-  },
-  tabText: { 
-    color: theme.colors.muted, 
-    fontSize: 14, 
-    fontFamily: theme.fonts.sans, 
-    fontWeight: '500' 
-  },
-  tabTextActive: { 
-    color: theme.colors.primary, 
-    fontWeight: '600' 
-  },
-  activeIndicator: { 
-    position: 'absolute', 
-    bottom: 0, 
-    left: 0, 
-    right: 0, 
-    height: 2, 
-    backgroundColor: theme.colors.primary 
-  },
+  tabsContainer: { borderBottomWidth: 1, borderBottomColor: theme.colors.border },
+  tabsScrollContent: { paddingHorizontal: theme.spacing.lg },
+  tabBtn: { paddingVertical: theme.spacing.md, marginRight: theme.spacing.lg },
+  tabText: { color: theme.colors.muted, fontSize: 14, fontFamily: theme.fonts.sans, fontWeight: '500' },
+  tabTextActive: { color: theme.colors.primary, fontWeight: '600' },
+  activeIndicator: { position: 'absolute', bottom: 0, left: 0, right: 0, height: 2, backgroundColor: theme.colors.primary },
 
-  // Sections
   section: { padding: theme.spacing.lg },
   card: { backgroundColor: theme.colors.card, borderRadius: theme.radius.lg, borderWidth: 1, borderColor: theme.colors.border, padding: theme.spacing.lg, marginBottom: theme.spacing.lg },
   sectionTitle: { fontSize: 14, fontFamily: theme.fonts.sans, fontWeight: '600', color: theme.colors.text, marginBottom: theme.spacing.sm },
   description: { fontSize: 13, fontFamily: theme.fonts.sans, lineHeight: 20, color: theme.colors.muted },
 
-  // Gallery & Photos
   galleryGrid: { flexDirection: 'row', flexWrap: 'wrap', marginHorizontal: -4 },
   galleryItem: { width: '50%', padding: 4 },
   galleryImage: { width: '100%', height: 120, borderRadius: theme.radius.md, backgroundColor: theme.colors.surface },
@@ -359,22 +338,21 @@ const styles = StyleSheet.create({
   photoItem: { width: '33.33%', aspectRatio: 1, padding: 4 },
   photoImage: { width: '100%', height: '100%', borderRadius: theme.radius.md, backgroundColor: theme.colors.surface },
 
-  // List Items
   listItem: { flexDirection: 'row', alignItems: 'center', backgroundColor: theme.colors.card, borderRadius: theme.radius.lg, borderWidth: 1, borderColor: theme.colors.border, padding: theme.spacing.lg, marginBottom: theme.spacing.md },
   itemTitle: { fontSize: 14, fontFamily: theme.fonts.sans, fontWeight: '600', color: theme.colors.text },
   itemSub: { fontSize: 10, fontFamily: theme.fonts.sans, color: theme.colors.muted, marginTop: 2 },
   itemPrice: { fontSize: 14, fontFamily: theme.fonts.sans, fontWeight: '700', color: theme.colors.primary, marginLeft: 12 },
   
-  // Barbers specific
   barberAvatar: { width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(212, 175, 55, 0.1)', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
   barberAvatarImage: { width: '100%', height: '100%' },
   barberInitial: { fontSize: 16, fontFamily: theme.fonts.serif, fontWeight: '700', color: theme.colors.primary },
   ratingBadge: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(212, 175, 55, 0.1)', paddingVertical: 4, paddingHorizontal: 8, borderRadius: theme.radius.sm },
   ratingBadgeText: { fontSize: 12, fontFamily: theme.fonts.sans, fontWeight: '600', color: theme.colors.primary, marginLeft: 4 },
 
-  // Reviews
   reviewHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: theme.spacing.md },
   reviewCountText: { fontSize: 13, fontFamily: theme.fonts.sans, color: theme.colors.muted },
+  writeReviewBtn: { backgroundColor: theme.colors.primary, paddingVertical: 8, paddingHorizontal: 16, borderRadius: theme.radius.md },
+  writeReviewBtnText: { color: '#000', fontWeight: '600', fontSize: 12 },
   emptyText: { textAlign: 'center', fontFamily: theme.fonts.sans, color: theme.colors.muted, marginTop: theme.spacing.xl, marginBottom: 20 },
 });
 

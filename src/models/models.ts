@@ -157,19 +157,6 @@ export interface AppointmentDetailsResponse {
   createdAt: string;
 }
 
-// --- Review DTO ---
-export interface ReviewDTO {
-  id: number;
-  customerId: number;
-  customerName?: string;
-  rating: number;
-  comment: string;
-  targetType: string;
-  images?: string[];
-  targetId: number;
-  date: string;
-}
-
 // --- Availability DTOs ---
 export interface TimeSlotDTO {
   startTime: string; 
@@ -191,6 +178,7 @@ export interface RegisterCustomerRequest {
   email: string; 
   phone?: string; 
   password: string; 
+  profilePictureUrl?: string;
   preferences?: string; 
 }
 
@@ -374,4 +362,47 @@ export interface ApplicationResponseDTO {
 export interface OtpResponse {
   message: string;
   success: boolean;
+}
+
+// Add to src/models/models.ts
+
+export enum ReviewType {
+  BARBER = 'BARBER',
+  BARBER_SHOP = 'BARBER_SHOP',
+  SERVICE = 'SERVICE',
+}
+
+export interface ReplyDTO {
+  id: number;
+  userId: number;
+  userName: string;
+  userRole: string;
+  comment: string;
+  createdAt: string;
+}
+
+export interface ReviewDTO {
+  id: number;
+  customerId: number;
+  customerName: string;
+  customerProfilePic: string | null;
+  targetType: ReviewType;
+  targetId: number;
+  rating: number | null; // Null for Services
+  comment: string;
+  imageUrl: string | null;
+  createdAt: string;
+  replies: ReplyDTO[];
+}
+
+export interface CreateReviewRequest {
+  targetType: ReviewType;
+  targetId: number;
+  rating?: number | null; // Optional for Service
+  comment: string;
+  imageUrl?: string;
+}
+
+export interface CreateReplyRequest {
+  comment: string;
 }

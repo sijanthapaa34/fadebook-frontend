@@ -1,286 +1,247 @@
-// src/components/WriteReviewDialog.tsx
 import React, { useState } from 'react';
 import {
-  View,
-  Text,
-  Modal,
-  TouchableOpacity,
-  StyleSheet,
-  TextInput,
-  Alert,
-  ScrollView,
-  KeyboardAvoidingView,
-  Platform,
-  Image,
+  View, Text, StyleSheet, Modal, TouchableOpacity, TextInput, 
+  Alert, ActivityIndicator, Image, KeyboardAvoidingView, Platform
 } from 'react-native';
-import { ImagePlus, X } from 'lucide-react-native';
+import { X, Star, Camera } from 'lucide-react-native';
+import { launchImageLibrary, ImagePickerResponse } from 'react-native-image-picker';
 import { theme } from '../theme/theme';
-import  StarRating from './StarRating';
+import { createReview } from '../api/reviewService';
+import type { ReviewType } from '../models/models';
 
-interface WriteReviewDialogProps {
-  targetName: string;
-  targetType: 'SHOP' | 'BARBER' | 'SERVICE';
-  trigger?: React.ReactNode;
-  existingRating?: number;
-  existingComment?: string;
-  onSubmit: (data: { rating: number; comment: string; images: string[] }) => void;
+interface Props {
+  visible: boolean;
+  onClose: () => void;
+  targetId: number;
+  targetType: ReviewType;
+  currentUserId: number; // ADDED: Required by backend
+  onSuccess: () => void;
 }
 
-const WriteReviewDialog: React.FC<WriteReviewDialogProps> = ({
-  targetName,
-  targetType,
-  trigger,
-  existingRating,
-  existingComment,
-  onSubmit,
-}) => {
-  const [visible, setVisible] = useState(false);
-  const [rating, setRating] = useState(existingRating || 0);
-  const [comment, setComment] = useState(existingComment || '');
-  const [images, setImages] = useState<string[]>([]);
+const WriteReviewDialog: React.FC<Props> = ({ visible, onClose, targetId, targetType, currentUserId, onSuccess }) => {
+  const [rating, setRating] = useState(0);
+  const [comment, setComment] = useState('');
+  const [imageUri, setImageUri] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
 
-  const handleImageUpload = () => {
-    // Simulate image upload logic from the web version
-    const placeholder = `https://images.unsplash.com/photo-1503951914875-452162b0f3f1?w=200&h=200&fit=crop&q=80`;
-    if (images.length < 4) {
-      setImages([...images, placeholder]);
+  const isService = targetType === 'SERVICE';
+
+  const handlePickImage = () => {
+    launchImageLibrary({ mediaType: 'photo', quality: 0.5 }, (response) => {
+      if (response.didCancel || response.errorCode) return;
+      if (response.assets && response.assets[0].uri) {
+        setImageUri(response.assets[0].uri);
+      }
+    });
+  };
+
+  const handleSubmit = async () => {
+    if (!comment.trim()) {
+      Alert.alert('Error', 'Please write a comment.');
+      return;
+    }
+    
+    if (!isService && rating === 0) {
+      Alert.alert('Error', 'Please select a rating.');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const payload: any = {
+        targetType: targetType,
+        targetId: targetId,
+        comment: comment,
+        rating: isService ? null : rating,
+        imageUrl: imageUri, 
+      };
+
+      // FIX: Pass currentUserId to the API call
+      await createReview(currentUserId, payload);
+
+      Alert.alert('Success', 'Review submitted!');
+      resetState();
+      onSuccess();
+      onClose();
+    } catch (error: any) {
+      console.error("Submit Review Error:", error);
+      const msg = error?.response?.data?.message || error.message || "Failed to submit review.";
+      Alert.alert('Error', msg);
+    } finally {
+      setLoading(false);
     }
   };
 
-  const removeImage = (index: number) => {
-    setImages(images.filter((_, idx) => idx !== index));
-  };
-
-  const handleSubmit = () => {
-    if (rating === 0) {
-      Alert.alert('Error', 'Please select a rating');
-      return;
-    }
-    if (comment.trim().length < 10) {
-      Alert.alert('Error', 'Please write at least 10 characters');
-      return;
-    }
-    onSubmit({ rating, comment: comment.trim(), images });
-    Alert.alert('Success', 'Review submitted! Thank you for your feedback.');
-    setVisible(false);
-    // Reset state
+  const resetState = () => {
     setRating(0);
     setComment('');
-    setImages([]);
+    setImageUri(null);
+    setLoading(false);
   };
 
-  const typeLabel = targetType === 'SHOP' ? 'shop' : targetType === 'BARBER' ? 'barber' : 'service';
+  const handleClose = () => {
+    resetState();
+    onClose();
+  };
 
   return (
-    <>
-      <TouchableOpacity onPress={() => setVisible(true)}>
-        {trigger || (
-          <View style={styles.defaultTrigger}>
-            <Text style={styles.defaultTriggerText}>Write a Review</Text>
-          </View>
-        )}
-      </TouchableOpacity>
-
-      <Modal
-        visible={visible}
-        animationType="slide"
-        transparent
-        onRequestClose={() => setVisible(false)}
+    <Modal visible={visible} transparent animationType="slide" onRequestClose={handleClose}>
+      <KeyboardAvoidingView 
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'} 
+        style={styles.overlay}
       >
-        <KeyboardAvoidingView 
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-          style={styles.modalOverlay}
-        >
-          <View style={styles.modalContent}>
-            {/* Header */}
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Review {targetName}</Text>
-              <TouchableOpacity onPress={() => setVisible(false)} style={styles.closeBtn}>
-                <X size={20} color={theme.colors.muted} />
-              </TouchableOpacity>
-            </View>
-
-            <ScrollView showsVerticalScrollIndicator={false}>
-              {/* Rating */}
-              <View style={styles.section}>
-                <Text style={styles.label}>How would you rate this {typeLabel}?</Text>
-                <StarRating rating={rating} size={28} interactive onChange={setRating} />
-              </View>
-
-              {/* Comment */}
-              <View style={styles.section}>
-                <Text style={styles.label}>Share your experience</Text>
-                <TextInput
-                  style={styles.textarea}
-                  value={comment}
-                  onChangeText={setComment}
-                  placeholder="Tell others about your experience..."
-                  placeholderTextColor={theme.colors.muted}
-                  multiline
-                  maxLength={500}
-                  textAlignVertical="top"
-                />
-                <Text style={styles.charCount}>{comment.length}/500</Text>
-              </View>
-
-              {/* Images */}
-              <View style={styles.section}>
-                <Text style={styles.label}>Add photos (optional)</Text>
-                <View style={styles.imageGrid}>
-                  {images.map((img, i) => (
-                    <View key={i} style={styles.imagePreview}>
-                      <Image source={{ uri: img }} style={styles.previewImg} />
-                      <TouchableOpacity 
-                        style={styles.removeBtn} 
-                        onPress={() => removeImage(i)}
-                      >
-                        <X size={10} color="#000" />
-                      </TouchableOpacity>
-                    </View>
-                  ))}
-                  
-                  {images.length < 4 && (
-                    <TouchableOpacity 
-                      style={styles.addBtn} 
-                      onPress={handleImageUpload}
-                    >
-                      <ImagePlus size={18} color={theme.colors.muted} />
-                    </TouchableOpacity>
-                  )}
-                </View>
-              </View>
-
-              <TouchableOpacity style={styles.submitBtn} onPress={handleSubmit}>
-                <Text style={styles.submitBtnText}>Submit Review</Text>
-              </TouchableOpacity>
-            </ScrollView>
+        <View style={styles.container}>
+          <View style={styles.header}>
+            <Text style={styles.title}>Write a Review</Text>
+            <TouchableOpacity onPress={handleClose} hitSlop={{top:10, bottom:10, left:10, right:10}}>
+              <X size={24} color={theme.colors.text} />
+            </TouchableOpacity>
           </View>
-        </KeyboardAvoidingView>
-      </Modal>
-    </>
+
+          {!isService && (
+            <View style={styles.ratingContainer}>
+              <Text style={styles.label}>Rating</Text>
+              <View style={styles.starsRow}>
+                {[1, 2, 3, 4, 5].map((i) => (
+                  <TouchableOpacity key={i} onPress={() => setRating(i)}>
+                    <Star 
+                      size={32} 
+                      color={theme.colors.primary} 
+                      fill={i <= rating ? theme.colors.primary : 'transparent'} 
+                    />
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
+          )}
+
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>Comment</Text>
+            <TextInput
+              style={styles.textArea}
+              placeholder="Share your experience..."
+              placeholderTextColor={theme.colors.muted}
+              multiline
+              numberOfLines={4}
+              value={comment}
+              onChangeText={setComment}
+              textAlignVertical="top"
+            />
+          </View>
+
+          <TouchableOpacity style={styles.imagePicker} onPress={handlePickImage}>
+            <Camera size={20} color={theme.colors.primary} />
+            <Text style={styles.imagePickerText}>
+              {imageUri ? 'Change Photo' : 'Add Photo (Optional)'}
+            </Text>
+          </TouchableOpacity>
+          
+          {imageUri && (
+            <Image source={{ uri: imageUri }} style={styles.previewImage} />
+          )}
+
+          <TouchableOpacity 
+            style={[styles.submitBtn, loading && styles.submitBtnDisabled]} 
+            onPress={handleSubmit}
+            disabled={loading}
+          >
+            {loading ? (
+              <ActivityIndicator color="#000" />
+            ) : (
+              <Text style={styles.submitBtnText}>Submit Review</Text>
+            )}
+          </TouchableOpacity>
+        </View>
+      </KeyboardAvoidingView>
+    </Modal>
   );
 };
 
 const styles = StyleSheet.create({
-  defaultTrigger: {
-    backgroundColor: theme.colors.primary,
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    borderRadius: theme.radius.md,
-  },
-  defaultTriggerText: {
-    color: '#000',
-    fontWeight: '700',
-    fontSize: 13,
-  },
-  modalOverlay: {
+  overlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.8)',
+    backgroundColor: 'rgba(0,0,0,0.5)',
     justifyContent: 'flex-end',
   },
-  modalContent: {
-    backgroundColor: theme.colors.background,
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
+  container: {
+    backgroundColor: theme.colors.card,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    padding: 20,
     maxHeight: '90%',
-    paddingBottom: 30,
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-    borderBottomWidth: 0,
   },
-  modalHeader: {
+  header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: theme.spacing.lg,
-    borderBottomWidth: 1,
-    borderBottomColor: theme.colors.border,
+    marginBottom: 20,
   },
-  modalTitle: {
-    fontSize: 18,
+  title: {
+    fontSize: 20,
     fontWeight: '700',
     color: theme.colors.text,
-    fontFamily: theme.fonts.serif,
-  },
-  closeBtn: {
-    padding: 4,
-  },
-  section: {
-    padding: theme.spacing.lg,
-    paddingBottom: 0,
   },
   label: {
-    fontSize: 13,
-    color: theme.colors.muted,
-    marginBottom: theme.spacing.md,
-  },
-  textarea: {
-    backgroundColor: 'rgba(39, 39, 42, 0.3)',
-    borderRadius: theme.radius.md,
-    padding: theme.spacing.md,
-    height: 120,
     fontSize: 14,
-    color: theme.colors.text,
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-  },
-  charCount: {
-    textAlign: 'right',
-    fontSize: 11,
     color: theme.colors.muted,
-    marginTop: 4,
+    marginBottom: 8,
   },
-  imageGrid: {
+  ratingContainer: {
+    marginBottom: 20,
+    alignItems: 'center',
+  },
+  starsRow: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
     gap: 8,
   },
-  imagePreview: {
-    width: 64,
-    height: 64,
-    borderRadius: theme.radius.sm,
-    overflow: 'hidden',
-    position: 'relative',
+  inputGroup: {
+    marginBottom: 16,
+  },
+  textArea: {
+    backgroundColor: theme.colors.background,
+    borderRadius: 12,
+    padding: 12,
+    color: theme.colors.text,
+    height: 100,
     borderWidth: 1,
     borderColor: theme.colors.border,
   },
-  previewImg: {
-    width: '100%',
-    height: '100%',
-  },
-  removeBtn: {
-    position: 'absolute',
-    top: 2,
-    right: 2,
-    width: 18,
-    height: 18,
-    borderRadius: 9,
-    backgroundColor: 'rgba(255,255,255,0.8)',
+  imagePicker: {
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  addBtn: {
-    width: 64,
-    height: 64,
-    borderRadius: theme.radius.sm,
+    padding: 12,
     borderWidth: 1,
     borderStyle: 'dashed',
     borderColor: theme.colors.border,
-    alignItems: 'center',
-    justifyContent: 'center',
+    borderRadius: 12,
+    marginBottom: 16,
+  },
+  imagePickerText: {
+    color: theme.colors.primary,
+    marginLeft: 8,
+    fontWeight: '500',
+  },
+  previewImage: {
+    width: '100%',
+    height: 150,
+    borderRadius: 12,
+    marginBottom: 16,
+    resizeMode: 'cover',
   },
   submitBtn: {
     backgroundColor: theme.colors.primary,
-    marginHorizontal: theme.spacing.lg,
-    marginTop: theme.spacing.xl,
     paddingVertical: 14,
-    borderRadius: theme.radius.md,
+    borderRadius: 12,
     alignItems: 'center',
+  },
+  submitBtnDisabled: {
+    opacity: 0.6,
   },
   submitBtnText: {
     color: '#000',
     fontWeight: '700',
-    fontSize: 14,
+    fontSize: 16,
   },
 });
 

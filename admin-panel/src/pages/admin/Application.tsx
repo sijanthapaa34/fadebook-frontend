@@ -45,7 +45,7 @@ const Applications = () => {
     queryFn: () => getMainAdminApplications(0, 50)
   });
 
-  const approveMutation = useMutation({
+    const approveMutation = useMutation({
     mutationFn: (id: number) => approveApplication(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['mainAdminApplications'] });
@@ -53,7 +53,11 @@ const Applications = () => {
       setSelectedId(null);
       setNoteInput('');
     },
-    onError: () => toast({ variant: 'destructive', title: 'Error', description: 'Failed to approve.' })
+    onError: (error: any) => {
+      // FIX: Extract specific message from backend response
+      const message = error?.response?.data?.message || 'Failed to approve application.';
+      toast({ variant: 'destructive', title: 'Approval Failed', description: message });
+    }
   });
 
   const rejectMutation = useMutation({
@@ -61,11 +65,15 @@ const Applications = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['mainAdminApplications'] });
       toast({ title: 'Success', description: 'Application rejected.' });
-      setIsRejectModalOpen(false); // Close modal
+      setIsRejectModalOpen(false); 
       setSelectedId(null);
       setNoteInput('');
     },
-    onError: () => toast({ variant: 'destructive', title: 'Error', description: 'Failed to reject.' })
+    onError: (error: any) => {
+      // FIX: Extract specific message from backend response
+      const message = error?.response?.data?.message || 'Failed to reject application.';
+      toast({ variant: 'destructive', title: 'Rejection Failed', description: message });
+    }
   });
 
   const apps: ApplicationResponseDTO[] = pageData?.content || [];

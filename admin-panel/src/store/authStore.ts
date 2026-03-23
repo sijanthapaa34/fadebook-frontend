@@ -15,12 +15,11 @@ interface AuthState {
   isInitialized: boolean;
   error: string | null;
 
-  // Actions
   initialize: () => Promise<void>;
   login: (email: string, password: string) => Promise<void>;
   logout: () => void;
   resetError: () => void;
-  setUser: (user: AdminUser) => void; // <--- FIX: Added this line
+  setUser: (user: AdminUser) => void;
 }
 
 export const useAuthStore = create<AuthState>()(
@@ -33,7 +32,6 @@ export const useAuthStore = create<AuthState>()(
       error: null,
 
       initialize: async () => {
-        // 1. Check if we have a token in localStorage manually (because zustand persist might not be hydrated yet)
         const storedToken = localStorage.getItem('admin_token');
         if (!storedToken) {
           set({ isInitialized: true, user: null });
@@ -42,11 +40,9 @@ export const useAuthStore = create<AuthState>()(
 
         set({ isLoading: true });
         try {
-          // 2. Validate token with backend
           const user = await authService.getProfile();
           set({ user: user as AdminUser, token: storedToken, isInitialized: true });
         } catch (error) {
-          // Token invalid or expired
           localStorage.removeItem('admin_token');
           set({ user: null, token: null, isInitialized: true });
         } finally {
@@ -58,16 +54,13 @@ export const useAuthStore = create<AuthState>()(
         set({ isLoading: true, error: null });
         try {
           const { token } = await authService.login(email, password);
-          
-          // Store token separately for Axios interceptor access
           localStorage.setItem('admin_token', token);
           
           const user = await authService.getProfile();
           set({ user: user as AdminUser, token });
         } catch (error: any) {
-          const message = error.response?.data?.message || 'Login failed. Please try again.';
+          const message = error.message || 'Login failed. Please try again.';
           set({ error: message });
-          throw new Error(message);
         } finally {
           set({ isLoading: false });
         }
@@ -79,14 +72,12 @@ export const useAuthStore = create<AuthState>()(
       },
 
       resetError: () => set({ error: null }),
-      
-      // FIX: Implementation of setUser
       setUser: (user) => set({ user }),
     }),
     {
       name: 'admin-auth-storage',
       storage: createJSONStorage(() => localStorage),
-      partialize: (state) => ({ user: state.user, token: state.token }), // Only persist these
+      partialize: (state) => ({ user: state.user, token: state.token }),
     }
   )
 );

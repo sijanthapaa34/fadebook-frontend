@@ -180,7 +180,7 @@ const BarberDashboard = () => {
                 </View>
                 <View style={styles.aptRight}>
                   <Text style={styles.aptTime}>{getTimeString(apt.scheduledTime)}</Text>
-                  <Text style={styles.aptPrice}>${apt.totalPrice}</Text>
+                  <Text style={styles.aptPrice}>Rs. {apt.totalPrice}</Text>
                 </View>
               </View>
             ))
@@ -212,7 +212,7 @@ const BarberDashboard = () => {
                 </View>
                 <View style={styles.aptRight}>
                   <Text style={styles.aptTime}>{getTimeString(apt.scheduledTime)}</Text>
-                  <Text style={styles.aptPrice}>${apt.totalPrice}</Text>
+                  <Text style={styles.aptPrice}>Rs. {apt.totalPrice}</Text>
                 </View>
               </View>
             ))

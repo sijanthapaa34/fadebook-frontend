@@ -1,71 +1,107 @@
-// src/components/ReviewCard.tsx
-import React from 'react';
-import { View, Text, StyleSheet, Image, TouchableOpacity, Alert } from 'react-native';
-import { UserCircle, Trash2, Pencil } from 'lucide-react-native';
+import React, { useState } from 'react';
+import { View, Text, StyleSheet, Image, TouchableOpacity, TextInput, Alert, ActivityIndicator } from 'react-native';
+import { User, MessageCircle, Send, X } from 'lucide-react-native';
 import { theme } from '../theme/theme';
-import StarRating  from './StarRating';
-import { Review } from '../models/models';
+import { ReviewDTO } from '../models/models';
+import StarRating from './StarRating';
+import { replyToReview } from '../api/reviewService';
+import { useAuthStore } from '../store/authStore';
 
-interface ReviewCardProps {
-  review: Review;
-  isOwn?: boolean;
-  onEdit?: (review: Review) => void;
-  onDelete?: (id: number) => void;
+interface Props {
+  review: ReviewDTO;
+  canReply?: boolean; // True if current user is the owner
+  onReplied?: () => void;
 }
 
-const ReviewCard: React.FC<ReviewCardProps> = ({ review, isOwn, onEdit, onDelete }) => {
-  
-  const formatDate = (dateStr: string) => {
-    return new Date(dateStr).toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric',
-    });
+const ReviewCard: React.FC<Props> = ({ review, canReply = false, onReplied }) => {
+  const user = useAuthStore((s) => s.user);
+  const [isReplying, setIsReplying] = useState(false);
+  const [replyText, setReplyText] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  const handleReply = async () => {
+    if (!replyText.trim()) return;
+    if (!user) return Alert.alert('Error', 'You must be logged in to reply.');
+
+    setLoading(true);
+    try {
+      await replyToReview(review.id, user.id, { comment: replyText });
+      setReplyText('');
+      setIsReplying(false);
+      onReplied?.(); // Trigger refresh
+    } catch (e) {
+      Alert.alert('Error', 'Failed to post reply');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
     <View style={styles.card}>
+      {/* Header */}
       <View style={styles.header}>
-        <View style={styles.userInfo}>
-          <View style={styles.avatarPlaceholder}>
-            <UserCircle size={22} color={theme.colors.primary} />
-          </View>
-          <View style={styles.userTextContainer}>
-            <Text style={styles.userName}>{review.customerName}</Text>
-            <Text style={styles.dateText}>{formatDate(review.date)}</Text>
+        <View style={styles.avatar}>
+          {review.customerProfilePic ? (
+            <Image source={{ uri: review.customerProfilePic }} style={styles.avatarImg} />
+          ) : (
+            <User size={20} color={theme.colors.muted} />
+          )}
+        </View>
+        <View style={styles.headerInfo}>
+          <Text style={styles.name}>{review.customerName}</Text>
+          <View style={styles.row}>
+             {review.rating !== null && <StarRating rating={review.rating} size={12} />}
+             <Text style={styles.date}> • {new Date(review.createdAt).toLocaleDateString()}</Text>
           </View>
         </View>
-        <StarRating rating={review.rating} size={14} />
       </View>
 
+      {/* Comment */}
       <Text style={styles.comment}>{review.comment}</Text>
+      
+      {review.imageUrl && <Image source={{ uri: review.imageUrl }} style={styles.image} />}
 
-      {review.images && review.images.length > 0 && (
-        <View style={styles.imageGrid}>
-          {review.images.map((img, i) => (
-            <View key={i} style={styles.imageWrapper}>
-              <Image source={{ uri: img }} style={styles.image} />
+      {/* Replies */}
+      {review.replies && review.replies.length > 0 && (
+        <View style={styles.repliesContainer}>
+          {review.replies.map((rep) => (
+            <View key={rep.id} style={styles.replyItem}>
+              <View style={styles.replyHeader}>
+                 <Text style={styles.replyName}>{rep.userName} ({rep.userRole})</Text>
+                 <Text style={styles.replyDate}>{new Date(rep.createdAt).toLocaleDateString()}</Text>
+              </View>
+              <Text style={styles.replyText}>{rep.comment}</Text>
             </View>
           ))}
         </View>
       )}
 
-      {isOwn && (
-        <View style={styles.actionRow}>
-          <TouchableOpacity 
-            style={styles.actionBtn} 
-            onPress={() => onEdit?.(review)}
-          >
-            <Pencil size={12} color={theme.colors.muted} />
-            <Text style={styles.actionText}> Edit</Text>
-          </TouchableOpacity>
-          <TouchableOpacity 
-            style={styles.actionBtn} 
-            onPress={() => onDelete?.(review.id)}
-          >
-            <Trash2 size={12} color={theme.colors.error} />
-            <Text style={[styles.actionText, { color: theme.colors.error }]}> Delete</Text>
-          </TouchableOpacity>
+      {/* Reply Action */}
+      {canReply && !isReplying && (
+        <TouchableOpacity style={styles.replyBtn} onPress={() => setIsReplying(true)}>
+          <MessageCircle size={14} color={theme.colors.primary} />
+          <Text style={styles.replyBtnText}>Reply</Text>
+        </TouchableOpacity>
+      )}
+
+      {isReplying && (
+        <View style={styles.replyInputContainer}>
+          <TextInput
+            style={styles.input}
+            value={replyText}
+            onChangeText={setReplyText}
+            placeholder="Write a reply..."
+            placeholderTextColor={theme.colors.muted}
+            multiline
+          />
+          <View style={styles.actions}>
+            <TouchableOpacity onPress={() => setIsReplying(false)} style={styles.cancelBtn}>
+              <X size={16} color={theme.colors.muted} />
+            </TouchableOpacity>
+            <TouchableOpacity onPress={handleReply} disabled={loading} style={styles.sendBtn}>
+              {loading ? <ActivityIndicator size="small" color="#000" /> : <Send size={16} color="#000" />}
+            </TouchableOpacity>
+          </View>
         </View>
       )}
     </View>
@@ -73,85 +109,32 @@ const ReviewCard: React.FC<ReviewCardProps> = ({ review, isOwn, onEdit, onDelete
 };
 
 const styles = StyleSheet.create({
-  card: {
-    backgroundColor: theme.colors.card,
-    borderRadius: theme.radius.lg,
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-    padding: theme.spacing.lg,
-    marginBottom: theme.spacing.md,
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: theme.spacing.md,
-  },
-  userInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 1,
-  },
-  avatarPlaceholder: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: 'rgba(212, 175, 55, 0.1)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  userTextContainer: {
-    marginLeft: 10,
-  },
-  userName: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: theme.colors.text,
-  },
-  dateText: {
-    fontSize: 11,
-    color: theme.colors.muted,
-    marginTop: 2,
-  },
-  comment: {
-    fontSize: 13,
-    lineHeight: 20,
-    color: theme.colors.textSecondary,
-  },
-  imageGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    marginTop: theme.spacing.md,
-    gap: 8,
-  },
-  imageWrapper: {
-    width: 72,
-    height: 72,
-    borderRadius: theme.radius.sm,
-    backgroundColor: theme.colors.surface,
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-    overflow: 'hidden',
-  },
-  image: {
-    width: '100%',
-    height: '100%',
-  },
-  actionRow: {
-    flexDirection: 'row',
-    justifyContent: 'flex-start',
-    marginTop: theme.spacing.md,
-    gap: theme.spacing.md,
-  },
-  actionBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 4,
-  },
-  actionText: {
-    fontSize: 12,
-    color: theme.colors.muted,
-  },
+  card: { backgroundColor: theme.colors.card, borderRadius: theme.radius.lg, borderWidth: 1, borderColor: theme.colors.border, padding: theme.spacing.md, marginBottom: theme.spacing.md },
+  header: { flexDirection: 'row', alignItems: 'center', marginBottom: theme.spacing.sm },
+  avatar: { width: 36, height: 36, borderRadius: 18, backgroundColor: theme.colors.surface, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
+  avatarImg: { width: '100%', height: '100%' },
+  headerInfo: { marginLeft: 10, flex: 1 },
+  name: { color: theme.colors.text, fontWeight: '600', fontSize: 13 },
+  row: { flexDirection: 'row', alignItems: 'center', marginTop: 2 },
+  date: { fontSize: 10, color: theme.colors.muted, marginLeft: 6 },
+  comment: { color: theme.colors.textSecondary, fontSize: 13, lineHeight: 18 },
+  image: { width: '100%', height: 150, borderRadius: theme.radius.md, marginTop: 10 },
+  
+  repliesContainer: { marginTop: 10, borderLeftWidth: 2, borderLeftColor: theme.colors.border, paddingLeft: 10 },
+  replyItem: { marginBottom: 6 },
+  replyHeader: { flexDirection: 'row', marginBottom: 2 },
+  replyName: { fontWeight: '600', fontSize: 11, color: theme.colors.text },
+  replyDate: { fontSize: 9, color: theme.colors.muted, marginLeft: 6 },
+  replyText: { fontSize: 12, color: theme.colors.textSecondary },
+  
+  replyBtn: { flexDirection: 'row', alignItems: 'center', marginTop: 8 },
+  replyBtnText: { color: theme.colors.primary, fontSize: 12, marginLeft: 4 },
+  
+  replyInputContainer: { marginTop: 10, backgroundColor: theme.colors.surface, borderRadius: theme.radius.md, padding: 10 },
+  input: { minHeight: 40, color: theme.colors.text, fontSize: 12 },
+  actions: { flexDirection: 'row', justifyContent: 'flex-end', gap: 10, marginTop: 8 },
+  cancelBtn: { padding: 4 },
+  sendBtn: { backgroundColor: theme.colors.primary, padding: 6, borderRadius: 6 },
 });
 
 export default ReviewCard;

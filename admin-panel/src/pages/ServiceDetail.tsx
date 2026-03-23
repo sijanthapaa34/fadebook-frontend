@@ -56,7 +56,8 @@ const ServiceDetail = () => {
           <div className="flex items-center gap-2 text-sm text-muted-foreground mt-1">
              <Badge variant="outline">{service.category?.replace('_', ' ')}</Badge>
              <div className="flex items-center gap-1 font-bold text-primary">
-               <DollarSign size={12} /> {service.price}
+               {/* <DollarSign size={12} />  */}
+               Rs. {service.price}
              </div>
              {/* Availability Badge */}
              {service.available ? (
@@ -107,7 +108,7 @@ const ServiceDetail = () => {
                     <DollarSign size={18} />
                     <span className="text-sm">Price</span>
                   </div>
-                  <span className="font-bold text-lg text-foreground">${service.price}</span>
+                  <span className="font-bold text-lg text-foreground">Rs. {service.price}</span>
                 </div>
 
                 <div className="flex items-center justify-between p-3 bg-muted/30 rounded-lg">

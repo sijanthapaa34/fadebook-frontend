@@ -1,5 +1,4 @@
-// src/screens/customer/BarberDetailScreen.tsx
-import React, { useState, useMemo } from 'react';
+import React, { useState } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity, StyleSheet, Image, Modal, FlatList, Dimensions, ActivityIndicator
 } from 'react-native';
@@ -13,14 +12,14 @@ import { theme } from '../../theme/theme';
 import { fetchBarberById } from '../../api/barberService';
 import { fetchBarbershopById } from '../../api/barbershopService';
 import { fetchServicesByShop } from '../../api/serviceService';
-import { getReviewsofBarber } from '../../api/reviewService';
+import { getReviews } from '../../api/reviewService';
 import StarRating from '../../components/StarRating';
 import ReviewCard from '../../components/ReviewCard';
 import WriteReviewDialog from '../../components/WriteReviewDialog';
 import type { RootStackParamList } from '../../navigation/AppNavigator';
-import { BarberDTO, BarbershopDTO, ServiceDTO, ReviewDTO } from '../../models/models';
+import { BarberDTO, BarbershopDTO, ServiceDTO, ReviewDTO, ReviewType } from '../../models/models';
+import { useAuthStore } from '../../store/authStore'; // <--- IMPORT AUTH STORE
 
-// Extended DTO to handle Shop ID if backend sends it
 interface ExtendedBarberDTO extends BarberDTO {
   barbershopId?: number;
 }
@@ -28,7 +27,6 @@ interface ExtendedBarberDTO extends BarberDTO {
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
-// Fallback images if API doesn't provide them
 const PLACEHOLDER_PROFILE = 'https://images.unsplash.com/photo-1621605815971-fbc98d665033?w=400&h=400&fit=crop';
 const PLACEHOLDER_GALLERY = [
   'https://images.unsplash.com/photo-1622286342621-4bd786c2447c?w=600&h=600&fit=crop',
@@ -40,35 +38,35 @@ const BarberDetail = () => {
   const navigation = useNavigation<NavigationProp>();
   const route = useRoute();
   const { barberId } = route.params as { barberId: number };
+  
+  // Get current logged in user
+  const user = useAuthStore((state) => state.user); 
 
   const [activeTab, setActiveTab] = useState<'about' | 'gallery' | 'reviews'>('about');
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
+  const [reviewModalVisible, setReviewModalVisible] = useState(false);
 
   // --- API Integration ---
 
-  // 1. Fetch Barber Details
   const { 
     data: barber, 
     isLoading: isBarberLoading, 
     isError: isBarberError 
   } = useQuery<ExtendedBarberDTO>({
     queryKey: ['barber', barberId],
-    queryFn: () => fetchBarberById(barberId ),
+    queryFn: () => fetchBarberById(barberId),
     enabled: !!barberId,
   });
 
-  // Extract Shop ID (Critical for fetching services and shop details)
   const shopId = barber?.barbershopId; 
 
-  // 2. Fetch Shop Details (Parallel if shopId exists)
   const { data: shop } = useQuery<BarbershopDTO>({
     queryKey: ['shop', shopId],
     queryFn: () => fetchBarbershopById(shopId!),
     enabled: !!shopId,
   });
 
-  // 3. Fetch Services for this Shop (Parallel)
   const { data: servicesPage } = useQuery({
     queryKey: ['services', shopId],
     queryFn: () => fetchServicesByShop({ shopId: shopId!, page: 0, size: 20 }),
@@ -76,20 +74,18 @@ const BarberDetail = () => {
   });
   const services: ServiceDTO[] = servicesPage?.content || [];
 
-  // 4. Fetch Reviews for this Barber (Parallel)
-  const { data: reviewsPage } = useQuery({
-    queryKey: ['reviews', 'BARBER', barberId],
-    queryFn: () => getReviewsofBarber({ barberId, page: 0, size: 20 }),
+  // Reviews Query
+  const { data: reviewsPage, refetch: refetchReviews } = useQuery({
+    queryKey: ['reviews', ReviewType.BARBER, barberId],
+    queryFn: () => getReviews(ReviewType.BARBER, barberId, 0, 20),
     enabled: !!barberId,
   });
   const reviews: ReviewDTO[] = reviewsPage?.content || [];
 
-  // Calculate Rating
   const avgRating = reviews.length > 0
-    ? (reviews.reduce((a, r) => a + r.rating, 0) / reviews.length).toFixed(1)
+    ? (reviews.reduce((a, r) => a + (r.rating || 0), 0) / reviews.length).toFixed(1)
     : barber?.rating?.toFixed(1) ?? '0.0';
 
-  // Image Logic
   const profilePhoto = barber?.profilePicture || PLACEHOLDER_PROFILE;
   const galleryImages = barber?.workImages?.length ? barber.workImages : PLACEHOLDER_GALLERY;
 
@@ -97,8 +93,6 @@ const BarberDetail = () => {
     setSelectedImageIndex(index);
     setIsModalVisible(true);
   };
-
-  // --- Render States ---
 
   if (isBarberLoading) {
     return (
@@ -140,6 +134,19 @@ const BarberDetail = () => {
           />
         </View>
       </Modal>
+
+      {/* Review Write Modal */}
+      <WriteReviewDialog 
+        visible={reviewModalVisible}
+        onClose={() => setReviewModalVisible(false)}
+        targetId={barberId}
+        targetType={ReviewType.BARBER}
+        currentUserId={user?.id || 0} // <--- PASS USER ID
+        onSuccess={() => {
+            refetchReviews();
+            setReviewModalVisible(false);
+        }}
+      />
 
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         {/* Header */}
@@ -250,8 +257,8 @@ const BarberDetail = () => {
                   </View>
                 </View>
                 <View style={styles.priceRow}>
-                  <DollarSign size={14} color={theme.colors.primary} />
-                  <Text style={styles.priceText}>{sv.price}</Text>
+                  {/* <DollarSign size={14} color={theme.colors.primary} /> */}
+                  <Text style={styles.priceText}>Rs. {sv.price}</Text>
                 </View>
               </TouchableOpacity>
             ))}
@@ -274,9 +281,11 @@ const BarberDetail = () => {
           <View style={styles.section}>
             <View style={styles.reviewHeader}>
               <Text style={styles.reviewCountText}>{reviews.length} reviews</Text>
-              <WriteReviewDialog targetName={barber.name} targetType="BARBER" onSubmit={(data) => console.log(data)} />
+              <TouchableOpacity style={styles.writeReviewBtn} onPress={() => setReviewModalVisible(true)}>
+                  <Text style={styles.writeReviewBtnText}>Write a Review</Text>
+              </TouchableOpacity>
             </View>
-            {reviews.length === 0 ? <Text style={styles.emptyText}>No reviews yet.</Text> : reviews.map((r) => <ReviewCard key={r.id} review={r} />)}
+            {reviews.length === 0 ? <Text style={styles.emptyText}>No reviews yet.</Text> : reviews.map((r) => <ReviewCard key={r.id} review={r} canReply={false} />)}
           </View>
         )}
       </ScrollView>
@@ -289,22 +298,17 @@ const styles = StyleSheet.create({
   centerContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   scrollContent: { paddingBottom: 40 },
   
-  // Header
   header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: theme.spacing.lg, paddingBottom: theme.spacing.md, zIndex: 10 },
   backBtn: { padding: theme.spacing.sm, marginLeft: -theme.spacing.sm },
   headerTitle: { fontSize: 20, fontFamily: theme.fonts.serif, fontWeight: '700', color: theme.colors.text, marginLeft: theme.spacing.sm },
 
-  // Hero
   heroCard: { marginBottom: theme.spacing.lg },
   heroBgContainer: { height: 180, position: 'relative' },
   heroBgImage: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, opacity: 0.4 },
-  heroBgPlaceholder: { ...StyleSheet.absoluteFillObject, backgroundColor: theme.colors.surface },
   heroOverlay: { ...StyleSheet.absoluteFillObject, backgroundColor: theme.colors.background, opacity: 0.6 },
   heroContent: { marginTop: -60, paddingHorizontal: theme.spacing.lg, alignItems: 'center' },
   avatarContainer: { borderWidth: 4, borderColor: theme.colors.background, borderRadius: 24, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 6, elevation: 8 },
   avatarImage: { width: 120, height: 120, borderRadius: 24 },
-  avatarPlaceholder: { width: 120, height: 120, borderRadius: 24, backgroundColor: 'rgba(212, 175, 55, 0.1)', alignItems: 'center', justifyContent: 'center' },
-  avatarText: { fontSize: 48, fontFamily: theme.fonts.serif, fontWeight: '700', color: theme.colors.primary },
   infoContainer: { alignItems: 'center', marginTop: theme.spacing.lg, width: '100%' },
   barberName: { fontSize: 24, fontFamily: theme.fonts.serif, fontWeight: '700', color: theme.colors.text },
   locationRow: { flexDirection: 'row', alignItems: 'center', marginTop: theme.spacing.xs },
@@ -317,28 +321,24 @@ const styles = StyleSheet.create({
   bookBtn: { backgroundColor: theme.colors.primary, paddingVertical: 12, paddingHorizontal: 24, borderRadius: theme.radius.md, marginTop: theme.spacing.lg },
   bookBtnText: { color: '#000', fontFamily: theme.fonts.sans, fontWeight: '700', fontSize: 14 },
 
-  // Tabs
   tabsContainer: { flexDirection: 'row', borderBottomWidth: 1, borderBottomColor: theme.colors.border, paddingHorizontal: theme.spacing.lg },
   tabBtn: { paddingVertical: theme.spacing.md, marginRight: theme.spacing.xl },
   tabText: { color: theme.colors.muted, fontSize: 14, fontFamily: theme.fonts.sans, fontWeight: '500' },
   tabTextActive: { color: theme.colors.primary, fontWeight: '600' },
   activeIndicator: { position: 'absolute', bottom: 0, left: 0, right: 0, height: 2, backgroundColor: theme.colors.primary },
 
-  // Sections
   section: { padding: theme.spacing.lg },
   card: { backgroundColor: theme.colors.card, borderRadius: theme.radius.lg, borderWidth: 1, borderColor: theme.colors.border, padding: theme.spacing.lg, marginBottom: theme.spacing.lg },
   cardTitle: { fontSize: 14, fontFamily: theme.fonts.sans, fontWeight: '600', color: theme.colors.text, marginBottom: theme.spacing.sm },
   bioText: { fontSize: 13, fontFamily: theme.fonts.sans, lineHeight: 20, color: theme.colors.muted },
   sectionTitle: { fontSize: 14, fontFamily: theme.fonts.sans, fontWeight: '600', color: theme.colors.text, marginBottom: theme.spacing.md, marginTop: theme.spacing.sm },
 
-  // Stats
   statsGrid: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: theme.spacing.lg, gap: theme.spacing.sm },
   statCard: { backgroundColor: theme.colors.card, borderRadius: theme.radius.lg, borderWidth: 1, borderColor: theme.colors.border, padding: theme.spacing.md, alignItems: 'center' },
   statIcon: { marginBottom: theme.spacing.sm },
   statValue: { fontSize: 16, fontFamily: theme.fonts.serif, fontWeight: '700', color: theme.colors.text },
   statLabel: { fontSize: 11, fontFamily: theme.fonts.sans, color: theme.colors.muted, marginTop: 2 },
 
-  // List Items
   listItem: { flexDirection: 'row', alignItems: 'center', backgroundColor: theme.colors.card, borderRadius: theme.radius.lg, borderWidth: 1, borderColor: theme.colors.border, padding: theme.spacing.lg, marginBottom: theme.spacing.sm },
   listItemTitle: { fontSize: 14, fontFamily: theme.fonts.sans, fontWeight: '600', color: theme.colors.text },
   serviceMeta: { flexDirection: 'row', alignItems: 'center', marginTop: 4 },
@@ -346,16 +346,15 @@ const styles = StyleSheet.create({
   priceRow: { flexDirection: 'row', alignItems: 'center' },
   priceText: { fontSize: 14, fontFamily: theme.fonts.sans, fontWeight: '700', color: theme.colors.primary },
 
-  // Gallery
   galleryGrid: { flexDirection: 'row', flexWrap: 'wrap', marginHorizontal: -4 },
   galleryItem: { width: '50%', aspectRatio: 1, padding: 4 },
   galleryImage: { width: '100%', height: '100%', borderRadius: theme.radius.lg, backgroundColor: theme.colors.surface },
 
-  // Reviews
   reviewHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: theme.spacing.md },
+  writeReviewBtn: { backgroundColor: theme.colors.primary, paddingVertical: 8, paddingHorizontal: 16, borderRadius: theme.radius.md },
+  writeReviewBtnText: { color: '#000', fontWeight: '600', fontSize: 12 },
   emptyText: { textAlign: 'center', fontFamily: theme.fonts.sans, color: theme.colors.muted, marginTop: theme.spacing.xl, marginBottom: 20 },
 
-  // Modal
   modalContainer: { flex: 1, backgroundColor: 'rgba(0,0,0,0.95)', justifyContent: 'center' },
   closeButton: { position: 'absolute', top: 50, right: 20, zIndex: 10, backgroundColor: 'rgba(255,255,255,0.2)', padding: 8, borderRadius: 20 },
   modalImage: { width: SCREEN_WIDTH, height: SCREEN_WIDTH },

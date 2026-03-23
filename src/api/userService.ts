@@ -18,7 +18,7 @@ export const uploadProfilePicture = async (userId: number, imageUri: string): Pr
     type: type,
   });
 
-  const response = await api.post<UploadResponse>(`/users/${userId}/upload-profile`, formData, {
+  const response = await api.post<UploadResponse>(`/users/${userId}/profile-picture`, formData, {
     headers: {
       'Content-Type': 'multipart/form-data',
     },
