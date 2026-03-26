@@ -8,6 +8,8 @@ export type UserRole = 'CUSTOMER' | 'BARBER';
 
 export type AppointmentStatus = 'PENDING' | 'CONFIRMED' | 'COMPLETED' | 'CANCELLED' | 'NO_SHOW';
 export type PaymentStatus = 'PENDING' | 'PAID' | 'REFUNDED';
+export type LeaveStatus = 'PENDING' | 'APPROVED' | 'REJECTED';
+
 
 // Base User (from JWT / Auth Store)
 export interface User {
@@ -405,4 +407,22 @@ export interface CreateReviewRequest {
 
 export interface CreateReplyRequest {
   comment: string;
+}
+
+export interface LeaveRequestDTO {
+  startDate: string; // YYYY-MM-DD
+  endDate: string;
+  reason: string;
+}
+
+export interface BarberLeaveDTO {
+  id: number;
+  barberName: string;
+  startDate: string;
+  endDate: string;
+  reason: string;
+  status: LeaveStatus;
+  requestedAt: string;
+  approvedAt?: string;
+  rejectedAt?: string;
 }

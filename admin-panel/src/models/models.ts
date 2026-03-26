@@ -559,3 +559,20 @@ export interface RegisterBarberRequest {
   commissionRate?: number;
 }
 
+export interface LeaveRequestDTO {
+  startDate: string; // YYYY-MM-DD
+  endDate: string;
+  reason: string;
+}
+
+export interface BarberLeaveDTO {
+  id: number;
+  barberName: string;
+  startDate: string;
+  endDate: string;
+  reason: string;
+  status: LeaveStatus;
+  requestedAt: string;
+  approvedAt?: string;
+  rejectedAt?: string;
+}

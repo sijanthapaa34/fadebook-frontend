@@ -1,10 +1,12 @@
 import { useState } from 'react';
-import { seedLeaveRequests, seedAppointments } from '@/data/seed';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { CheckCircle, XCircle, Clock, Calendar, AlertTriangle, Users } from 'lucide-react';
-import type { LeaveRequest, LeaveStatus } from '@/models/models';
+import { CheckCircle, XCircle, Clock, Calendar } from 'lucide-react';
+import type { BarberLeaveDTO, LeaveStatus } from '@/models/models';
 import { useToast } from '@/hooks/use-toast';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { getShopLeaves, approveLeave, rejectLeave } from '@/services/leaveService';
+import { useAuthStore } from '@/store/authStore';
 
 const statusStyles: Record<LeaveStatus, { color: string; icon: React.ReactNode; label: string }> = {
   PENDING: { color: 'text-yellow-500 bg-yellow-500/10', icon: <Clock size={14} />, label: 'Pending' },
@@ -14,53 +16,50 @@ const statusStyles: Record<LeaveStatus, { color: string; icon: React.ReactNode; 
 
 const LeaveApproval = () => {
   const { toast } = useToast();
-  const [leaves, setLeaves] = useState<LeaveRequest[]>(seedLeaveRequests);
+  const queryClient = useQueryClient();
+  const user = useAuthStore((s) => s.user);
+  const shopId = user?.shopId;
+
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [noteInput, setNoteInput] = useState('');
-  const [filter, setFilter] = useState<'ALL' | LeaveStatus>('ALL');
+  const [filter] = useState<'ALL' | LeaveStatus>('ALL');
 
-  const selected = leaves.find(l => l.id === selectedId);
+  // Fetch Leaves
+  const { data: pageData, isLoading } = useQuery({
+    queryKey: ['shopLeaves', shopId],
+    queryFn: () => getShopLeaves(shopId!),
+    enabled: !!shopId,
+  });
+
+  const leaves: BarberLeaveDTO[] = pageData?.content || [];
+
+  // Mutations
+  const approveMutation = useMutation({
+    mutationFn: (id: number) => approveLeave(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['shopLeaves'] });
+      toast({ title: 'Approved', description: 'Leave request approved.' });
+      setSelectedId(null);
+    },
+    onError: () => toast({ variant: 'destructive', title: 'Error', description: 'Failed to approve.' })
+  });
+
+  const rejectMutation = useMutation({
+    mutationFn: (id: number) => rejectLeave(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['shopLeaves'] });
+      toast({ title: 'Rejected', description: 'Leave request rejected.' });
+      setSelectedId(null);
+    },
+    onError: () => toast({ variant: 'destructive', title: 'Error', description: 'Failed to reject.' })
+  });
+
   const filtered = leaves.filter(l => filter === 'ALL' || l.status === filter);
+  const selected = leaves.find(l => l.id === selectedId);
 
-  // Find conflicting appointments
-  const getConflicts = (leave: LeaveRequest) => {
-    return seedAppointments.filter(a =>
-      a.barberId === leave.barberId &&
-      a.scheduledTime >= leave.startDate &&
-      a.scheduledTime <= leave.endDate &&
-      a.status !== 'CANCELLED' &&
-      a.status !== 'COMPLETED'
-    );
-  };
+  if (isLoading) return <div className="p-8 text-center text-muted-foreground">Loading requests...</div>;
 
-  const handleAction = (id: number, status: LeaveStatus) => {
-    const leave = leaves.find(l => l.id === id);
-    if (!leave) return;
-
-    const today = new Date().toISOString().split('T')[0];
-    const conflicts = getConflicts(leave);
-
-    setLeaves(prev => prev.map(l =>
-      l.id === id ? { ...l, status, reviewedAt: today, adminNotes: noteInput || l.adminNotes } : l
-    ));
-
-    if (status === 'APPROVED' && conflicts.length > 0) {
-      toast({
-        title: 'Leave Approved with Conflicts',
-        description: `${conflicts.length} appointment(s) during leave period will need rescheduling. Customers will be notified.`,
-        variant: 'destructive',
-      });
-    } else {
-      toast({
-        title: status === 'APPROVED' ? 'Leave Approved' : 'Leave Rejected',
-        description: status === 'APPROVED'
-          ? 'The barber has been granted leave. New bookings will be blocked.'
-          : 'The leave request has been rejected.',
-      });
-    }
-    setNoteInput('');
-  };
-return (
+  return (
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-display font-bold">Leave Requests</h1>
@@ -70,7 +69,8 @@ return (
       <div className="flex gap-6 h-[calc(100vh-220px)]">
         {/* List */}
         <div className="flex-1 space-y-2 overflow-y-auto pr-2">
-          {leaves.map(leave => {
+          {filtered.length === 0 && <div className="text-center text-muted-foreground py-10">No requests found.</div>}
+          {filtered.map(leave => {
              const sc = statusStyles[leave.status];
              return (
               <div key={leave.id} onClick={() => setSelectedId(leave.id)} 
@@ -80,7 +80,9 @@ return (
                      <p className="font-medium text-sm">{leave.barberName}</p>
                      <p className="text-xs text-muted-foreground">{leave.startDate} → {leave.endDate}</p>
                    </div>
-                   <span className={`text-[10px] px-2 py-1 rounded-full ${sc.color}`}>{sc.label}</span>
+                   <span className={`text-[10px] px-2 py-1 rounded-full ${sc.color} flex items-center gap-1`}>
+                     {sc.icon} {sc.label}
+                   </span>
                  </div>
               </div>
             )
@@ -91,16 +93,48 @@ return (
         {selected && (
           <div className="w-[400px] glass-card p-6 flex flex-col overflow-y-auto sticky top-0">
              <h3 className="font-semibold mb-2">{selected.barberName}</h3>
-             <p className="text-xs text-muted-foreground mb-4">{selected.reason}</p>
+             
+             <div className="flex items-center gap-2 text-sm text-muted-foreground mb-4">
+                <Calendar size={14} />
+                <span>{selected.startDate === selected.endDate ? selected.startDate : `${selected.startDate} - ${selected.endDate}`}</span>
+             </div>
+
+             {/* FIX: Changed <Text> to <p> */}
+             <div className="bg-muted/30 p-3 rounded-md mb-4">
+                <p className="text-sm text-muted-foreground italic">"{selected.reason}"</p>
+             </div>
              
              {selected.status === 'PENDING' && (
                <>
-                 <Textarea value={noteInput} onChange={e => setNoteInput(e.target.value)} placeholder="Admin notes..." className="mb-4" />
+                 <Textarea value={noteInput} onChange={e => setNoteInput(e.target.value)} placeholder="Add optional admin notes (internal)..." className="mb-4" />
                  <div className="flex gap-2">
-                   <Button variant="hero" className="flex-1" onClick={() => handleAction(selected.id, 'APPROVED')}><CheckCircle size={14} className="mr-1"/> Approve</Button>
-                   <Button variant="destructive" className="flex-1" onClick={() => handleAction(selected.id, 'REJECTED')}><XCircle size={14} className="mr-1"/> Reject</Button>
+                   <Button 
+                     variant="hero" 
+                     className="flex-1" 
+                     onClick={() => approveMutation.mutate(selected.id)}
+                     disabled={approveMutation.isPending}
+                   >
+                     {approveMutation.isPending ? 'Approving...' : <><CheckCircle size={14} className="mr-1"/> Approve</>}
+                   </Button>
+                   <Button 
+                     variant="destructive" 
+                     className="flex-1" 
+                     onClick={() => rejectMutation.mutate(selected.id)}
+                     disabled={rejectMutation.isPending}
+                   >
+                      {rejectMutation.isPending ? 'Rejecting...' : <><XCircle size={14} className="mr-1"/> Reject</>}
+                   </Button>
                  </div>
                </>
+             )}
+
+             {selected.status !== 'PENDING' && (
+                <div className={`mt-4 p-3 rounded-md ${selected.status === 'APPROVED' ? 'bg-emerald-500/10' : 'bg-destructive/10'}`}>
+                   {/* FIX: Changed <Text> to <p> */}
+                   <p className={selected.status === 'APPROVED' ? 'text-emerald-600 text-sm' : 'text-destructive text-sm'}>
+                     Request was {selected.status.toLowerCase()} on {selected.approvedAt || selected.rejectedAt}.
+                   </p>
+                </div>
              )}
           </div>
         )}
