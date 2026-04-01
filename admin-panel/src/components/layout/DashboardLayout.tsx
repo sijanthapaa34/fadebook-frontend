@@ -80,9 +80,7 @@ const DashboardLayout = () => {
 
         {/* User Profile Section at Bottom */}
         <div className="p-4 border-t border-border">
-          <div className="flex items-center gap-3 px-3 mb-4">
-            
-            {/* Avatar Container */}
+          <div className="flex items-center gap-3 px-3 mb-2">
             <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center text-primary text-xs font-bold overflow-hidden shrink-0 border border-border">
               {displayProfilePicture ? (
                 <img 
@@ -95,15 +93,11 @@ const DashboardLayout = () => {
                 <span>{user.name.charAt(0)}</span>
               )}
             </div>
-
             <div className="flex-1 min-w-0">
               <p className="text-sm font-medium truncate">{user.name}</p>
               <p className="text-xs text-muted-foreground truncate">{user.role.replace('_', ' ')}</p>
             </div>
           </div>
-          <Button variant="ghost" size="sm" className="w-full justify-start text-muted-foreground" onClick={handleLogout}>
-            <LogOut size={16} className="mr-2" /> Sign Out
-          </Button>
         </div>
       </aside>
 

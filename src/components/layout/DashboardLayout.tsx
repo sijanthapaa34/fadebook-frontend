@@ -58,14 +58,14 @@ const navConfig: Record<UserRole, NavItem[]> = {
     { label: 'Find Shops', path: 'CustomerDashboard', Icon: MapPin },
     { label: 'My Bookings', path: 'CustomerAppointments', Icon: Calendar },
     { label: 'Payments', path: 'CustomerPayments', Icon: CreditCard },
-    { label: 'Inbox', path: 'Notifications', Icon: Bell },
+    { label: 'Chat', path: 'CustomerChat', Icon: MessageSquare },
     { label: 'Profile', path: 'CustomerProfile', Icon: UserCircle },
   ],
   BARBER: [
     { label: 'Dashboard', path: 'BarberDashboard', Icon: LayoutDashboard },
     { label: 'Schedule', path: 'BarberSchedule', Icon: Calendar },
     { label: 'Reviews', path: 'BarberReview', Icon: BarChart3 },
-    { label: 'Inbox', path: 'Notifications', Icon: Bell },
+    { label: 'Leave', path: 'BarberLeave', Icon: ClipboardList },
     { label: 'Profile', path: 'BarberProfile', Icon: UserCircle },
   ],
 };
@@ -160,8 +160,17 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ user, children, onLog
     <View style={styles.mobileContainer}>
       <View style={styles.mobileHeader}>
         <Logo size="sm" />
-        <TouchableOpacity style={styles.headerLogout} onPress={onLogout} activeOpacity={0.7}>
-          <LogOut size={18} color={theme.colors.muted} />
+        <TouchableOpacity
+          style={styles.headerBell}
+          onPress={() => handleNavigation('Notifications')}
+          activeOpacity={0.7}
+        >
+          <Bell size={20} color={theme.colors.muted} />
+          {unreadCount > 0 && (
+            <View style={styles.badge}>
+              <Text style={styles.badgeText}>{unreadCount > 9 ? '9+' : unreadCount}</Text>
+            </View>
+          )}
         </TouchableOpacity>
       </View>
 
@@ -169,11 +178,9 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ user, children, onLog
         {children}
       </View>
 
-      {/* This is where the crash happened. navItems is now guaranteed to be an array [] */}
       <View style={styles.bottomNav}>
         {navItems.slice(0, 5).map((item) => {
           const isActive = currentPath === item.path;
-          const showBadge = item.path === 'Notifications' && unreadCount > 0;
           return (
             <TouchableOpacity
               key={item.path}
@@ -181,16 +188,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ user, children, onLog
               onPress={() => handleNavigation(item.path)}
               activeOpacity={0.7}
             >
-              <View>
-                {renderIcon(item.Icon, isActive, 20)}
-                {showBadge && (
-                  <View style={styles.badge}>
-                    <Text style={styles.badgeText}>
-                      {unreadCount > 9 ? '9+' : unreadCount}
-                    </Text>
-                  </View>
-                )}
-              </View>
+              {renderIcon(item.Icon, isActive, 20)}
               <Text style={[styles.bottomNavText, isActive && styles.bottomNavTextActive]}>
                 {item.label}
               </Text>
@@ -318,8 +316,9 @@ const styles = StyleSheet.create({
     borderBottomColor: theme.colors.border,
     paddingTop: 48,
   },
-  headerLogout: {
+  headerBell: {
     padding: theme.spacing.sm,
+    position: 'relative',
   },
   mobileContent: {
     flex: 1,

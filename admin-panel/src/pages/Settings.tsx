@@ -20,15 +20,16 @@ import {
   DialogTitle 
 } from '@/components/ui/dialog';
 import { 
-  Loader2, Save, Plus, X, Edit3, User, Phone, Mail, Lock, ArrowLeft 
+  Loader2, Save, Plus, X, Edit3, User, Phone, Mail, Lock, ArrowLeft, LogOut 
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 const Settings = () => {
   const user = useAuthStore((state) => state.user);
   const setUser = useAuthStore((state) => state.setUser);
-  const queryClient = useQueryClient();
+  const logout = useAuthStore((state) => state.logout);
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const { toast } = useToast();
 
   // State
@@ -317,6 +318,18 @@ const Settings = () => {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Sign Out */}
+      <div className="glass-card p-4">
+        <Button
+          variant="ghost"
+          className="w-full justify-start text-destructive hover:text-destructive hover:bg-destructive/10 gap-2"
+          onClick={() => { logout(); navigate('/login'); }}
+        >
+          <LogOut size={16} />
+          Sign Out
+        </Button>
+      </div>
     </div>
   );
 };

@@ -12,7 +12,8 @@ import { theme } from '../../theme/theme';
 import { 
   fetchUpcomingAppointments, 
   fetchPastAppointments, 
-  cancelAppointment 
+  cancelAppointment,
+  getRefundPreview,
 } from '../../api/appointmentService';
 import { AppointmentDetailsResponse, ServiceItemDTO } from '../../models/models';
 import type { RootStackParamList } from '../../navigation/AppNavigator';
@@ -62,13 +63,19 @@ const CustomerAppointments = () => {
   const { mutate: mutateCancel, isPending: isCanceling } = useMutation({
     mutationFn: (appointmentId: number) => cancelAppointment(appointmentId),
     onSuccess: () => {
-      Alert.alert('Success', 'Appointment cancelled successfully.');
-      // Refetch both lists to ensure UI is updated
+      Alert.alert('Cancelled', 'Your appointment has been cancelled. Refund (if applicable) will be processed within 2–3 business days.');
       queryClient.invalidateQueries({ queryKey: ['upcomingAppointments'] });
       queryClient.invalidateQueries({ queryKey: ['pastAppointments'] });
     },
     onError: (error: any) => {
-      Alert.alert('Error', error.response?.data?.message || 'Failed to cancel appointment.');
+      // If appointment was already cancelled on backend, treat as success
+      const msg = error.response?.data?.message || '';
+      if (msg.toLowerCase().includes('already cancelled')) {
+        Alert.alert('Already Cancelled', 'This appointment was already cancelled.');
+        queryClient.invalidateQueries({ queryKey: ['upcomingAppointments'] });
+      } else {
+        Alert.alert('Error', msg || 'Failed to cancel appointment.');
+      }
     }
   });
 
@@ -104,19 +111,34 @@ const CustomerAppointments = () => {
     });
   };
 
-  const handleCancel = (apt: AppointmentDetailsResponse) => {
-    Alert.alert(
-      "Cancel Appointment",
-      "Are you sure you want to cancel this appointment?",
-      [
-        { text: "No", style: "cancel" },
-        { 
-          text: "Yes, Cancel", 
-          style: "destructive",
-          onPress: () => mutateCancel(apt.appointmentId)
+  const handleCancel = async (apt: AppointmentDetailsResponse) => {
+    try {
+      const preview = await getRefundPreview(apt.appointmentId);
+      const hasPayment = preview.totalPaid != null;
+
+      let message = 'Are you sure you want to cancel?\n\n';
+      if (hasPayment) {
+        message += `Refund Policy:\n• 24+ hours before: 100% refund\n• 12–24 hours: 75% refund\n• Under 12 hours: 50% refund\n\n`;
+        if (preview.refundAmount != null && Number(preview.refundAmount) > 0) {
+          message += `You will receive: Rs. ${Number(preview.refundAmount).toFixed(0)} (${preview.refundPercent}%)`;
+          if (Number(preview.penaltyAmount) > 0) {
+            message += `\nCancellation fee: Rs. ${Number(preview.penaltyAmount).toFixed(0)}`;
+          }
+        } else {
+          message += `No refund — appointment is too soon.`;
         }
-      ]
-    );
+      }
+
+      Alert.alert('Cancel Appointment', message, [
+        { text: 'Keep Appointment', style: 'cancel' },
+        { text: 'Cancel Appointment', style: 'destructive', onPress: () => mutateCancel(apt.appointmentId) },
+      ]);
+    } catch {
+      Alert.alert('Cancel Appointment', 'Are you sure you want to cancel this appointment?', [
+        { text: 'No', style: 'cancel' },
+        { text: 'Yes, Cancel', style: 'destructive', onPress: () => mutateCancel(apt.appointmentId) },
+      ]);
+    }
   };
 
   if (loadingUpcoming || loadingPast) {

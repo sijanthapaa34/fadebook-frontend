@@ -5,7 +5,7 @@ import {
   Image, Modal 
 } from 'react-native';
 import { launchImageLibrary, ImagePickerResponse } from 'react-native-image-picker';
-import { Lock, Save, Plus, X, Edit3, User, Phone, Mail } from 'lucide-react-native'; 
+import { Lock, Save, Plus, X, Edit3, User, Phone, Mail, LogOut } from 'lucide-react-native'; 
 import { useAuthStore } from '../../store/authStore';
 import { theme } from '../../theme/theme';
 import { getCustomerProfile, updateCustomerProfile, changePassword } from '../../api/customerService';
@@ -15,6 +15,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 const CustomerProfileScreen = () => {
   const user = useAuthStore((state) => state.user);
   const setUser = useAuthStore((state) => state.setUser);
+  const logout = useAuthStore((state) => state.logout);
   const queryClient = useQueryClient();
 
   // --- State ---
@@ -243,6 +244,18 @@ const CustomerProfileScreen = () => {
             </TouchableOpacity>
           </View>
         )}
+
+        {/* Logout */}
+        <TouchableOpacity
+          style={styles.logoutBtn}
+          onPress={() => Alert.alert('Sign Out', 'Are you sure you want to sign out?', [
+            { text: 'Cancel', style: 'cancel' },
+            { text: 'Sign Out', style: 'destructive', onPress: logout },
+          ])}
+        >
+          <LogOut size={16} color={theme.colors.error} />
+          <Text style={styles.logoutBtnText}>Sign Out</Text>
+        </TouchableOpacity>
       </ScrollView>
 
       {/* Image Modal */}
@@ -301,6 +314,20 @@ const styles = StyleSheet.create({
 
   passwordHeader: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   cardTitle: { fontSize: 18, fontWeight: '600', color: theme.colors.text },
+
+  logoutBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 14,
+    borderRadius: theme.radius.md,
+    borderWidth: 1,
+    borderColor: 'rgba(239, 68, 68, 0.3)',
+    backgroundColor: 'rgba(239, 68, 68, 0.05)',
+    marginBottom: theme.spacing.lg,
+  },
+  logoutBtnText: { color: theme.colors.error, fontWeight: '600', fontSize: 14 },
 
   modalContainer: { flex: 1, backgroundColor: 'rgba(0, 0, 0, 0.95)', alignItems: 'center', justifyContent: 'center' },
   fullScreenImage: { width: '90%', height: '80%' },
