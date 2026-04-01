@@ -41,7 +41,7 @@ export const useAuthStore = create<AuthState>()(
         set({ isLoading: true });
         try {
           const user = await authService.getProfile();
-          set({ user: user as AdminUser, token: storedToken, isInitialized: true });
+          set({ user, token: storedToken, isInitialized: true });
         } catch (error) {
           localStorage.removeItem('admin_token');
           set({ user: null, token: null, isInitialized: true });
@@ -57,7 +57,7 @@ export const useAuthStore = create<AuthState>()(
           localStorage.setItem('admin_token', token);
           
           const user = await authService.getProfile();
-          set({ user: user as AdminUser, token });
+          set({ user, token });
         } catch (error: any) {
           const message = error.message || 'Login failed. Please try again.';
           set({ error: message });

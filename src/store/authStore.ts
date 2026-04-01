@@ -8,23 +8,23 @@ import {
   googleSignInRequest 
 } from '../api/authService';
 
-// FIX: Return the proper UserRole type instead of hardcoded strings
+const MOBILE_ROLES: UserRole[] = ['CUSTOMER', 'BARBER'];
+
 const normalizeRole = (role: any): UserRole => {
-  if (!role) return 'CUSTOMER'; // Default fallback
-  
+  if (!role) return 'CUSTOMER';
   const upperRole = role.toString().toUpperCase();
-  
-  // Validate against known roles to prevent invalid data
-  // Adjust this list to match your `UserRole` type in models.ts
-  const validRoles: UserRole[] = ['CUSTOMER', 'BARBER'];
-  
-  if (validRoles.includes(upperRole as UserRole)) {
+  if (MOBILE_ROLES.includes(upperRole as UserRole)) {
     return upperRole as UserRole;
   }
-  
-  // Fallback if role is unknown
-  console.warn(`Unknown role detected: ${role}, defaulting to CUSTOMER`);
   return 'CUSTOMER';
+};
+
+// Throws if the role is not allowed on the mobile app
+const assertMobileRole = (role: any): void => {
+  const upperRole = role?.toString().toUpperCase();
+  if (!MOBILE_ROLES.includes(upperRole as UserRole)) {
+    throw new Error('This account is not authorized to use the mobile app. Please use the admin panel.');
+  }
 };
 
 interface AuthState {
@@ -83,30 +83,26 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   },
 
   login: async (email, password) => {
-    // Service throws error -> UI catches it. Good.
     const { user, token } = await loginRequest(email, password);
-    
+    assertMobileRole(user.role);
     const safeUser = { ...user, role: normalizeRole(user.role) };
-    
     await Keychain.setGenericPassword(JSON.stringify(safeUser), token);
     set({ user: safeUser, token, isAuthenticated: true });
   },
 
   register: async (data) => {
     const { user, token } = await registerRequest(data);
-    
+    assertMobileRole(user.role);
     const userWithRole = { ...user, role: normalizeRole(user.role || 'CUSTOMER') };
-    
     await Keychain.setGenericPassword(JSON.stringify(userWithRole), token);
     set({ user: userWithRole, token, isAuthenticated: true });
-    return userWithRole; 
+    return userWithRole;
   },
 
   googleLogin: async () => {
     const { user, token } = await googleSignInRequest();
-    
+    assertMobileRole(user.role);
     const userWithRole = { ...user, role: normalizeRole(user.role || 'CUSTOMER') };
-    
     await Keychain.setGenericPassword(JSON.stringify(userWithRole), token);
     set({ user: userWithRole, token, isAuthenticated: true });
   },

@@ -25,6 +25,7 @@ export interface User {
   name: string;
   phone?: string;
   profilePicture?: string;
+  shopId?: number;
 }
 
 // ==========================================
@@ -427,8 +428,8 @@ export interface ShopAdminDashboardResponse {
   platformFees: number;
 
   // 5. Lists
-  topBarbers: BarberDTO[];
-  popularServices: ServiceDTO[];
+  topBarbers: Record<string, string>; 
+  popularServices: Record<string, string>; 
   upcomingAppointments: AppointmentDetailsResponse[];
 }
 

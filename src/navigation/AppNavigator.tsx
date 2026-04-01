@@ -1,6 +1,6 @@
 // src/navigation/AppNavigator.tsx
-import React, { useEffect } from 'react';
-import { NavigationContainer } from '@react-navigation/native';
+import React, { useEffect, useRef } from 'react';
+import { NavigationContainer, LinkingOptions } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { ActivityIndicator, View, Text, StyleSheet } from 'react-native';
 
@@ -11,7 +11,7 @@ import { useAuthStore } from '../store/authStore';
 import Landing from '../screens/LandingScreen';
 import Login from '../screens/LoginScreen';
 import Register from '../screens/RegisterScreen';
-import OtpVerification from '../screens/OtpScreen'; // <--- IMPORT NEW SCREEN
+import OtpVerification from '../screens/OtpScreen';
 import About from '../screens/AboutScreen';
 import Contact from '../screens/ContactScreen';
 import Apply from '../screens/ApplyScreen';
@@ -27,6 +27,7 @@ import CheckoutScreen from '../screens/customer/CheckoutScreen';
 import CustomerPayments from '../screens/customer/CustomerPaymentsScreen';
 import CustomerChatScreen from '../screens/customer/CustomerChatScreen';
 import CustomerProfileScreen from '../screens/customer/CustomerProfileScreen';
+import PaymentCallbackScreen from '../screens/customer/PaymentCallbackScreen';
 
 // Private Screens - Barber
 import BarberDashboard from '../screens/barber/BarberDashboardScreen';
@@ -36,6 +37,7 @@ import BarberReview from '../screens/barber/BarberReviewScreen';
 import BarberProfileScreen from '../screens/barber/BarberProfileScreen';
 
 import NotFound from '../screens/NotFoundScreen';
+import NotificationsScreen from '../screens/NotificationsScreen';
 
 // Layouts
 import DashboardLayout from '../components/layout/DashboardLayout';
@@ -44,6 +46,9 @@ import PublicLayout from '../components/layout/PublicLayout';
 // Config
 import { configureGoogleSignin } from '../api/authService';
 import { theme } from '../theme/theme';
+
+// ✅ NEW: Notification navigation ref setter
+import { setNotificationNavigationRef } from '../api/pushNotificationService';
 
 // Types
 import type { RescheduleData } from '../models/models';
@@ -62,20 +67,11 @@ export type RootStackParamList = {
   Register: undefined;
   OtpVerification: {
     mode: 'REGISTER' | 'APPLICATION';
-    email: string; // Used for sending/resending OTP
-    
-    // For Registration Mode
+    email: string;
     userData?: { name: string; email: string; password: string; phone: string };
     photoUri?: string | null;
-
-    // For Application Mode
-    applicationData?: any; // The raw form data
-    imageUris?: { 
-        profile?: string; 
-        license?: string; 
-        doc?: string; 
-        shopImages: string[] 
-    };
+    applicationData?: any;
+    imageUris?: { profile?: string; license?: string; doc?: string; shopImages: string[] };
   };
   About: undefined;
   Contact: undefined;
@@ -91,17 +87,25 @@ export type RootStackParamList = {
   CustomerPayments: undefined;
   CustomerChat: undefined; 
   CustomerProfile: undefined;
+  
   Checkout: {
     amount: number;
-    shopName: string;
     serviceName: string;
     barberName: string;
+    shopName: string;
     date: string;
     time: string;
     barberId: number;
     barbershopId: number;
     serviceIds: number[];
-    scheduledTime: string;
+    scheduledTime: string; 
+  };
+  
+  PaymentCallback: {
+    txId?: string;
+    pidx?: string;
+    refId?: string;
+    status?: string; 
   };
 
   // Barber Routes
@@ -112,23 +116,50 @@ export type RootStackParamList = {
   BarberEarnings: undefined;
   BarberProfile: undefined;
 
+  Notifications: undefined;
   NotFound: undefined;
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
-// ---------------- NAVIGATOR ----------------
+// ---------------- DEEP LINKING CONFIGURATION ----------------
+const linking: LinkingOptions<RootStackParamList> = {
+  prefixes: ['fadebook://'],
+  
+  config: {
+    screens: {
+      PaymentCallback: {
+        path: 'payment-callback',
+        parse: {
+          txId: (txId: string) => txId,
+          pidx: (pidx: string) => pidx,
+          refId: (refId: string) => refId,
+          status: (status: string) => status,
+        },
+      },
+    },
+  },
+};
 
+// ---------------- NAVIGATOR ----------------
 const AppNavigator = () => {
   const user = useAuthStore((state) => state.user);
   const isLoading = useAuthStore((state) => state.isLoading);
   const initialize = useAuthStore((state) => state.initialize);
   const logout = useAuthStore((state) => state.logout);
+  const navigationRef = useRef<any>(null);
 
   useEffect(() => {
     configureGoogleSignin();
     initialize();
   }, []);
+
+  // ✅ NEW: Set navigation ref for notification service whenever it changes
+  useEffect(() => {
+    if (navigationRef.current) {
+      setNotificationNavigationRef(navigationRef.current);
+    }
+  }, [navigationRef.current]);
 
   if (isLoading) {
     return (
@@ -139,7 +170,16 @@ const AppNavigator = () => {
   }
 
   return (
-    <NavigationContainer>
+    <NavigationContainer 
+      linking={linking} 
+      ref={navigationRef}
+      onReady={() => {
+        // ✅ Set ref when container is ready
+        if (navigationRef.current) {
+          setNotificationNavigationRef(navigationRef.current);
+        }
+      }}
+    >
       <Stack.Navigator screenOptions={{ headerShown: false }}>
         
         {/* 🔓 PUBLIC STACK */}
@@ -150,10 +190,7 @@ const AppNavigator = () => {
             </Stack.Screen>
             <Stack.Screen name="Login" component={Login} />
             <Stack.Screen name="Register" component={Register} />
-            
-            {/* ADDED: OTP Verification Screen */}
             <Stack.Screen name="OtpVerification" component={OtpVerification} />
-            
             <Stack.Screen name="Apply" component={Apply} />
             <Stack.Screen name="About">
               {() => <PublicLayout><About /></PublicLayout>}
@@ -205,6 +242,13 @@ const AppNavigator = () => {
                   )}
                 </Stack.Screen>
                 <Stack.Screen name="BarberEarnings" component={PlaceholderScreen} />
+                <Stack.Screen name="Notifications">
+                  {() => (
+                    <DashboardLayout user={user} onLogout={logout}>
+                      <NotificationsScreen />
+                    </DashboardLayout>
+                  )}
+                </Stack.Screen>
               </>
             )}
 
@@ -224,9 +268,12 @@ const AppNavigator = () => {
                 <Stack.Screen name="ServiceDetail" component={ServiceDetail} />
                 <Stack.Screen name="BarberDetail" component={BarberDetail} />
                 <Stack.Screen name="BookAppointment" component={BookAppointment} />
-                <Stack.Screen name="Checkout" component={CheckoutScreen} />
+                
+                <Stack.Screen 
+                  name="Checkout" 
+                  component={CheckoutScreen} 
+                />
 
-                {/* Tabs wrapped in Layout */}
                 <Stack.Screen name="CustomerAppointments">
                   {() => (
                     <DashboardLayout user={user} onLogout={logout}>
@@ -258,6 +305,23 @@ const AppNavigator = () => {
                     </DashboardLayout>
                   )}
                 </Stack.Screen>
+
+                <Stack.Screen name="Notifications">
+                  {() => (
+                    <DashboardLayout user={user} onLogout={logout}>
+                      <NotificationsScreen />
+                    </DashboardLayout>
+                  )}
+                </Stack.Screen>
+
+                <Stack.Screen 
+                  name="PaymentCallback" 
+                  component={PaymentCallbackScreen} 
+                  options={{ 
+                    headerShown: false,
+                    gestureEnabled: false,
+                  }} 
+                />
               </>
             )}
           </Stack.Group>

@@ -1,5 +1,4 @@
-// src/components/layout/DashboardLayout.tsx
-import React from 'react';
+import React, { useCallback } from 'react';
 import {
   View,
   Text,
@@ -26,9 +25,12 @@ import {
   MessageSquare,
   MapPin,
   CreditCard,
+  Bell,
 } from 'lucide-react-native';
+import { useQuery } from '@tanstack/react-query';
 import { theme } from '../../theme/theme';
 import Logo from '../../components/Logo';
+import { getUnreadCount } from '../../api/notificationApi';
 
 // FIX: Import from AppNavigator
 import type { RootStackParamList } from '../../navigation/AppNavigator';
@@ -56,14 +58,14 @@ const navConfig: Record<UserRole, NavItem[]> = {
     { label: 'Find Shops', path: 'CustomerDashboard', Icon: MapPin },
     { label: 'My Bookings', path: 'CustomerAppointments', Icon: Calendar },
     { label: 'Payments', path: 'CustomerPayments', Icon: CreditCard },
-    { label: 'Chat', path: 'CustomerChat', Icon: MessageSquare },
+    { label: 'Inbox', path: 'Notifications', Icon: Bell },
     { label: 'Profile', path: 'CustomerProfile', Icon: UserCircle },
   ],
   BARBER: [
     { label: 'Dashboard', path: 'BarberDashboard', Icon: LayoutDashboard },
     { label: 'Schedule', path: 'BarberSchedule', Icon: Calendar },
     { label: 'Reviews', path: 'BarberReview', Icon: BarChart3 },
-    { label: 'Leave', path: 'BarberLeave', Icon: ClipboardList },
+    { label: 'Inbox', path: 'Notifications', Icon: Bell },
     { label: 'Profile', path: 'BarberProfile', Icon: UserCircle },
   ],
 };
@@ -82,12 +84,17 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ user, children, onLog
   const route = useRoute();
   
   const navItems = navConfig[user.role] || [];
-
   const currentPath = route.name;
 
-  const handleNavigation = (path: string) => {
+  const { data: unreadCount = 0 } = useQuery({
+    queryKey: ['unreadCount'],
+    queryFn: getUnreadCount,
+    refetchInterval: 30000, // poll every 30s
+  });
+
+  const handleNavigation = useCallback((path: string) => {
     navigation.navigate(path as any);
-  };
+  }, [navigation]);
 
   const renderIcon = (Icon: IconComponentType, isActive: boolean, size: number = 18) => {
     const color = isActive ? theme.colors.primary : theme.colors.muted;
@@ -166,6 +173,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ user, children, onLog
       <View style={styles.bottomNav}>
         {navItems.slice(0, 5).map((item) => {
           const isActive = currentPath === item.path;
+          const showBadge = item.path === 'Notifications' && unreadCount > 0;
           return (
             <TouchableOpacity
               key={item.path}
@@ -173,7 +181,16 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ user, children, onLog
               onPress={() => handleNavigation(item.path)}
               activeOpacity={0.7}
             >
-              {renderIcon(item.Icon, isActive, 20)}
+              <View>
+                {renderIcon(item.Icon, isActive, 20)}
+                {showBadge && (
+                  <View style={styles.badge}>
+                    <Text style={styles.badgeText}>
+                      {unreadCount > 9 ? '9+' : unreadCount}
+                    </Text>
+                  </View>
+                )}
+              </View>
               <Text style={[styles.bottomNavText, isActive && styles.bottomNavTextActive]}>
                 {item.label}
               </Text>
@@ -332,6 +349,24 @@ const styles = StyleSheet.create({
   bottomNavTextActive: {
     color: theme.colors.primary,
     fontWeight: '600',
+  },
+  badge: {
+    position: 'absolute',
+    top: -4,
+    right: -6,
+    backgroundColor: '#ef4444',
+    borderRadius: 8,
+    minWidth: 16,
+    height: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 3,
+  },
+  badgeText: {
+    color: '#fff',
+    fontSize: 9,
+    fontWeight: '700',
+    fontFamily: theme.fonts.sans,
   },
 });
 

@@ -7,7 +7,8 @@ import {
   Scissors, Store, ClipboardList, MessageSquare
 } from 'lucide-react';
 import type { AdminRole } from '@/models/models';
-import { getDisplayableUrl } from '@/utils/imageUtils'; // Import helper
+import { getDisplayableUrl } from '@/utils/imageUtils';
+import { NotificationBell } from '@/components/NotificationBell';
 
 interface NavItem {
   label: string;
@@ -108,6 +109,9 @@ const DashboardLayout = () => {
 
       {/* --- Main Content Area --- */}
       <div className="flex-1 flex flex-col">
+        <header className="h-14 border-b border-border flex items-center justify-end px-6 bg-card/30">
+          <NotificationBell />
+        </header>
         <main className="flex-1 p-8 overflow-auto">
           <Outlet />
         </main>

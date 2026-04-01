@@ -15,6 +15,11 @@ export const getShopAdminDashboard = async (adminId: number): Promise<ShopAdminD
   return response.data;
 };
 
+export const getShopByAdmin = async (adminId: number): Promise<{ id: number }> => {
+  const response = await api.get<{ id: number }>(`/admin/${adminId}/shop`);
+  return response.data;
+};
+
 export const updateAdminProfile = async (adminId: number, data: { name: string; phone: string }): Promise<void> => {
   await api.put(`/admin/${adminId}/update`, data);
 };

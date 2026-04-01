@@ -426,3 +426,51 @@ export interface BarberLeaveDTO {
   approvedAt?: string;
   rejectedAt?: string;
 }
+
+// ─── Request/Response Types ───
+
+export interface InitiatePaymentRequest {
+  barberId: number;
+  barbershopId: number;
+  serviceIds: number[];
+  scheduledTime: string; // ISO format: "2025-01-15T10:00:00"
+  paymentMethod: 'KHALTI' | 'ESEWA';
+}
+
+export interface InitiatePaymentResponse {
+  transactionId: number;
+  paymentUrl: string;
+  paymentMethod: string;
+  pidx?: string; 
+  formData?: Record<string, string>; // eSewa form fields
+}
+
+export interface VerifyPaymentRequest {
+  transactionId: number;
+  pidx?: string;
+  refId?: string;
+  gatewayTransactionId?: string;
+}
+
+export interface VerifyPaymentResponse {
+  appointmentId: number;
+  status: string;
+  scheduledTime: string;
+  totalPrice: number;
+  barberId: number;
+  barberName: string;
+  barbershopId: number;
+  barbershopName: string;
+  services: { serviceId: number; name: string; price: number; durationMinutes: number }[];
+  paymentMethod: string;
+  paymentStatus: string;
+  customerId: number;
+  customerName: string;
+}
+
+export interface TransactionStatusResponse {
+  id: number;
+  status: 'PENDING' | 'COMPLETED' | 'FAILED';
+  paymentMethod: string;
+  amount: number;
+}

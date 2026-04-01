@@ -5,6 +5,12 @@ require Pod::Executable.execute_command('node', ['-p',
     {paths: [process.argv[1]]},
   )', __dir__]).strip
 
+# FIX: Force Firebase modules to use static frameworks
+$RNFirebaseAsStaticFramework = true
+
+# FIX 1: Add modular headers for Firebase
+use_modular_headers!
+
 platform :ios, min_ios_version_supported
 prepare_react_native_project!
 
@@ -19,8 +25,8 @@ target 'FadeBook' do
 
   use_react_native!(
     :path => config[:reactNativePath],
-    # An absolute path to your application root.
-    :app_path => "#{Pod::Config.instance.installation_root}/.."
+    :app_path => "#{Pod::Config.instance.installation_root}/..",
+    :new_arch_enabled => false
   )
 
   post_install do |installer|

@@ -1,6 +1,7 @@
 // src/api/authService.ts
 import api from '../api/api';
 import type { User } from '@/models/models';
+import type { AdminUser } from '@/store/authStore';
 import axios from 'axios';
 
 export interface LoginResponse {
@@ -66,9 +67,9 @@ export const authService = {
     }
   },
 
-  getProfile: async (): Promise<User> => {
+  getProfile: async (): Promise<AdminUser> => {
     try {
-      const response = await api.get<User>('/auth/me');
+      const response = await api.get<AdminUser>('/auth/me');
       return response.data;
     } catch (err) {
       throw new Error(getErrorMessage(err));

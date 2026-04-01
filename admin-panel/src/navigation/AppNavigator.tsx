@@ -21,6 +21,7 @@ const ServiceManagement = React.lazy(() => import('@/pages/shopAdmin/ServiceMana
 const ShopAdminApplications = React.lazy(() => import('@/pages/shopAdmin/Applications'));
 const LeaveApproval = React.lazy(() => import('@/pages/shopAdmin/LeaveApproval'));
 const ChatDashboard = React.lazy(() => import('@/pages/shopAdmin/ChatDashboard'));
+const NotificationsPage = React.lazy(() => import('@/pages/Notifications'));
 
 const Loader = () => (
   <div className="min-h-screen bg-background flex items-center justify-center">
@@ -43,13 +44,12 @@ const AppNavigator = () => {
 
   useEffect(() => {
     const initAuth = async () => {
-      if (!isInitialized) {
-        await initialize();
-      }
+      await initialize();
       setReady(true);
     };
     initAuth();
-  }, [isInitialized, initialize]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   if (!ready) {
     return <Loader />;
@@ -86,6 +86,7 @@ const AppNavigator = () => {
           <Route path="settings" element={<Suspense fallback={<Loader />}><Settings /></Suspense>} />
           <Route path="analytics" element={<Placeholder title="Analytics" />} />
           <Route path="commission" element={<Placeholder title="Commission Settings" />} />
+          <Route path="notifications" element={<Suspense fallback={<Loader />}><NotificationsPage /></Suspense>} />
         </Route>
 
         <Route
@@ -109,6 +110,7 @@ const AppNavigator = () => {
           <Route path="chat" element={<Suspense fallback={<Loader />}><ChatDashboard /></Suspense>} />
           <Route path="appointments" element={<Placeholder title="Appointments" />} />
           <Route path="customers" element={<Placeholder title="Customers" />} />
+          <Route path="notifications" element={<Suspense fallback={<Loader />}><NotificationsPage /></Suspense>} />
         </Route>
 
         <Route path="*" element={<NotFound />} />

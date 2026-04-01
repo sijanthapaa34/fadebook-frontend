@@ -98,30 +98,25 @@ const ShopAdminDashboard = () => {
       {/* Content Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         
-        {/* Top Barbers */}
+                {/* Top Barbers */}
         <div className="glass-card p-6">
           <h2 className="font-semibold mb-4 flex items-center gap-2 text-lg">
             <Users size={18} className="text-primary" /> Top Barbers (This Month)
           </h2>
           <div className="space-y-3">
-            {data.topBarbers?.length === 0 && <p className="text-xs text-muted-foreground text-center py-4">No data</p>}
-            {data.topBarbers?.map((b) => {
-              const img = getDisplayableUrl(b.profilePicture);
-              return (
-                <div key={b.id} className="flex items-center justify-between p-2 rounded-lg bg-muted/20 hover:bg-muted/40 transition-colors cursor-pointer" onClick={() => navigate(`/shop-admin/barbers/${b.id}`)}>
+            {(!data.topBarbers || Object.keys(data.topBarbers).length === 0) && <p className="text-xs text-muted-foreground text-center py-4">No data</p>}
+            
+            {/* ✅ FIX: Use Object.entries to loop over the object */}
+            {data.topBarbers && Object.entries(data.topBarbers).map(([id, name]) => (
+              <div key={id} className="flex items-center justify-between p-2 rounded-lg bg-muted/20 hover:bg-muted/40 transition-colors">
                   <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary overflow-hidden shrink-0">
-                       {img ? <img src={img} className="w-full h-full object-cover" /> : <span className="text-xs font-bold">{b.name?.charAt(0)}</span>}
+                    <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary shrink-0">
+                       <span className="text-xs font-bold">{name?.charAt(0)}</span>
                     </div>
-                    <span className="text-sm font-medium">{b.name}</span>
+                    <span className="text-sm font-medium">{name}</span>
                   </div>
-                  <div className="flex items-center gap-2 text-xs">
-                    <span className="text-primary font-bold">{b.rating?.toFixed(1)} ★</span>
-                    {/* Assuming reviewCount is in BarberDTO or mapped to rating count */}
-                  </div>
-                </div>
-              );
-            })}
+              </div>
+            ))}
           </div>
         </div>
 
@@ -129,13 +124,12 @@ const ShopAdminDashboard = () => {
         <div className="glass-card p-6">
           <h2 className="font-semibold mb-4 flex items-center gap-2 text-lg"><BarChart3 size={18} className="text-primary" /> Popular Services</h2>
           <div className="space-y-3">
-            {data.popularServices?.length === 0 && <p className="text-xs text-muted-foreground text-center py-4">No data</p>}
-            {data.popularServices?.map((srv) => (
-              <div key={srv.id} className="flex items-center justify-between text-sm p-2 rounded-lg bg-muted/20">
-                <div className="flex items-center gap-3">
-                  <span className="text-muted-foreground">{srv.name}</span>
-                </div>
-                <span className="font-medium text-primary">Rs. {srv.price}</span>
+            {(!data.popularServices || Object.keys(data.popularServices).length === 0) && <p className="text-xs text-muted-foreground text-center py-4">No data</p>}
+            
+            {/* ✅ FIX: Use Object.entries to loop over the object */}
+            {data.popularServices && Object.entries(data.popularServices).map(([id, name]) => (
+              <div key={id} className="flex items-center justify-between text-sm p-2 rounded-lg bg-muted/20">
+                <span className="text-muted-foreground">{name}</span>
               </div>
             ))}
           </div>

@@ -1,5 +1,5 @@
 // src/components/auth/AuthGuard.tsx
-import React, { useEffect } from 'react';
+import React from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { useAuthStore } from '@/store/authStore';
 import { Loader2 } from 'lucide-react'; // Using lucide for loader
@@ -9,14 +9,8 @@ interface AuthGuardProps {
 }
 
 const AuthGuard: React.FC<AuthGuardProps> = ({ children }) => {
-  const { isInitialized, isLoading, user, initialize } = useAuthStore();
+  const { isInitialized, isLoading, user } = useAuthStore();
   const location = useLocation();
-
-  useEffect(() => {
-    if (!isInitialized) {
-      initialize();
-    }
-  }, [isInitialized, initialize]);
 
   if (!isInitialized || isLoading) {
     return (
