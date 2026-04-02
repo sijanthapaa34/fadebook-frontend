@@ -1,6 +1,7 @@
 import axios from 'axios';
 import * as Keychain from 'react-native-keychain';
 import { Platform } from 'react-native';
+import { emitUnauthorized } from './authEvents';
 
 const getBaseURL = () => {
   if (Platform.OS === 'android') return 'http://10.0.2.2:8080/api';
@@ -30,18 +31,12 @@ api.interceptors.request.use(async (config) => {
   return config;
 }, (error) => Promise.reject(error));
 
-// Response interceptor
+// Response interceptor — on 401, emit event so authStore can logout
 api.interceptors.response.use(
   (res) => res,
   async (error) => {
     if (error.response?.status === 401) {
-      try {
-        await Keychain.resetGenericPassword();
-        const { reset } = require('../navigation/AppNavigator'); 
-        reset('Login');
-      } catch (err) {
-        console.error('Error handling 401 response:', err);
-      }
+      emitUnauthorized();
     }
     return Promise.reject(error);
   }

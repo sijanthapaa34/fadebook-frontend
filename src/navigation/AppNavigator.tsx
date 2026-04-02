@@ -2,7 +2,7 @@
 import React, { useEffect, useRef } from 'react';
 import { NavigationContainer, LinkingOptions } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { ActivityIndicator, View, Text, StyleSheet } from 'react-native';
+import { ActivityIndicator, View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 
 // Auth store
 import { useAuthStore } from '../store/authStore';
@@ -59,6 +59,32 @@ const PlaceholderScreen = ({ route }: any) => (
     <Text style={styles.placeholderText}>{route.name} (Coming Soon)</Text>
   </View>
 );
+
+// ---------------- LOADING SCREEN ----------------
+const LoadingScreen = ({ onForceLogout }: { onForceLogout: () => void }) => {
+  const [showLogout, setShowLogout] = React.useState(false);
+
+  React.useEffect(() => {
+    // Show force-logout button after 6 seconds if still loading
+    const timer = setTimeout(() => setShowLogout(true), 6000);
+    return () => clearTimeout(timer);
+  }, []);
+
+  return (
+    <View style={styles.loadingScreen}>
+      <ActivityIndicator size="large" color={theme.colors.primary} />
+      {showLogout && (
+        <TouchableOpacity
+          style={styles.forceLogoutBtn}
+          onPress={onForceLogout}
+          activeOpacity={0.7}
+        >
+          <Text style={styles.forceLogoutText}>Taking too long? Sign Out</Text>
+        </TouchableOpacity>
+      )}
+    </View>
+  );
+};
 
 // ---------------- TYPES ----------------
 export type RootStackParamList = {
@@ -162,11 +188,7 @@ const AppNavigator = () => {
   }, [navigationRef.current]);
 
   if (isLoading) {
-    return (
-      <View style={styles.loadingScreen}>
-        <ActivityIndicator size="large" color={theme.colors.primary} />
-      </View>
-    );
+    return <LoadingScreen onForceLogout={logout} />;
   }
 
   return (
@@ -338,7 +360,22 @@ const styles = StyleSheet.create({
     flex: 1, 
     justifyContent: 'center', 
     alignItems: 'center', 
-    backgroundColor: theme.colors.background
+    backgroundColor: theme.colors.background,
+    gap: 24,
+  },
+  forceLogoutBtn: {
+    marginTop: 8,
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(239,68,68,0.4)',
+    backgroundColor: 'rgba(239,68,68,0.08)',
+  },
+  forceLogoutText: {
+    color: '#ef4444',
+    fontSize: 14,
+    fontWeight: '600',
   },
   placeholder: {
     flex: 1,

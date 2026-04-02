@@ -21,8 +21,32 @@ export const verifyPayment = async (
 export const getTransactionStatus = async (
   transactionId: number
 ): Promise<TransactionStatusResponse> => {
-  // ✅ FIXED: Changed from /payment/ to /payments/
   const response = await api.get<TransactionStatusResponse>(`/payments/status/${transactionId}`);
+  return response.data;
+};
+
+export interface PaymentHistoryItem {
+  id: number;
+  amount: number;
+  status: string;
+  refundStatus?: string;
+  refundAmount?: number;
+  paymentMethod: string;
+  createdAt: string;
+  paidAt?: string;
+  shopName?: string;
+  services?: string;
+}
+
+export interface PaymentHistoryResponse {
+  transactions: PaymentHistoryItem[];
+  totalSpent: number;
+  totalRefunded: number;
+  transactionCount: number;
+}
+
+export const getPaymentHistory = async (): Promise<PaymentHistoryResponse> => {
+  const response = await api.get<PaymentHistoryResponse>('/payments/history');
   return response.data;
 };
 

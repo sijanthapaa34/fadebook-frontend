@@ -68,9 +68,10 @@ const CustomerAppointments = () => {
       queryClient.invalidateQueries({ queryKey: ['pastAppointments'] });
     },
     onError: (error: any) => {
-      // If appointment was already cancelled on backend, treat as success
-      const msg = error.response?.data?.message || '';
-      if (msg.toLowerCase().includes('already cancelled')) {
+      const status = error.response?.status;
+      const msg = error.response?.data?.message || error.message || '';
+      // 409 = already cancelled — treat as success
+      if (status === 409 || msg.toLowerCase().includes('already cancelled')) {
         Alert.alert('Already Cancelled', 'This appointment was already cancelled.');
         queryClient.invalidateQueries({ queryKey: ['upcomingAppointments'] });
       } else {
@@ -116,22 +117,33 @@ const CustomerAppointments = () => {
       const preview = await getRefundPreview(apt.appointmentId);
       const hasPayment = preview.totalPaid != null;
 
-      let message = 'Are you sure you want to cancel?\n\n';
+      let message = '';
       if (hasPayment) {
-        message += `Refund Policy:\n• 24+ hours before: 100% refund\n• 12–24 hours: 75% refund\n• Under 12 hours: 50% refund\n\n`;
-        if (preview.refundAmount != null && Number(preview.refundAmount) > 0) {
-          message += `You will receive: Rs. ${Number(preview.refundAmount).toFixed(0)} (${preview.refundPercent}%)`;
-          if (Number(preview.penaltyAmount) > 0) {
-            message += `\nCancellation fee: Rs. ${Number(preview.penaltyAmount).toFixed(0)}`;
+        const refund = Number(preview.refundAmount ?? 0);
+        const penalty = Number(preview.penaltyAmount ?? 0);
+        const pct = preview.refundPercent ?? 0;
+
+        message += `Refund Policy\n`;
+        message += `• 24+ hours before: 100% refund\n`;
+        message += `• 12–24 hours: 75% refund\n`;
+        message += `• Under 12 hours: 50% refund\n\n`;
+
+        if (refund > 0) {
+          message += `✅ Refund: Rs. ${refund.toFixed(0)} (${pct}%)\n`;
+          if (penalty > 0) {
+            message += `❌ Cancellation fee: Rs. ${penalty.toFixed(0)}\n`;
           }
         } else {
-          message += `No refund — appointment is too soon.`;
+          message += `❌ No refund — appointment is too soon.\n`;
         }
+        message += `\nTotal paid: Rs. ${Number(preview.totalPaid).toFixed(0)}`;
+      } else {
+        message = 'Are you sure you want to cancel this appointment?';
       }
 
       Alert.alert('Cancel Appointment', message, [
         { text: 'Keep Appointment', style: 'cancel' },
-        { text: 'Cancel Appointment', style: 'destructive', onPress: () => mutateCancel(apt.appointmentId) },
+        { text: 'Confirm Cancel', style: 'destructive', onPress: () => mutateCancel(apt.appointmentId) },
       ]);
     } catch {
       Alert.alert('Cancel Appointment', 'Are you sure you want to cancel this appointment?', [
@@ -201,20 +213,22 @@ const CustomerAppointments = () => {
 
                 <View style={styles.cardFooter}>
                   <Text style={styles.priceText}>Rs. {apt.totalPrice.toFixed(2)}</Text>
-                  <View style={styles.actionRow}>
-                    <TouchableOpacity style={styles.rescheduleBtn} onPress={() => handleReschedule(apt)}>
-                      <RefreshCw size={13} color={theme.colors.text} />
-                      <Text style={styles.rescheduleText}>Reschedule</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity 
-                      style={styles.cancelBtn} 
-                      onPress={() => handleCancel(apt)}
-                      disabled={isCanceling}
-                    >
-                      <XCircle size={13} color={theme.colors.error} />
-                      <Text style={styles.cancelText}>Cancel</Text>
-                    </TouchableOpacity>
-                  </View>
+                  {apt.status !== 'CANCELLED' && apt.status !== 'COMPLETED' && (
+                    <View style={styles.actionRow}>
+                      <TouchableOpacity style={styles.rescheduleBtn} onPress={() => handleReschedule(apt)}>
+                        <RefreshCw size={13} color={theme.colors.text} />
+                        <Text style={styles.rescheduleText}>Reschedule</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity 
+                        style={styles.cancelBtn} 
+                        onPress={() => handleCancel(apt)}
+                        disabled={isCanceling}
+                      >
+                        <XCircle size={13} color={theme.colors.error} />
+                        <Text style={styles.cancelText}>Cancel</Text>
+                      </TouchableOpacity>
+                    </View>
+                  )}
                 </View>
               </View>
             );

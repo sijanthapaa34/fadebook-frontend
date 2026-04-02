@@ -104,8 +104,8 @@ const BarberDashboard = () => {
   // --- Stats Data ---
   const stats = [
     { label: "Today's Clients", value: clientCount.toString(), icon: User, color: theme.colors.primary },
-    { label: "Today's Earnings", value: `$${todayEarnings.toFixed(2)}`, icon: DollarSign, color: theme.colors.success },
-    { label: 'This Week', value: `$${weeklyEarnings.toFixed(2)}`, icon: TrendingUp, color: theme.colors.primary },
+    { label: "Today's Earnings", value: `Rs. ${todayEarnings.toFixed(2)}`, icon: DollarSign, color: theme.colors.success },
+    { label: 'This Week', value: `Rs. ${weeklyEarnings.toFixed(2)}`, icon: TrendingUp, color: theme.colors.primary },
     { label: 'Next Appointment', value: nextAppointmentTime, icon: Clock, color: theme.colors.warning },
   ];
 
@@ -225,9 +225,9 @@ const BarberDashboard = () => {
         <Text style={styles.sectionTitle}>Commission Breakdown (Today)</Text>
         <View style={styles.commissionCard}>
           {[
-            { label: 'Your Share (60%)', amount: `$${(todayEarnings * 0.6).toFixed(2)}`, percent: 60 },
-            { label: 'Shop Admin (30%)', amount: `$${(todayEarnings * 0.3).toFixed(2)}`, percent: 30 },
-            { label: 'Platform Fee (10%)', amount: `$${(todayEarnings * 0.1).toFixed(2)}`, percent: 10 },
+            { label: 'Your Share (60%)', amount: `Rs. ${(todayEarnings * 0.6).toFixed(2)}`, percent: 60 },
+            { label: 'Shop Admin (30%)', amount: `Rs. ${(todayEarnings * 0.3).toFixed(2)}`, percent: 30 },
+            { label: 'Platform Fee (10%)', amount: `Rs. ${(todayEarnings * 0.1).toFixed(2)}`, percent: 10 },
           ].map((item) => (
             <View key={item.label} style={styles.commissionItem}>
               <View style={styles.commissionRow}>

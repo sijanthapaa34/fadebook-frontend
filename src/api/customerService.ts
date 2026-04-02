@@ -16,3 +16,16 @@ export const updateCustomerProfile = async (customerId: number, data: UpdateCust
 export const changePassword = async (customerId: number, data: ChangePasswordRequest): Promise<void> => {
   await api.put(`/customers/${customerId}/change-password`, data);
 };
+
+export interface LoyaltyData {
+  points: number;
+  pointsToNextReward: number;
+  freeAppointmentsEarned: number;
+  progressPercent: number;
+  rule: string;
+}
+
+export const getLoyaltyData = async (customerId: number): Promise<LoyaltyData> => {
+  const response = await api.get<LoyaltyData>(`/customers/${customerId}/loyalty`);
+  return response.data;
+};

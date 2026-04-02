@@ -269,6 +269,14 @@ const PaymentCallback = () => {
             <Text style={styles.trustText}>Transaction secured & encrypted</Text>
           </View>
 
+          {appointment && appointment.totalPrice > 0 && (
+            <View style={styles.pointsBadge}>
+              <Text style={styles.pointsBadgeText}>
+                🎁 +{Math.floor(appointment.totalPrice / 100)} loyalty points earned!
+              </Text>
+            </View>
+          )}
+
           <TouchableOpacity style={styles.primaryBtn} onPress={handleViewAppointments}>
             <Text style={styles.primaryBtnText}>View My Appointments</Text>
           </TouchableOpacity>
@@ -361,6 +369,17 @@ const styles = StyleSheet.create({
   refundText: { fontSize: 12, color: theme.colors.muted, lineHeight: 18 },
   trustBadge: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 6, marginBottom: theme.spacing.xl },
   trustText: { fontSize: 12, color: theme.colors.muted },
+  pointsBadge: {
+    backgroundColor: `rgba(212,175,55,0.12)`,
+    borderRadius: 12,
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    alignItems: 'center',
+    marginBottom: theme.spacing.md,
+    borderWidth: 1,
+    borderColor: 'rgba(212,175,55,0.3)',
+  },
+  pointsBadgeText: { fontSize: 13, fontWeight: '700', color: '#b8860b' },
   primaryBtn: { backgroundColor: theme.colors.primary, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 14, borderRadius: theme.radius.md },
   primaryBtnText: { color: '#000', fontWeight: '700', fontSize: 14 },
   ghostBtn: { marginTop: theme.spacing.md, alignItems: 'center', paddingVertical: theme.spacing.sm },

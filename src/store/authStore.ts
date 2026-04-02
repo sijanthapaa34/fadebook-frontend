@@ -1,12 +1,9 @@
-// src/store/authStore.ts
 import { create } from 'zustand';
 import * as Keychain from 'react-native-keychain';
-import { User, UserRole, RegisterCustomerRequest } from '../models/models'; // Ensure UserRole is imported
-import { 
-  loginRequest, 
-  registerRequest, 
-  googleSignInRequest 
-} from '../api/authService';
+import { User, UserRole, RegisterCustomerRequest } from '../models/models';
+import { loginRequest, registerRequest, googleSignInRequest } from '../api/authService';
+import { setUnauthorizedHandler } from '../api/authEvents';
+import api from '../api/api';
 
 const MOBILE_ROLES: UserRole[] = ['CUSTOMER', 'BARBER'];
 
@@ -52,30 +49,35 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     try {
       set({ isLoading: true });
       const credentials = await Keychain.getGenericPassword();
-      
-      if (credentials) {
-        // 1. Parse User
-        const parsedUser: User = JSON.parse(credentials.username);
-        
-        // 2. Validate & Normalize role on init
+
+      if (!credentials) {
+        set({ user: null, token: null, isAuthenticated: false });
+        return;
+      }
+
+      const token = credentials.password;
+
+      // Validate token against backend with a 5s timeout
+      try {
+        const res = await Promise.race([
+          api.get('/auth/me', { headers: { Authorization: `Bearer ${token}` } }),
+          new Promise<never>((_, reject) =>
+            setTimeout(() => reject(new Error('timeout')), 5000)
+          ),
+        ]) as any;
+
+        const parsedUser = res.data as User;
         parsedUser.role = normalizeRole(parsedUser.role);
-        
-        // 3. Optional: Check if token is expired here (if you have logic for it)
-        // otherwise, the API interceptor will handle 401s
-        
-        set({ 
-          user: parsedUser, 
-          token: credentials.password, 
-          isAuthenticated: true 
-        });
-      } else {
-        // No credentials found
+        await Keychain.setGenericPassword(JSON.stringify(parsedUser), token);
+        set({ user: parsedUser, token, isAuthenticated: true });
+      } catch {
+        // Token expired, invalid, or network timeout — clear everything
+        await Keychain.resetGenericPassword().catch(() => {});
         set({ user: null, token: null, isAuthenticated: false });
       }
     } catch (error) {
       console.error('Error initializing auth store:', error);
-      // Clear potentially corrupt storage
-      await Keychain.resetGenericPassword();
+      await Keychain.resetGenericPassword().catch(() => {});
       set({ user: null, token: null, isAuthenticated: false });
     } finally {
       set({ isLoading: false });
@@ -108,12 +110,13 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   },
 
   logout: async () => {
+    // Always clear state first — never let Keychain failure block logout
+    set({ user: null, token: null, isAuthenticated: false });
     try {
       await Keychain.resetGenericPassword();
     } catch (e) {
-      console.warn('Failed to reset keychain on logout', e);
+      console.warn('Keychain reset failed on logout (non-critical):', e);
     }
-    set({ user: null, token: null, isAuthenticated: false });
   },
 
   setUser: async (updatedUser) => {
@@ -130,3 +133,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     set({ user: safeUser });
   },
 }));
+
+// Register 401 handler — when any API call gets 401, auto-logout immediately
+setUnauthorizedHandler(() => {
+  useAuthStore.getState().logout();
+});

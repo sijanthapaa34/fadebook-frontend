@@ -5,10 +5,10 @@ import {
   Image, Modal 
 } from 'react-native';
 import { launchImageLibrary, ImagePickerResponse } from 'react-native-image-picker';
-import { Lock, Save, Plus, X, Edit3, User, Phone, Mail, LogOut } from 'lucide-react-native'; 
+import { Lock, Save, Plus, X, Edit3, User, Phone, Mail, LogOut, Gift, Star } from 'lucide-react-native'; 
 import { useAuthStore } from '../../store/authStore';
 import { theme } from '../../theme/theme';
-import { getCustomerProfile, updateCustomerProfile, changePassword } from '../../api/customerService';
+import { getCustomerProfile, updateCustomerProfile, changePassword, getLoyaltyData } from '../../api/customerService';
 import { uploadProfilePicture } from '../../api/userService';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 
@@ -38,6 +38,12 @@ const CustomerProfileScreen = () => {
   const { data: customer, isLoading: isProfileLoading, error } = useQuery({
     queryKey: ['customerProfile', user?.id],
     queryFn: () => getCustomerProfile(user!.id),
+    enabled: !!user?.id,
+  });
+
+  const { data: loyalty } = useQuery({
+    queryKey: ['loyalty', user?.id],
+    queryFn: () => getLoyaltyData(user!.id),
     enabled: !!user?.id,
   });
 
@@ -217,6 +223,36 @@ const CustomerProfileScreen = () => {
           </View>
         </View>
 
+        {/* Loyalty Card — always visible */}
+        <View style={styles.loyaltyCard}>
+          <View style={styles.loyaltyHeader}>
+            <Gift size={20} color={theme.colors.primary} />
+            <Text style={styles.loyaltyTitle}>Loyalty Rewards</Text>
+            {loyalty && loyalty.freeAppointmentsEarned > 0 && (
+              <View style={styles.freeBadge}>
+                <Text style={styles.freeBadgeText}>🎁 {loyalty.freeAppointmentsEarned} Free</Text>
+              </View>
+            )}
+          </View>
+
+          <View style={styles.pointsRow}>
+            <Text style={styles.pointsNumber}>{loyalty?.points ?? 0}</Text>
+            <Text style={styles.pointsLabel}>points</Text>
+          </View>
+
+          {/* Progress bar */}
+          <View style={styles.progressBg}>
+            <View style={[styles.progressFill, { width: `${loyalty?.progressPercent ?? 0}%` as any }]} />
+          </View>
+          <Text style={styles.progressText}>
+            {loyalty ? `${loyalty.pointsToNextReward} more points for a free appointment` : 'Loading...'}
+          </Text>
+
+          <Text style={styles.loyaltyRule}>
+            Spend Rs. 100 = 1 point · 100 points = 1 free appointment!
+          </Text>
+        </View>
+
         {/* Password Card */}
         {showPasswordCard && (
           <View style={styles.card}>
@@ -328,6 +364,42 @@ const styles = StyleSheet.create({
     marginBottom: theme.spacing.lg,
   },
   logoutBtnText: { color: theme.colors.error, fontWeight: '600', fontSize: 14 },
+
+  // Loyalty
+  loyaltyCard: {
+    backgroundColor: `${theme.colors.primary}0F`,
+    borderRadius: theme.radius.lg,
+    borderWidth: 1,
+    borderColor: `${theme.colors.primary}33`,
+    padding: theme.spacing.lg,
+    marginBottom: theme.spacing.lg,
+  },
+  loyaltyHeader: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: theme.spacing.md },
+  loyaltyTitle: { fontSize: 16, fontWeight: '700', color: theme.colors.text, flex: 1 },
+  freeBadge: {
+    backgroundColor: theme.colors.primary,
+    borderRadius: 12,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+  },
+  freeBadgeText: { fontSize: 11, fontWeight: '700', color: '#000' },
+  pointsRow: { flexDirection: 'row', alignItems: 'baseline', gap: 4, marginBottom: theme.spacing.sm },
+  pointsNumber: { fontSize: 40, fontWeight: '800', color: theme.colors.primary, fontFamily: theme.fonts.serif },
+  pointsLabel: { fontSize: 16, color: theme.colors.muted },
+  progressBg: {
+    height: 8,
+    backgroundColor: theme.colors.border,
+    borderRadius: 4,
+    marginBottom: theme.spacing.xs,
+    overflow: 'hidden',
+  },
+  progressFill: {
+    height: '100%',
+    backgroundColor: theme.colors.primary,
+    borderRadius: 4,
+  },
+  progressText: { fontSize: 12, color: theme.colors.muted, marginBottom: theme.spacing.sm },
+  loyaltyRule: { fontSize: 11, color: theme.colors.textSecondary, fontStyle: 'italic' },
 
   modalContainer: { flex: 1, backgroundColor: 'rgba(0, 0, 0, 0.95)', alignItems: 'center', justifyContent: 'center' },
   fullScreenImage: { width: '90%', height: '80%' },
