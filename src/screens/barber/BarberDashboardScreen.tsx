@@ -220,30 +220,22 @@ const BarberDashboard = () => {
         </View>
       </View>
 
-      {/* Commission Section */}
+      {/* Weekly Earnings Summary */}
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Commission Breakdown (Today)</Text>
+        <Text style={styles.sectionTitle}>This Week's Earnings</Text>
         <View style={styles.commissionCard}>
-          {[
-            { label: 'Your Share (60%)', amount: `Rs. ${(todayEarnings * 0.6).toFixed(2)}`, percent: 60 },
-            { label: 'Shop Admin (30%)', amount: `Rs. ${(todayEarnings * 0.3).toFixed(2)}`, percent: 30 },
-            { label: 'Platform Fee (10%)', amount: `Rs. ${(todayEarnings * 0.1).toFixed(2)}`, percent: 10 },
-          ].map((item) => (
-            <View key={item.label} style={styles.commissionItem}>
-              <View style={styles.commissionRow}>
-                <Text style={styles.commissionLabel}>{item.label}</Text>
-                <Text style={styles.commissionAmount}>{item.amount}</Text>
-              </View>
-              <View style={styles.progressBarBg}>
-                <View 
-                  style={[
-                    styles.progressBarFill, 
-                    { width: `${item.percent}%` }
-                  ]} 
-                />
-              </View>
+          <View style={styles.weeklyEarningsContainer}>
+            <View style={styles.earningsIconContainer}>
+              <DollarSign size={32} color={theme.colors.success} />
             </View>
-          ))}
+            <View style={styles.earningsTextContainer}>
+              <Text style={styles.earningsAmount}>Rs. {weeklyEarnings.toFixed(2)}</Text>
+              <Text style={styles.earningsLabel}>Your earnings this week</Text>
+              <Text style={styles.earningsNote}>
+                {weekDates.start} - {weekDates.end}
+              </Text>
+            </View>
+          </View>
         </View>
       </View>
     </ScrollView>
@@ -433,6 +425,39 @@ const styles = StyleSheet.create({
     height: '100%',
     backgroundColor: theme.colors.primary,
     borderRadius: 4,
+  },
+  weeklyEarningsContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 16,
+  },
+  earningsIconContainer: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: theme.colors.success + '20',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 16,
+  },
+  earningsTextContainer: {
+    flex: 1,
+  },
+  earningsAmount: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: theme.colors.success,
+    marginBottom: 4,
+  },
+  earningsLabel: {
+    fontSize: 14,
+    color: theme.colors.textSecondary,
+    marginBottom: 2,
+  },
+  earningsNote: {
+    fontSize: 12,
+    color: theme.colors.textSecondary,
+    fontStyle: 'italic',
   },
 });
 
