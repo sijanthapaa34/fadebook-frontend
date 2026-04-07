@@ -394,6 +394,13 @@ export interface CommissionConfig {
   cancellationFee: number;
 }
 
+export interface ActivityItem {
+  type: string;
+  title: string;
+  subtitle: string;
+  timestamp: string;
+}
+
 export interface AdminDashboardResponse {
   totalUsers: number;
   activeShops: number;
@@ -405,6 +412,9 @@ export interface AdminDashboardResponse {
   health: SystemHealth;
   config: CommissionConfig;
   topShops: BarbershopDTO[];
+  lastMonthRevenue: number;
+  revenueGrowthPercent: number;
+  recentActivities: ActivityItem[];
 }
 
 export interface ShopAdminDashboardResponse {

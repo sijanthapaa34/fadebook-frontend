@@ -107,16 +107,21 @@ export interface BarbershopDTO {
   longitude?: number;
 }
 
-// --- Service DTOs ---
+// Update this interface to match your Backend DTO
 export interface ServiceDTO {
   id: number;
   name: string;
   description: string;
-  shopId: number;
-  barbershop: string;
-  images: string[];
-  price: number;
+  price: number; // Backend sends Double
+  available: boolean;
+  category: string;
   durationMinutes: number;
+  barbershop: string;
+  barbershopId: number; // Match backend
+  targetGender: string;
+  serviceImages: string[]; // This was missing/mismatched in your code
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface ServiceItemDTO {
