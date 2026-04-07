@@ -1,5 +1,5 @@
 // src/screens/customer/CheckoutScreen.tsx
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   View,
   Text,
@@ -10,6 +10,7 @@ import {
   Image,
   Linking,
   Dimensions,
+  Modal,
 } from 'react-native';
 import { useRoute, useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -117,14 +118,21 @@ const Checkout = () => {
   const [method, setMethod] = useState<PaymentMethod | null>(null);
   const [paymentUrl, setPaymentUrl] = useState<string | null>(null);
   const [txId, setTxId] = useState<string | null>(null);
-  
-  // ✅ FIX: Add pidx state
   const [pidx, setPidx] = useState<string | null>(null);
-  
-  const [esewaPostHtml, setEsewaPostHtml] = useState<string | null>(null);
+  const [esewaHtml, setEsewaHtml] = useState<string | null>(null);
+  const [showEsewaModal, setShowEsewaModal] = useState(false);
 
   const selectedMethod = METHODS.find((m) => m.id === method);
   const isProcessingRef = useRef(false);
+  const webViewRef = useRef<any>(null);
+
+  // Auto-close modal and show redirected screen after form submission
+  useEffect(() => {
+    if (showEsewaModal && esewaHtml) {
+      // Don't auto-close - let user complete payment in WebView
+      // Modal will close when payment callback URL is detected
+    }
+  }, [showEsewaModal, esewaHtml]);
 
   const { mutate: startPayment } = useMutation({
     mutationFn: () => {
@@ -148,23 +156,87 @@ const Checkout = () => {
         setPidx(data.pidx);
       }
       
-      // ESEWA: Build HTML POST form
-      if (data.paymentMethod === 'ESEWA' && data.formData) {
-        const formFields = Object.entries(data.formData)
-          .map(([key, value]) => `<input type="hidden" name="${key}" value="${value}" />`)
-          .join('\n          ');
+      // ESEWA: Create HTML and show in modal WebView
+      if (data.paymentMethod === 'ESEWA' && data.formData && data.paymentUrl) {
         const html = `
           <!DOCTYPE html>
           <html>
-          <body onload="document.getElementById('esewaForm').submit();" style="margin:0;padding:0;">
+          <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>Redirecting to eSewa...</title>
+            <style>
+              body {
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                min-height: 100vh;
+                margin: 0;
+                background: linear-gradient(135deg, #60BB46 0%, #4a9636 100%);
+              }
+              .container {
+                text-align: center;
+                background: white;
+                padding: 40px;
+                border-radius: 20px;
+                box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+                max-width: 300px;
+              }
+              .logo {
+                width: 80px;
+                height: 80px;
+                margin: 0 auto 20px;
+                background: #60BB46;
+                border-radius: 50%;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-size: 32px;
+                color: white;
+                font-weight: bold;
+              }
+              .spinner {
+                border: 4px solid #f3f3f3;
+                border-top: 4px solid #60BB46;
+                border-radius: 50%;
+                width: 50px;
+                height: 50px;
+                animation: spin 1s linear infinite;
+                margin: 0 auto 20px;
+              }
+              @keyframes spin {
+                0% { transform: rotate(0deg); }
+                100% { transform: rotate(360deg); }
+              }
+              h2 { color: #333; margin: 0 0 10px; font-size: 24px; }
+              p { color: #666; margin: 0; font-size: 14px; }
+            </style>
+          </head>
+          <body>
+            <div class="container">
+              <div class="logo">e</div>
+              <div class="spinner"></div>
+              <h2>Opening eSewa</h2>
+              <p>Redirecting to payment gateway...</p>
+            </div>
             <form id="esewaForm" method="POST" action="${data.paymentUrl}">
-              ${formFields}
+              ${Object.entries(data.formData)
+                .map(([key, value]) => `<input type="hidden" name="${key}" value="${value}" />`)
+                .join('\n              ')}
             </form>
+            <script>
+              // Auto-submit form immediately
+              setTimeout(function() {
+                document.getElementById('esewaForm').submit();
+              }, 500);
+            </script>
           </body>
           </html>
         `;
-        setEsewaPostHtml(html);
-        setStep('redirected');
+        setEsewaHtml(html);
+        setShowEsewaModal(true);
+        isProcessingRef.current = false;
         return;
       }
 
@@ -238,6 +310,172 @@ const Checkout = () => {
       </View>
 
       <StepBar current={step} />
+
+      {/* eSewa Modal WebView */}
+      <Modal
+        visible={showEsewaModal}
+        animationType="slide"
+        onRequestClose={() => {
+          Alert.alert(
+            'Cancel Payment?',
+            'Are you sure you want to cancel the payment?',
+            [
+              { text: 'Continue Payment', style: 'cancel' },
+              { 
+                text: 'Cancel', 
+                style: 'destructive',
+                onPress: () => {
+                  setShowEsewaModal(false);
+                  handleCancelPayment();
+                }
+              }
+            ]
+          );
+        }}
+      >
+        <View style={{ flex: 1, backgroundColor: '#fff' }}>
+          <View style={styles.modalHeader}>
+            <TouchableOpacity 
+              onPress={() => {
+                Alert.alert(
+                  'Cancel Payment?',
+                  'Your slot reservation will be released.',
+                  [
+                    { text: 'Continue Payment', style: 'cancel' },
+                    { 
+                      text: 'Cancel', 
+                      style: 'destructive',
+                      onPress: () => {
+                        setShowEsewaModal(false);
+                        handleCancelPayment();
+                      }
+                    }
+                  ]
+                );
+              }}
+              style={styles.modalBackBtn}
+            >
+              <ArrowLeft size={20} color="#000" />
+            </TouchableOpacity>
+            <Text style={styles.modalTitle}>Complete Payment</Text>
+            <TouchableOpacity 
+              onPress={() => {
+                Alert.alert(
+                  'Cancel Payment?',
+                  'Your slot reservation will be released.',
+                  [
+                    { text: 'Continue Payment', style: 'cancel' },
+                    { 
+                      text: 'Cancel', 
+                      style: 'destructive',
+                      onPress: () => {
+                        setShowEsewaModal(false);
+                        handleCancelPayment();
+                      }
+                    }
+                  ]
+                );
+              }}
+              style={styles.modalCloseBtn}
+            >
+              <Text style={styles.modalCloseBtnText}>✕</Text>
+            </TouchableOpacity>
+          </View>
+          {esewaHtml && (
+            <WebView
+              ref={webViewRef}
+              source={{ html: esewaHtml }}
+              javaScriptEnabled={true}
+              domStorageEnabled={true}
+              startInLoadingState={true}
+              renderLoading={() => (
+                <View style={styles.webviewLoader}>
+                  <Loader2 size={32} color="#60BB46" strokeWidth={2} />
+                  <Text style={styles.webviewLoaderText}>Loading eSewa...</Text>
+                </View>
+              )}
+              onNavigationStateChange={(navState) => {
+                console.log('Navigation:', navState.url);
+                
+                // Check if payment completed (success/failure callback)
+                // eSewa redirects to fadebook.com/payment/success or /failure
+                if (
+                  navState.url.includes('fadebook.com/payment/success') || 
+                  navState.url.includes('fadebook.com/payment/failure')
+                ) {
+                  // Extract txId from URL
+                  const urlParts = navState.url.split('?');
+                  if (urlParts.length > 1) {
+                    const urlParams = new URLSearchParams(urlParts[1]);
+                    const urlTxId = urlParams.get('txId');
+                    const refId = urlParams.get('refId');
+                    const isFailure = navState.url.includes('failure');
+                    
+                    console.log('Payment completed:', { urlTxId, refId, isFailure });
+                    
+                    setShowEsewaModal(false);
+                    
+                    if (urlTxId || txId) {
+                      navigation.navigate('PaymentCallback', { 
+                        txId: urlTxId || txId,
+                        refId: refId || undefined,
+                        status: isFailure ? 'failure' : undefined
+                      } as any);
+                    }
+                  }
+                }
+              }}
+              onError={(syntheticEvent) => {
+                const { nativeEvent } = syntheticEvent;
+                console.error('WebView error:', nativeEvent);
+                
+                // Check if error is due to redirect URL not loading (which is expected)
+                if (nativeEvent.description?.includes('fadebook.com')) {
+                  // This is expected - the redirect URL doesn't exist
+                  // Try to extract txId from the failed URL
+                  const url = nativeEvent.url || '';
+                  if (url.includes('txId=')) {
+                    const urlParams = new URLSearchParams(url.split('?')[1]);
+                    const urlTxId = urlParams.get('txId');
+                    const refId = urlParams.get('refId');
+                    
+                    setShowEsewaModal(false);
+                    
+                    if (urlTxId || txId) {
+                      navigation.navigate('PaymentCallback', { 
+                        txId: urlTxId || txId,
+                        refId: refId || undefined
+                      } as any);
+                    }
+                    return;
+                  }
+                }
+                
+                // Real error
+                Alert.alert(
+                  'Connection Error',
+                  'Could not connect to eSewa. Please check your internet connection.',
+                  [
+                    { text: 'Cancel', style: 'cancel', onPress: () => {
+                      setShowEsewaModal(false);
+                      handleCancelPayment();
+                    }},
+                    { text: 'Retry', onPress: () => {
+                      setShowEsewaModal(false);
+                      setStep('method');
+                    }}
+                  ]
+                );
+              }}
+            />
+          )}
+          <View style={styles.modalFooter}>
+            <Text style={styles.modalFooterText}>
+              Complete your payment in the window above. You'll be redirected back automatically.
+            </Text>
+          </View>
+        </View>
+      </Modal>
 
       <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         
@@ -315,65 +553,58 @@ const Checkout = () => {
 
         {step === 'redirected' && (
           <View style={styles.section}>
-            
-            {/* ESEWA: Render WebView to POST the form */}
-            {method === 'esewa' && esewaPostHtml ? (
-              <View style={styles.webviewContainer}>
-                <View style={styles.webviewLoader}>
-                  <Loader2 size={24} color={theme.colors.primary} strokeWidth={2} />
-                  <Text style={styles.webviewLoaderText}>Connecting to eSewa...</Text>
-                </View>
-                <WebView source={{ html: esewaPostHtml }} javaScriptEnabled={true} onShouldStartLoadWithRequest={() => true} />
-                <TouchableOpacity style={[styles.primaryBtn, { marginTop: theme.spacing.md }]} onPress={() => txId ? navigation.navigate('PaymentCallback', { txId, pidx: pidx } as any) : null}>
+            <View style={styles.redirectedContainer}>
+              <View style={[styles.redirectedIcon, { backgroundColor: selectedMethod?.bg }]}>
+                <Image source={selectedMethod?.logo} style={styles.redirectedLogo} resizeMode="contain" />
+              </View>
+              <Text style={styles.redirectedTitle}>Complete Payment on {selectedMethod?.label}</Text>
+              <Text style={styles.redirectedSubtitle}>
+                A browser tab has opened. Complete your payment there, then switch back here and click the button below.
+              </Text>
+              <View style={styles.amountCard}>
+                <Text style={styles.amountCardLabel}>Amount to Pay</Text>
+                <Text style={styles.amountCardValue}>{formatAmount(amount)}</Text>
+              </View>
+              <View style={styles.redirectedActions}>
+                <TouchableOpacity 
+                  style={styles.secondaryBtn} 
+                  onPress={() => {
+                    if (method === 'esewa') {
+                      // Show eSewa modal again
+                      setShowEsewaModal(true);
+                    } else if (paymentUrl) {
+                      Linking.openURL(paymentUrl).catch(() => {});
+                    }
+                  }}
+                >
+                  <ExternalLink size={14} color={theme.colors.text} />
+                  <Text style={styles.secondaryBtnText}>Reopen Payment Page</Text>
+                </TouchableOpacity>
+                <TouchableOpacity 
+                  style={[styles.primaryBtn, { marginTop: theme.spacing.md }]} 
+                  onPress={() => {
+                    if (txId) {
+                      navigation.navigate('PaymentCallback', { 
+                        txId, 
+                        pidx: pidx || undefined
+                      } as any);
+                    }
+                  }}
+                >
                   <Text style={styles.primaryBtnText}>I Have Completed Payment</Text>
                   <ChevronRight size={16} color="#000" />
                 </TouchableOpacity>
               </View>
-            ) : (
-              /* KHALTI: Normal UI */
-              <View style={styles.redirectedContainer}>
-                <View style={[styles.redirectedIcon, { backgroundColor: selectedMethod?.bg }]}>
-                  <Image source={selectedMethod?.logo} style={styles.redirectedLogo} resizeMode="contain" />
-                </View>
-                <Text style={styles.redirectedTitle}>Complete Payment on {selectedMethod?.label}</Text>
-                <Text style={styles.redirectedSubtitle}>A browser tab has opened. Complete your payment there, then switch back here and click the button below.</Text>
-                <View style={styles.amountCard}>
-                  <Text style={styles.amountCardLabel}>Amount to Pay</Text>
-                  <Text style={styles.amountCardValue}>{formatAmount(amount)}</Text>
-                </View>
-                <View style={styles.redirectedActions}>
-                  <TouchableOpacity style={styles.secondaryBtn} onPress={() => paymentUrl && Linking.openURL(paymentUrl).catch(()=>{})}>
-                    <ExternalLink size={14} color={theme.colors.text} />
-                    <Text style={styles.secondaryBtnText}>Reopen Payment Page</Text>
-                  </TouchableOpacity>
-                  {/* ✅ FIX: Pass pidx to PaymentCallback */}
-                  <TouchableOpacity 
-                    style={[styles.primaryBtn, { marginTop: theme.spacing.md }]} 
-                    onPress={() => {
-                      if (txId) {
-                        navigation.navigate('PaymentCallback', { 
-                          txId, 
-                          pidx: pidx || undefined  // ✅ PASS PIDX HERE
-                        } as any);
-                      }
-                    }}
-                  >
-                    <Text style={styles.primaryBtnText}>I Have Completed Payment</Text>
-                    <ChevronRight size={16} color="#000" />
-                  </TouchableOpacity>
-                </View>
-                <TouchableOpacity style={styles.ghostBtn} onPress={handleCancelPayment}>
-                  <Text style={styles.ghostBtnText}>Cancel Payment</Text>
-                </TouchableOpacity>
-              </View>
-            )}
-
-            {method !== 'esewa' && (
               <View style={styles.timerBox}>
                 <Clock size={12} color={theme.colors.muted} />
-                <Text style={styles.timerText}>Your slot is reserved for 10 minutes. If payment is not completed, the slot will be released.</Text>
+                <Text style={styles.timerText}>
+                  Your slot is reserved for 10 minutes. If payment is not completed, the slot will be released.
+                </Text>
               </View>
-            )}
+              <TouchableOpacity style={styles.ghostBtn} onPress={handleCancelPayment}>
+                <Text style={styles.ghostBtnText}>Cancel Payment</Text>
+              </TouchableOpacity>
+            </View>
           </View>
         )}
       </ScrollView>
@@ -454,9 +685,70 @@ const styles = StyleSheet.create({
   redirectedActions: { width: '100%', marginBottom: theme.spacing.md },
   timerBox: { flexDirection: 'row', alignItems: 'flex-start', gap: 8, backgroundColor: theme.colors.surface, borderRadius: theme.radius.md, borderWidth: 1, borderColor: theme.colors.border, padding: theme.spacing.md, marginTop: theme.spacing.md },
   timerText: { fontSize: 12, color: theme.colors.muted, flex: 1, lineHeight: 18 },
-  webviewContainer: { flex: 1, height: 500, borderRadius: theme.radius.lg, overflow: 'hidden', borderWidth: 1, borderColor: theme.colors.border },
-  webviewLoader: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.9)', zIndex: 10 },
-  webviewLoaderText: { marginTop: 10, fontSize: 14, color: theme.colors.muted },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#e5e5e5',
+    backgroundColor: '#fff',
+  },
+  modalBackBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#f5f5f5',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#000',
+    flex: 1,
+    textAlign: 'center',
+  },
+  modalCloseBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#f5f5f5',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  modalCloseBtnText: {
+    fontSize: 18,
+    color: '#666',
+  },
+  modalFooter: {
+    padding: 16,
+    borderTopWidth: 1,
+    borderTopColor: '#e5e5e5',
+    backgroundColor: '#f9f9f9',
+  },
+  modalFooterText: {
+    fontSize: 12,
+    color: '#666',
+    textAlign: 'center',
+    lineHeight: 18,
+  },
+  webviewLoader: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#fff',
+    zIndex: 10,
+  },
+  webviewLoaderText: {
+    marginTop: 12,
+    fontSize: 14,
+    color: '#666',
+  },
 });
 
 export default Checkout;

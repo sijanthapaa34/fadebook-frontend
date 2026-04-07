@@ -40,10 +40,10 @@ const PaymentCallback = () => {
   const params = (route.params as any) || {};
   const transactionId = params.txId ? Number(params.txId) : null;
   
-  // ✅ FIX: Get pidx from params (passed from Checkout screen)
+  // ✅ FIX: Get pidx and refId from params
   const pidx = params.pidx || null;
-  
   const refId = params.refId || null;
+  
   const gatewayStatus = params.status || null;
 
   const [status, setStatus] = useState<CallbackStatus>('verifying');
