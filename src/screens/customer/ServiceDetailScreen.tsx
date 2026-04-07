@@ -17,12 +17,8 @@ import type { RootStackParamList } from '../../navigation/AppNavigator';
 import { ServiceDTO, BarberDTO, ReviewDTO, ReviewType } from '../../models/models';
 import { useAuthStore } from '../../store/authStore'; 
 
-interface ExtendedServiceDTO extends ServiceDTO {
-  barbershopId?: number; 
-}
-
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
+const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
 const PLACEHOLDER_IMAGE = 'https://images.unsplash.com/photo-1599351431202-1e0f0137899a?w=800&h=500&fit=crop';
 
@@ -36,13 +32,14 @@ const ServiceDetail = () => {
 
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
+  const [activeImageIndex, setActiveImageIndex] = useState(0); // For pagination dots
   const [reviewModalVisible, setReviewModalVisible] = useState(false);
 
   const { 
     data: service, 
     isLoading: isServiceLoading, 
     isError: isServiceError 
-  } = useQuery<ExtendedServiceDTO>({
+  } = useQuery<ServiceDTO>({
     queryKey: ['service', serviceId],
     queryFn: () => fetchServiceById({ serviceId }),
     enabled: !!serviceId,
@@ -88,10 +85,13 @@ const ServiceDetail = () => {
     );
   }
 
-  const images = [PLACEHOLDER_IMAGE];
+  const images = service.serviceImages && service.serviceImages.length > 0 
+    ? service.serviceImages 
+    : [PLACEHOLDER_IMAGE];
 
   return (
     <View style={styles.container}>
+      {/* Full Screen Image Modal */}
       <Modal visible={isModalVisible} transparent animationType="fade" onRequestClose={() => setIsModalVisible(false)}>
         <View style={styles.modalContainer}>
           <TouchableOpacity style={styles.closeButton} onPress={() => setIsModalVisible(false)}>
@@ -102,19 +102,17 @@ const ServiceDetail = () => {
             horizontal 
             pagingEnabled 
             initialScrollIndex={selectedImageIndex} 
-            // FIX: Corrected syntax for getItemLayout
             getItemLayout={(_, index) => ({
               length: SCREEN_WIDTH,
               offset: SCREEN_WIDTH * index,
               index
             })}
-            // FIX: Added renderItem
             renderItem={({ item }) => (
-              <View style={{ width: SCREEN_WIDTH, justifyContent: 'center', alignItems: 'center' }}>
+              <View style={styles.modalImageContainer}>
                 <Image source={{ uri: item }} style={styles.modalImage} resizeMode="contain" />
               </View>
             )} 
-            keyExtractor={(item) => item} 
+            keyExtractor={(item, index) => index.toString()} 
           />
         </View>
       </Modal>
@@ -140,10 +138,46 @@ const ServiceDetail = () => {
           <Text style={styles.headerTitle}>Service Details</Text>
         </View>
 
-        {/* Featured Image */}
-        <TouchableOpacity onPress={() => openModal(0)} activeOpacity={0.9}>
-          <Image source={{ uri: images[0] }} style={styles.featuredImage} />
-        </TouchableOpacity>
+        {/* Image Slider */}
+        <View style={styles.imageSliderContainer}>
+            <ScrollView 
+                horizontal 
+                pagingEnabled 
+                showsHorizontalScrollIndicator={false}
+                onMomentumScrollEnd={(event) => {
+                    const contentOffset = event.nativeEvent.contentOffset.x;
+                    const viewSize = event.nativeEvent.layoutMeasurement.width;
+                    setActiveImageIndex(Math.round(contentOffset / viewSize));
+                }}
+            >
+                {images.map((img, index) => (
+                    <TouchableOpacity 
+                        key={index} 
+                        onPress={() => openModal(index)} 
+                        activeOpacity={0.9}
+                        style={styles.slide}
+                    >
+                        <Image 
+                            source={{ uri: img }} 
+                            style={styles.sliderImage} 
+                            resizeMode="contain" // FIX: Shows full image without cropping/zooming
+                        />
+                    </TouchableOpacity>
+                ))}
+            </ScrollView>
+            
+            {/* Pagination Dots */}
+            {images.length > 1 && (
+                <View style={styles.pagination}>
+                    {images.map((_, i) => (
+                        <View 
+                            key={i} 
+                            style={[styles.dot, activeImageIndex === i && styles.activeDot]} 
+                        />
+                    ))}
+                </View>
+            )}
+        </View>
 
         {/* Service Card */}
         <View style={styles.card}>
@@ -152,7 +186,7 @@ const ServiceDetail = () => {
               <Text style={styles.serviceName}>{service.name}</Text>
               <Text style={styles.serviceDescription}>{service.description || 'No description available'}</Text>
             </View>
-            <Text style={styles.servicePrice}>Rs. {service.price}</Text>
+            <Text style={styles.servicePrice}>Rs. {service.price?.toFixed(2)}</Text>
           </View>
           
           <View style={styles.metaRow}>
@@ -162,7 +196,7 @@ const ServiceDetail = () => {
             </View>
              <View style={styles.metaItem}>
               <Tag size={14} color={theme.colors.muted} />
-              <Text style={styles.metaText}>Service</Text>
+              <Text style={styles.metaText}>{service.category || 'Service'}</Text>
             </View>
           </View>
 
@@ -243,7 +277,41 @@ const styles = StyleSheet.create({
   backBtn: { padding: theme.spacing.sm, marginLeft: -theme.spacing.sm },
   headerTitle: { fontSize: 20, fontFamily: theme.fonts.serif, fontWeight: '700', color: theme.colors.text, marginLeft: theme.spacing.sm },
   
-  featuredImage: { width: '100%', height: 220, backgroundColor: theme.colors.surface },
+  // --- Image Slider Styles ---
+  imageSliderContainer: { 
+      height: 280, 
+      backgroundColor: theme.colors.surface // Background color for the empty space around 'contain' images
+  },
+  slide: { 
+      width: SCREEN_WIDTH, 
+      height: 280, 
+      justifyContent: 'center', 
+      alignItems: 'center' 
+  },
+  sliderImage: { 
+      width: '100%', 
+      height: '100%' 
+  },
+  pagination: { 
+      flexDirection: 'row', 
+      justifyContent: 'center', 
+      alignItems: 'center', 
+      position: 'absolute', 
+      bottom: 10, 
+      left: 0, 
+      right: 0 
+  },
+  dot: { 
+      width: 6, 
+      height: 6, 
+      borderRadius: 3, 
+      backgroundColor: 'rgba(255,255,255,0.5)', 
+      marginHorizontal: 3 
+  },
+  activeDot: { 
+      backgroundColor: theme.colors.primary, 
+      width: 18 
+  },
 
   card: { backgroundColor: theme.colors.card, marginHorizontal: theme.spacing.lg, marginTop: theme.spacing.lg, borderRadius: theme.radius.lg, borderWidth: 1, borderColor: theme.colors.border, padding: theme.spacing.lg },
   serviceHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: theme.spacing.md },
@@ -278,7 +346,16 @@ const styles = StyleSheet.create({
 
   modalContainer: { flex: 1, backgroundColor: 'rgba(0,0,0,0.95)', justifyContent: 'center' },
   closeButton: { position: 'absolute', top: 50, right: 20, zIndex: 10, backgroundColor: 'rgba(255,255,255,0.2)', padding: 8, borderRadius: 20 },
-  modalImage: { width: SCREEN_WIDTH, height: SCREEN_WIDTH },
+  modalImageContainer: { 
+      width: SCREEN_WIDTH, 
+      height: SCREEN_HEIGHT, 
+      justifyContent: 'center', 
+      alignItems: 'center' 
+  },
+  modalImage: { 
+      width: SCREEN_WIDTH, 
+      height: SCREEN_HEIGHT, // Full height for proper viewing
+  },
 });
 
 export default ServiceDetail;
