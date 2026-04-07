@@ -21,6 +21,7 @@ const ServiceManagement = React.lazy(() => import('@/pages/shopAdmin/ServiceMana
 const ShopAdminApplications = React.lazy(() => import('@/pages/shopAdmin/Applications'));
 const LeaveApproval = React.lazy(() => import('@/pages/shopAdmin/LeaveApproval'));
 const ChatDashboard = React.lazy(() => import('@/pages/shopAdmin/ChatDashboard'));
+const Appointments = React.lazy(() => import('@/pages/shopAdmin/Appointments'));
 const NotificationsPage = React.lazy(() => import('@/pages/Notifications'));
 
 const Loader = () => (
@@ -108,7 +109,7 @@ const AppNavigator = () => {
           <Route path="leave" element={<Suspense fallback={<Loader />}><LeaveApproval /></Suspense>} />
           <Route path="settings" element={<Suspense fallback={<Loader />}><Settings /></Suspense>} />
           <Route path="chat" element={<Suspense fallback={<Loader />}><ChatDashboard /></Suspense>} />
-          <Route path="appointments" element={<Placeholder title="Appointments" />} />
+          <Route path="appointments" element={<Suspense fallback={<Loader />}><Appointments /></Suspense>} />
           <Route path="customers" element={<Placeholder title="Customers" />} />
           <Route path="notifications" element={<Suspense fallback={<Loader />}><NotificationsPage /></Suspense>} />
         </Route>
