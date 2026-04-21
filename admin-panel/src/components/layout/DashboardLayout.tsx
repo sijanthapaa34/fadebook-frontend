@@ -22,6 +22,7 @@ const navConfig: Record<AdminRole, NavItem[]> = {
     { label: 'Manage Shop', path: '/shop-admin/manage-shop', icon: <Store size={18} /> },
     { label: 'Barbers', path: '/shop-admin/barbers', icon: <Scissors size={18} /> },
     { label: 'Services', path: '/shop-admin/services', icon: <Settings size={18} /> },
+    { label: 'Customers', path: '/shop-admin/customers', icon: <Users size={18} /> },
     { label: 'Leave Requests', path: '/shop-admin/leave', icon: <ClipboardList size={18} /> },
     { label: 'Appointments', path: '/shop-admin/appointments', icon: <Calendar size={18} /> },
     { label: 'Applications', path: '/shop-admin/applications', icon: <Users size={18} /> },
@@ -30,6 +31,7 @@ const navConfig: Record<AdminRole, NavItem[]> = {
   MAIN_ADMIN: [
     { label: 'Dashboard', path: '/admin/dashboard', icon: <LayoutDashboard size={18} /> },
     { label: 'Shops', path: '/admin/shops', icon: <Store size={18} /> },
+    { label: 'Customers', path: '/admin/customers', icon: <Users size={18} /> },
     { label: 'Applications', path: '/admin/applications', icon: <ClipboardList size={18} /> },
   ],
 };

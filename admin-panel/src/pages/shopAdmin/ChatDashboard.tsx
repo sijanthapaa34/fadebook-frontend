@@ -1,271 +1,364 @@
-import { useState, useRef, useEffect, useCallback } from 'react';
-import {
-  Send, Search, Check, CheckCheck, Circle, Image,
-  MessageSquare
-} from 'lucide-react';
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { seedBarbers } from '@/data/seed';
-
-type MessageStatus = 'sent' | 'delivered' | 'seen';
-
-interface AdminMessage {
-  id: string;
-  sender: 'customer' | 'admin';
-  text: string;
-  time: string;
-  status: MessageStatus;
-  image?: string;
-}
-
-interface CustomerChat {
-  customerId: string;
-  customerName: string;
-  lastMessage: string;
-  lastTime: string;
-  unread: number;
-  online: boolean;
-  hasActiveBooking: boolean;
-  assignedBarber?: string;
-  messages: AdminMessage[];
-}
-
-const mockChats: CustomerChat[] = [
-  {
-    customerId: 'c1', customerName: 'James Wilson',
-    lastMessage: 'Can I get a beard trim added?', lastTime: '2:32 PM',
-    unread: 1, online: true, hasActiveBooking: true, assignedBarber: 'b1',
-    messages: [
-      { id: '1', sender: 'admin', text: 'Hey James! Your appointment is confirmed for tomorrow at 10 AM.', time: '2:30 PM', status: 'seen' },
-      { id: '2', sender: 'customer', text: 'Great, thanks! Can I get a beard trim added?', time: '2:32 PM', status: 'delivered' },
-    ],
-  },
-  {
-    customerId: 'c2', customerName: 'Robert Taylor',
-    lastMessage: 'What fade styles do you recommend?', lastTime: '1:45 PM',
-    unread: 3, online: true, hasActiveBooking: true,
-    messages: [
-      { id: '1', sender: 'customer', text: 'Hi! I have an appointment tomorrow.', time: '1:40 PM', status: 'seen' },
-      { id: '2', sender: 'customer', text: 'What fade styles do you recommend?', time: '1:42 PM', status: 'delivered' },
-      { id: '3', sender: 'customer', text: 'I was thinking something like a mid-taper fade.', time: '1:45 PM', status: 'delivered' },
-    ],
-  },
-  {
-    customerId: 'c3', customerName: 'Mike Davis',
-    lastMessage: 'Thanks for the info!', lastTime: '12:20 PM',
-    unread: 0, online: false, hasActiveBooking: true, assignedBarber: 'b1',
-    messages: [
-      { id: '1', sender: 'customer', text: 'Do you guys do hot towel shaves?', time: '12:15 PM', status: 'seen' },
-      { id: '2', sender: 'admin', text: 'Absolutely! It\'s one of our premium services. $40 for about 35 minutes.', time: '12:17 PM', status: 'seen' },
-      { id: '3', sender: 'customer', text: 'Thanks for the info!', time: '12:20 PM', status: 'seen' },
-    ],
-  },
-  {
-    customerId: 'c4', customerName: 'Chris Brown',
-    lastMessage: 'Do you have any openings this Saturday?', lastTime: '11:30 AM',
-    unread: 1, online: false, hasActiveBooking: false,
-    messages: [
-      { id: '1', sender: 'customer', text: 'Do you have any openings this Saturday?', time: '11:30 AM', status: 'delivered' },
-    ],
-  },
-  {
-    customerId: 'c5', customerName: 'David Kim',
-    lastMessage: 'See you tomorrow!', lastTime: 'Yesterday',
-    unread: 0, online: false, hasActiveBooking: false,
-    messages: [
-      { id: '1', sender: 'customer', text: 'Hey, is Marcus available tomorrow at 3 PM?', time: 'Yesterday', status: 'seen' },
-      { id: '2', sender: 'admin', text: 'Let me check... Yes he\'s free at 3 PM!', time: 'Yesterday', status: 'seen' },
-      { id: '3', sender: 'customer', text: 'See you tomorrow!', time: 'Yesterday', status: 'seen' },
-    ],
-  },
-];
-
-const StatusIcon = ({ status }: { status: MessageStatus }) => {
-  if (status === 'sent') return <Check size={12} className="text-muted-foreground" />;
-  if (status === 'delivered') return <CheckCheck size={12} className="text-muted-foreground" />;
-  return <CheckCheck size={12} className="text-primary" />;
-};
+// Admin Chat Dashboard with Dark Theme
+import { useEffect, useState, useRef } from 'react';
+import { Send, Circle, MessageCircle, Loader2 } from 'lucide-react';
+import chatService, { Conversation, Message } from '../../services/chatService';
+import { Input } from '../../components/ui/input';
+import { Button } from '../../components/ui/button';
+import { ScrollArea } from '../../components/ui/scroll-area';
 
 const ChatDashboard = () => {
-  const [chats, setChats] = useState<CustomerChat[]>(mockChats);
-  const [activeChat, setActiveChat] = useState<string | null>(mockChats[0].customerId);
-  const [message, setMessage] = useState('');
-  const [searchQuery, setSearchQuery] = useState('');
+  const [conversations, setConversations] = useState<Conversation[]>([]);
+  const [selectedChat, setSelectedChat] = useState<Conversation | null>(null);
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [inputText, setInputText] = useState('');
+  const [sending, setSending] = useState(false);
+  const [loading, setLoading] = useState(true);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  const currentChat = chats.find(c => c.customerId === activeChat);
-  const shopBarbers = seedBarbers.filter(b => b.shopId === 1);
+  // Get current admin user
+  const getUserFromStorage = () => {
+    try {
+      const raw = localStorage.getItem('admin-auth-storage');
+      if (!raw) return null;
+      return JSON.parse(raw)?.state?.user;
+    } catch {
+      return null;
+    }
+  };
 
-  const scrollToBottom = useCallback(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, []);
+  const currentAdmin = getUserFromStorage();
+  const shopAdminId = currentAdmin?.id || 0;
 
-  useEffect(() => { scrollToBottom(); }, [currentChat?.messages.length, scrollToBottom]);
+  console.log('👤 Current admin:', currentAdmin);
+  console.log('🆔 Shop admin ID:', shopAdminId);
 
-  const handleSend = () => {
-    if (!message.trim() || !activeChat) return;
-    const newMsg: AdminMessage = {
-      id: Date.now().toString(), sender: 'admin', text: message.trim(),
-      time: new Date().toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }),
-      status: 'sent',
+  // Subscribe to conversations
+  useEffect(() => {
+    if (!shopAdminId) {
+      console.error('No shopAdminId found');
+      setLoading(false);
+      return;
+    }
+
+    console.log('🔍 Starting conversation polling for admin:', shopAdminId);
+
+    chatService.startConversationPolling(
+      shopAdminId,
+      (updatedConversations) => {
+        console.log('✅ Conversations loaded:', updatedConversations.length);
+        setConversations(updatedConversations);
+        setLoading(false);
+      }
+    );
+
+    return () => {
+      chatService.stopConversationPolling();
     };
-    setChats(prev => prev.map(c =>
-      c.customerId === activeChat
-        ? { ...c, messages: [...c.messages, newMsg], lastMessage: newMsg.text, lastTime: newMsg.time, unread: 0 }
-        : c
-    ));
-    setMessage('');
+  }, [shopAdminId]);
+
+  // Subscribe to messages when chat is selected
+  useEffect(() => {
+    if (!selectedChat) return;
+
+    chatService.startMessagePolling(
+      selectedChat.id,
+      (updatedMessages) => {
+        setMessages(updatedMessages);
+        scrollToBottom();
+      }
+    );
+
+    // Mark messages as read
+    chatService.markMessagesAsRead(selectedChat.id);
+
+    // Update online status
+    chatService.updateOnlineStatus(selectedChat.id, true);
+
+    return () => {
+      chatService.updateOnlineStatus(selectedChat.id, false);
+      chatService.stopMessagePolling(selectedChat.id);
+    };
+  }, [selectedChat?.id]);
+
+  // Auto-scroll to bottom
+  const scrollToBottom = () => {
     setTimeout(() => {
-      setChats(prev => prev.map(c =>
-        c.customerId === activeChat
-          ? { ...c, messages: c.messages.map(m => m.id === newMsg.id ? { ...m, status: 'delivered' as MessageStatus } : m) }
-          : c
-      ));
-    }, 800);
+      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }, 100);
   };
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file || !activeChat) return;
-    const url = URL.createObjectURL(file);
-    const newMsg: AdminMessage = {
-      id: Date.now().toString(), sender: 'admin',
-      text: '📷 Photo', time: new Date().toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }),
-      status: 'sent', image: url,
-    };
-    setChats(prev => prev.map(c =>
-      c.customerId === activeChat
-        ? { ...c, messages: [...c.messages, newMsg], lastMessage: '📷 Photo', lastTime: newMsg.time }
-        : c
-    ));
-    e.target.value = '';
+  const handleSendMessage = async () => {
+    if (!inputText.trim() || !selectedChat || sending) return;
+
+    const messageText = inputText.trim();
+    setInputText('');
+    setSending(true);
+
+    try {
+      await chatService.sendMessage(
+        selectedChat.id,
+        shopAdminId,
+        currentAdmin.name || 'Admin',
+        messageText
+      );
+      
+      // Stop typing indicator
+      chatService.updateTypingStatus(selectedChat.id, false);
+    } catch (error) {
+      console.error('Error sending message:', error);
+      setInputText(messageText);
+    } finally {
+      setSending(false);
+    }
   };
 
-  const filteredChats = chats.filter(c => c.customerName.toLowerCase().includes(searchQuery.toLowerCase()));
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const text = e.target.value;
+    setInputText(text);
+
+    if (!selectedChat) return;
+
+    // Debounced typing indicator
+    if (typingTimeoutRef.current) {
+      clearTimeout(typingTimeoutRef.current);
+    }
+
+    if (text.length > 0) {
+      chatService.updateTypingStatus(selectedChat.id, true);
+    }
+
+    typingTimeoutRef.current = setTimeout(() => {
+      chatService.updateTypingStatus(selectedChat.id, false);
+    }, 1000);
+  };
+
+  const formatTime = (timestamp: string): string => {
+    const date = new Date(timestamp);
+    const now = new Date();
+    const diff = now.getTime() - date.getTime();
+    const hours = Math.floor(diff / (1000 * 60 * 60));
+
+    if (hours < 24) {
+      return date.toLocaleTimeString('en-US', {
+        hour: 'numeric',
+        minute: '2-digit',
+        hour12: true,
+      });
+    } else if (hours < 48) {
+      return 'Yesterday';
+    } else {
+      return date.toLocaleDateString('en-US', {
+        month: 'short',
+        day: 'numeric',
+      });
+    }
+  };
+
+  const formatMessageTime = (timestamp: string): string => {
+    const date = new Date(timestamp);
+    return date.toLocaleTimeString('en-US', {
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true,
+    });
+  };
 
   return (
-    <div className="flex flex-col h-[calc(100vh-8rem)]">
-      <div className="pb-4">
+    <div className="space-y-6">
+      <div>
         <h1 className="text-2xl font-display font-bold">Messages</h1>
-        <p className="text-xs text-muted-foreground mt-0.5">Manage customer conversations</p>
+        <p className="text-sm text-muted-foreground">Chat with your customers</p>
       </div>
 
-      <div className="flex-1 min-h-0 flex rounded-xl border border-border overflow-hidden bg-card/30">
-        
-        {/* Left Panel: List */}
-        <div className="w-80 border-r border-border flex flex-col bg-muted/10">
-          <div className="p-3 border-b border-border">
-            <div className="relative">
-              <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-              <Input 
-                placeholder="Search..." 
-                className="pl-9 bg-muted/30 border-border h-9" 
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-              />
-            </div>
+      <div className="flex gap-6 h-[calc(100vh-220px)]">
+        {/* Chat List Sidebar */}
+        <div className="w-80 glass-card flex flex-col">
+          <div className="p-4 border-b border-border">
+            <h2 className="text-sm font-semibold text-foreground">Conversations</h2>
           </div>
+
           <ScrollArea className="flex-1">
-             {/* List items mapped here */}
-             <div className="p-2">
-              {filteredChats.map(chat => (
-                <button key={chat.customerId} onClick={() => setActiveChat(chat.customerId)} 
-                  className={`w-full flex items-center gap-3 p-3 rounded-md transition-colors ${activeChat === chat.customerId ? 'bg-primary/10' : 'hover:bg-muted/50'}`}>
-                   <div className="relative">
-                     <div className="w-9 h-9 rounded-full bg-muted flex items-center justify-center text-xs font-bold">
-                       {chat.customerName.charAt(0)}
-                     </div>
-                     <Circle
-                        size={8}
-                        className={`absolute -bottom-0.5 -right-0.5 ${chat.online ? 'fill-[hsl(142,70%,45%)] text-[hsl(142,70%,45%)]' : 'fill-muted-foreground text-muted-foreground'}`}
-                      />
-                   </div>
-                   <div className="flex-1 text-left">
-                     <p className="text-sm font-medium truncate">{chat.customerName}</p>
-                     <p className="text-xs text-muted-foreground truncate">{chat.lastMessage}</p>
-                   </div>
-                </button>
-              ))}
-             </div>
+            {loading ? (
+              <div className="flex justify-center items-center h-full">
+                <Loader2 className="animate-spin text-muted-foreground" />
+              </div>
+            ) : conversations.length === 0 ? (
+              <div className="p-8 text-center">
+                <MessageCircle size={40} className="mx-auto mb-3 text-muted-foreground opacity-50" />
+                <p className="text-sm text-muted-foreground">No conversations yet</p>
+              </div>
+            ) : (
+              <div className="divide-y divide-border">
+                {conversations.map((chat) => (
+                  <button
+                    key={chat.id}
+                    onClick={() => setSelectedChat(chat)}
+                    className={`w-full p-4 text-left hover:bg-muted/50 transition-colors ${
+                      selectedChat?.id === chat.id ? 'bg-muted/50 border-l-2 border-primary' : ''
+                    }`}
+                  >
+                    <div className="flex items-start gap-3">
+                      <div className="relative">
+                        <div className="w-10 h-10 rounded-full bg-primary/10 border border-border flex items-center justify-center text-primary font-semibold text-sm">
+                          {chat.customerName.charAt(0).toUpperCase()}
+                        </div>
+                        {chat.customerOnline && (
+                          <Circle className="absolute bottom-0 right-0 w-2.5 h-2.5 fill-emerald-500 text-emerald-500" />
+                        )}
+                      </div>
+
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between mb-1">
+                          <h3 className="font-semibold text-sm text-foreground truncate">
+                            {chat.customerName}
+                          </h3>
+                          <span className="text-[10px] text-muted-foreground">
+                            {formatTime(chat.lastMessageTime)}
+                          </span>
+                        </div>
+
+                        <div className="flex items-center justify-between">
+                          <p
+                            className={`text-xs truncate ${
+                              chat.unreadCountAdmin > 0
+                                ? 'font-semibold text-foreground'
+                                : 'text-muted-foreground'
+                            }`}
+                          >
+                            {chat.customerTyping
+                              ? 'Typing...'
+                              : chat.lastMessage || 'No messages yet'}
+                          </p>
+                          {chat.unreadCountAdmin > 0 && (
+                            <span className="ml-2 px-1.5 py-0.5 bg-primary text-primary-foreground text-[10px] font-bold rounded-full">
+                              {chat.unreadCountAdmin > 99 ? '99+' : chat.unreadCountAdmin}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
           </ScrollArea>
         </div>
 
-        {/* Right Panel: Chat */}
-        <div className="flex-1 flex flex-col">
-          {currentChat ? (
+        {/* Chat Window */}
+        <div className="flex-1 glass-card flex flex-col">
+          {selectedChat ? (
             <>
-              {/* Header */}
-              <div className="p-4 border-b border-border flex items-center gap-3">
-                 <div className="relative">
-                    <div className="w-9 h-9 rounded-full bg-muted flex items-center justify-center font-bold text-sm">
-                      {currentChat.customerName.charAt(0)}
-                    </div>
-                    <Circle
-                      size={8}
-                      className={`absolute -bottom-0.5 -right-0.5 ${currentChat.online ? 'fill-[hsl(142,70%,45%)] text-[hsl(142,70%,45%)]' : 'fill-muted-foreground text-muted-foreground'}`}
-                    />
-                 </div>
-                 <div>
-                   <p className="font-medium text-sm">{currentChat.customerName}</p>
-                   <p className="text-xs text-muted-foreground">{currentChat.online ? 'Online' : 'Offline'}</p>
-                 </div>
+              {/* Chat Header */}
+              <div className="p-4 border-b border-border">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-primary/10 border border-border flex items-center justify-center text-primary font-semibold text-sm">
+                    {selectedChat.customerName.charAt(0).toUpperCase()}
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-sm text-foreground">
+                      {selectedChat.customerName}
+                    </h3>
+                    {selectedChat.customerOnline ? (
+                      <p className="text-xs text-emerald-500 flex items-center gap-1">
+                        <Circle className="w-1.5 h-1.5 fill-emerald-500" />
+                        Online
+                      </p>
+                    ) : (
+                      <p className="text-xs text-muted-foreground">Offline</p>
+                    )}
+                  </div>
+                </div>
               </div>
+
+              {/* Typing Indicator */}
+              {selectedChat.customerTyping && (
+                <div className="px-4 py-2 bg-muted/30 border-b border-border">
+                  <p className="text-xs text-muted-foreground italic">
+                    {selectedChat.customerName} is typing...
+                  </p>
+                </div>
+              )}
 
               {/* Messages */}
               <ScrollArea className="flex-1 p-4">
                 <div className="space-y-3">
-                  {currentChat.messages.map(msg => (
-                    <div key={msg.id} className={`flex ${msg.sender === 'admin' ? 'justify-end' : 'justify-start'}`}>
-                      <div className={`max-w-[75%] rounded-2xl text-sm p-3 ${
-                        msg.sender === 'admin'
-                          ? 'bg-primary text-primary-foreground rounded-br-sm'
-                          : 'glass-card rounded-bl-sm'
-                      }`}>
-                        {msg.image && (
-                          <img src={msg.image} alt="Shared" className="rounded-lg mb-2 max-h-48 object-cover w-full" />
-                        )}
-                        <p>{msg.text}</p>
-                        <div className={`flex items-center gap-1 justify-end mt-1 ${
-                          msg.sender === 'admin' ? 'text-primary-foreground/50' : 'text-muted-foreground'
-                        }`}>
-                          <span className="text-[10px]">{msg.time}</span>
-                          {msg.sender === 'admin' && <StatusIcon status={msg.status} />}
+                  {messages.map((message) => {
+                    const isOwnMessage = message.senderType === 'ADMIN';
+
+                    return (
+                      <div
+                        key={message.id}
+                        className={`flex ${isOwnMessage ? 'justify-end' : 'justify-start'}`}
+                      >
+                        <div
+                          className={`max-w-[70%] rounded-lg px-3 py-2 ${
+                            isOwnMessage
+                              ? 'bg-primary text-primary-foreground'
+                              : 'bg-muted border border-border text-foreground'
+                          }`}
+                        >
+                          <p className="text-sm break-words">{message.messageText}</p>
+                          <div className="flex items-center justify-end gap-1 mt-1">
+                            <span
+                              className={`text-[10px] ${
+                                isOwnMessage ? 'text-primary-foreground/70' : 'text-muted-foreground'
+                              }`}
+                            >
+                              {formatMessageTime(message.createdAt)}
+                            </span>
+                            {isOwnMessage && (
+                              <span className="text-[10px] text-primary-foreground/70">
+                                {message.status === 'READ' ? '✓✓' : '✓'}
+                              </span>
+                            )}
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                   <div ref={messagesEndRef} />
                 </div>
               </ScrollArea>
 
-              {/* Input */}
-              <div className="p-3 border-t border-border flex items-center gap-2">
-                <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleFileChange} />
-                <Button variant="ghost" size="icon" onClick={() => fileInputRef.current?.click()}>
-                  <Image size={18} className="text-muted-foreground"/>
-                </Button>
-                <Input 
-                  placeholder="Type a reply..." 
-                  className="bg-muted/30 border-border" 
-                  value={message}
-                  onChange={(e) => setMessage(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && handleSend()}
-                />
-                <Button variant="hero" size="icon" onClick={handleSend} disabled={!message.trim()}>
-                  <Send size={16}/>
-                </Button>
+              {/* Input Area */}
+              <div className="p-4 border-t border-border">
+                <div className="flex items-center gap-2">
+                  <Input
+                    value={inputText}
+                    onChange={handleInputChange}
+                    onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
+                    placeholder="Type a message..."
+                    className="flex-1 bg-muted/50 border-border"
+                    maxLength={1000}
+                  />
+                  <Button
+                    onClick={handleSendMessage}
+                    disabled={!inputText.trim() || sending}
+                    size="icon"
+                  >
+                    {sending ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <Send className="w-4 h-4" />
+                    )}
+                  </Button>
+                </div>
               </div>
             </>
           ) : (
-             <div className="flex-1 flex items-center justify-center text-muted-foreground">
-               Select a conversation
-             </div>
+            <div className="flex-1 flex items-center justify-center text-muted-foreground">
+              <div className="text-center">
+                <MessageCircle size={48} className="mx-auto mb-4 opacity-50" />
+                <p className="text-sm font-semibold mb-1">Select a conversation</p>
+                <p className="text-xs">Choose a chat from the sidebar to start messaging</p>
+              </div>
+            </div>
           )}
         </div>
       </div>
     </div>
   );
 };
+
 export default ChatDashboard;

@@ -11,6 +11,7 @@ import { Loader2, Save, ArrowLeft, MapPin, Navigation, X, Upload, ImageOff } fro
 import { useToast } from '@/hooks/use-toast';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { getDisplayableUrl } from '@/utils/imageUtils';
+import LocationPicker from '@/components/LocationPicker';
 
 const ManageShop = () => {
   const user = useAuthStore((state) => state.user);
@@ -83,7 +84,10 @@ const ManageShop = () => {
   };
 
   const handleGetLocation = () => {
-    if (!navigator.geolocation) return;
+    if (!navigator.geolocation) {
+      toast({ variant: 'destructive', title: 'Error', description: 'Geolocation not supported' });
+      return;
+    }
     navigator.geolocation.getCurrentPosition(
       (position) => {
         setFormData(prev => ({
@@ -91,10 +95,18 @@ const ManageShop = () => {
           latitude: position.coords.latitude.toFixed(6),
           longitude: position.coords.longitude.toFixed(6)
         }));
-        toast({ title: 'Location', description: 'Coordinates updated' });
+        toast({ title: 'Location Updated', description: 'Coordinates set to your current location' });
       },
       (error) => toast({ variant: 'destructive', title: 'Error', description: error.message })
     );
+  };
+
+  const handleMapLocationChange = (lat: number, lng: number) => {
+    setFormData(prev => ({
+      ...prev,
+      latitude: lat.toFixed(6),
+      longitude: lng.toFixed(6)
+    }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -263,8 +275,25 @@ const ManageShop = () => {
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2"><MapPin size={18} /> Location</CardTitle>
+                <CardDescription>Click on the map to set your shop location or use your current location</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
+                
+                {/* Interactive Map */}
+                {(formData.latitude && formData.longitude) ? (
+                  <LocationPicker
+                    latitude={parseFloat(formData.latitude)}
+                    longitude={parseFloat(formData.longitude)}
+                    onLocationChange={handleMapLocationChange}
+                  />
+                ) : (
+                  <div className="w-full h-[300px] rounded-lg border border-border bg-muted/20 flex flex-col items-center justify-center text-muted-foreground">
+                    <MapPin size={32} className="mb-2 opacity-50" />
+                    <p className="text-sm">Set your location to see the map</p>
+                    <p className="text-xs mt-1">Click "Use My Current Location" or enter coordinates</p>
+                  </div>
+                )}
+
                 <div className="space-y-2">
                   <Label htmlFor="address">Street Address</Label>
                   <Input id="address" name="address" value={formData.address} onChange={handleChange} />

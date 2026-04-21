@@ -3,11 +3,12 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { adminService } from '@/services/adminService';
 import { uploadProfilePicture } from '@/services/userService';
-import { Users, Store, DollarSign, BarChart3, TrendingUp, TrendingDown, Activity, Settings, Loader2, Plus, Calendar, Scissors, RefreshCw, AlertCircle, Camera } from 'lucide-react';
+import { Users, Store, DollarSign, BarChart3, TrendingUp, TrendingDown, Activity, Settings, Loader2, Plus, Calendar, Scissors, RefreshCw, AlertCircle, Camera, MapPin } from 'lucide-react';
 import { useAuthStore } from '@/store/authStore';
 import { Button } from '@/components/ui/button';
 import { getDisplayableUrl } from '@/utils/imageUtils';
 import { useToast } from '@/hooks/use-toast';
+import ShopsMap from '@/components/ShopsMap';
 import type { ActivityItem } from '@/models/models';
 
 const MainAdminDashboard = () => {
@@ -363,50 +364,64 @@ const MainAdminDashboard = () => {
 
       {/* Top Shops Section */}
       {data.topShops && data.topShops.length > 0 && (
-        <div className="glass-card p-6">
-          <h2 className="font-semibold mb-4 flex items-center gap-2 text-lg">
-            <Store size={18} className="text-primary" /> Top Performing Shops
-            <span className="ml-auto text-xs text-muted-foreground font-normal">Based on ratings and bookings</span>
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {data.topShops.slice(0, 6).map((shop) => (
-              <div 
-                key={shop.id} 
-                className="p-4 rounded-lg border border-border hover:border-primary/50 transition-all cursor-pointer hover:shadow-md"
-                onClick={() => navigate(`/admin/shops/${shop.id}`)}
-              >
-                <div className="flex items-start gap-3">
-                  <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center shrink-0 overflow-hidden">
-                    {shop.profilePicture && getDisplayableUrl(shop.profilePicture) ? (
-                      <img 
-                        src={getDisplayableUrl(shop.profilePicture)!} 
-                        alt={shop.name}
-                        className="w-full h-full object-cover"
-                        referrerPolicy="no-referrer"
-                      />
-                    ) : (
-                      <Store size={20} className="text-primary" />
-                    )}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <h3 className="font-semibold text-sm truncate">{shop.name}</h3>
-                    <p className="text-xs text-muted-foreground truncate">{shop.city}</p>
-                    <div className="flex items-center gap-2 mt-1">
-                      <span className="text-xs font-medium text-yellow-600">
-                        ⭐ {shop.rating?.toFixed(1) || 'N/A'}
-                      </span>
-                      {shop.reviewCount !== undefined && (
-                        <span className="text-xs text-muted-foreground">
-                          ({shop.reviewCount} reviews)
-                        </span>
+        <>
+          {/* Shops Map */}
+          <div className="glass-card p-6">
+            <h2 className="font-semibold mb-4 flex items-center gap-2 text-lg">
+              <MapPin size={18} className="text-primary" /> Shop Locations
+              <span className="ml-auto text-xs text-muted-foreground font-normal">
+                {data.topShops.filter(s => s.latitude && s.longitude).length} shops on map
+              </span>
+            </h2>
+            <ShopsMap shops={data.topShops} />
+          </div>
+
+          {/* Top Shops Grid */}
+          <div className="glass-card p-6">
+            <h2 className="font-semibold mb-4 flex items-center gap-2 text-lg">
+              <Store size={18} className="text-primary" /> Top Performing Shops
+              <span className="ml-auto text-xs text-muted-foreground font-normal">Based on ratings and bookings</span>
+            </h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {data.topShops.slice(0, 6).map((shop) => (
+                <div 
+                  key={shop.id} 
+                  className="p-4 rounded-lg border border-border hover:border-primary/50 transition-all cursor-pointer hover:shadow-md"
+                  onClick={() => navigate(`/admin/shops/${shop.id}`)}
+                >
+                  <div className="flex items-start gap-3">
+                    <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center shrink-0 overflow-hidden">
+                      {shop.profilePicture && getDisplayableUrl(shop.profilePicture) ? (
+                        <img 
+                          src={getDisplayableUrl(shop.profilePicture)!} 
+                          alt={shop.name}
+                          className="w-full h-full object-cover"
+                          referrerPolicy="no-referrer"
+                        />
+                      ) : (
+                        <Store size={20} className="text-primary" />
                       )}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <h3 className="font-semibold text-sm truncate">{shop.name}</h3>
+                      <p className="text-xs text-muted-foreground truncate">{shop.city}</p>
+                      <div className="flex items-center gap-2 mt-1">
+                        <span className="text-xs font-medium text-yellow-600">
+                          ⭐ {shop.rating?.toFixed(1) || 'N/A'}
+                        </span>
+                        {shop.reviewCount !== undefined && (
+                          <span className="text-xs text-muted-foreground">
+                            ({shop.reviewCount} reviews)
+                          </span>
+                        )}
+                      </div>
                     </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
-        </div>
+        </>
       )}
 
       {/* System Health */}
