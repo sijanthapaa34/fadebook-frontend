@@ -22,13 +22,8 @@
 	<string>$(MARKETING_VERSION)</string>
 	<key>CFBundleSignature</key>
 	<string>????</string>
-	<key>CFBundleVersion</key>
-	<string>$(CURRENT_PROJECT_VERSION)</string>
-	
-	<!-- URL Schemes for Google and Facebook Sign-In -->
 	<key>CFBundleURLTypes</key>
 	<array>
-		<!-- Google Sign-In -->
 		<dict>
 			<key>CFBundleTypeRole</key>
 			<string>Editor</string>
@@ -36,33 +31,22 @@
 			<array>
 				<string>com.googleusercontent.apps.330770558960-satr5o193upaq318m5k0959b1or3pf90</string>
 			</array>
-			<key>NSPhotoLibraryUsageDescription</key>
-			<string>FadeBook needs access to your photo gallery to upload a profile picture.</string>
-			<key>NSPhotoLibraryAddUsageDescription</key>
-			<string>FadeBook needs permission to save photos.</string>
 			<key>NSCameraUsageDescription</key>
 			<string>FadeBook needs access to your camera to take a profile photo.</string>
+			<key>NSPhotoLibraryAddUsageDescription</key>
+			<string>FadeBook needs permission to save photos.</string>
+			<key>NSPhotoLibraryUsageDescription</key>
+			<string>FadeBook needs access to your photo gallery to upload a profile picture.</string>
 		</dict>
-		<!-- Facebook Sign-In -->
-		<!-- <dict>
-			<key>CFBundleTypeRole</key>
-			<string>Editor</string>
-			<key>CFBundleURLSchemes</key>
-			<array>
-				<string>fbYOUR_FACEBOOK_APP_ID</string>
-			</array>
-		</dict> -->
 	</array>
-	
-	<!-- Facebook Configuration -->
+	<key>CFBundleVersion</key>
+	<string>$(CURRENT_PROJECT_VERSION)</string>
 	<key>FacebookAppID</key>
 	<string>YOUR_FACEBOOK_APP_ID</string>
-	<key>FacebookDisplayName</key>
-	<string>FadeBook</string>
 	<key>FacebookClientToken</key>
 	<string>YOUR_FACEBOOK_CLIENT_TOKEN</string>
-	
-	<!-- Allow Facebook and other schemes -->
+	<key>FacebookDisplayName</key>
+	<string>FadeBook</string>
 	<key>LSApplicationQueriesSchemes</key>
 	<array>
 		<string>fbapi</string>
@@ -70,7 +54,6 @@
 		<string>fbauth2</string>
 		<string>fbshareextension</string>
 	</array>
-	
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
 	<key>NSAppTransportSecurity</key>
@@ -80,12 +63,19 @@
 		<key>NSAllowsLocalNetworking</key>
 		<true/>
 	</dict>
-	<key>NSLocationWhenInUseUsageDescription</key>
-	<string></string>
 	<key>NSFaceIDUsageDescription</key>
 	<string>FadeBook uses Face ID to sign you in securely.</string>
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>FadeBook needs your location to find nearby barbershops and show you relevant services in your area.</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>FadeBook needs your location to find nearby barbershops and show you relevant services in your area.</string>
 	<key>RCTNewArchEnabled</key>
 	<true/>
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>remote-notification</string>
+		<string>location</string>
+	</array>
 	<key>UILaunchStoryboardName</key>
 	<string>LaunchScreen</string>
 	<key>UIRequiredDeviceCapabilities</key>
