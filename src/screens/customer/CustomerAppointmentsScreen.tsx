@@ -129,12 +129,12 @@ const CustomerAppointments = () => {
         message += `• Under 12 hours: 50% refund\n\n`;
 
         if (refund > 0) {
-          message += `✅ Refund: Rs. ${refund.toFixed(0)} (${pct}%)\n`;
+          message += `Refund: Rs. ${refund.toFixed(0)} (${pct}%)\n`;
           if (penalty > 0) {
-            message += `❌ Cancellation fee: Rs. ${penalty.toFixed(0)}\n`;
+            message += `Cancellation fee: Rs. ${penalty.toFixed(0)}\n`;
           }
         } else {
-          message += `❌ No refund — appointment is too soon.\n`;
+          message += `No refund — appointment is too soon.\n`;
         }
         message += `\nTotal paid: Rs. ${Number(preview.totalPaid).toFixed(0)}`;
       } else {

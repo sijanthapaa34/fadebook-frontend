@@ -9,7 +9,6 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import Logo from '../components/Logo';
 import { theme } from '../theme/theme';
 import { useAuthStore } from '../store/authStore';
-import { useBiometrics } from '../hooks/useBiometrics';
 
 import type { RootStackParamList } from '../navigation/AppNavigator';
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
@@ -22,18 +21,6 @@ const Login = () => {
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
-  const {
-    isAvailable,
-    biometryLabel,
-    hasSavedCreds,
-    saveCredentials,
-    authenticateAndGetCredentials,
-    check,
-  } = useBiometrics();
-
-  const showBiometricButton = hasSavedCreds;
-  const showBiometricSetupHint = isAvailable && !hasSavedCreds;
-
   const handleSubmit = async () => {
     if (!email || !password) {
       Alert.alert('Missing Fields', 'Please enter both email and password');
@@ -42,40 +29,6 @@ const Login = () => {
     setIsLoading(true);
     try {
       await login(email, password);
-
-      // Offer to enable biometrics after first successful password login
-      if (isAvailable && !hasSavedCreds) {
-        Alert.alert(
-          `Enable ${biometryLabel}`,
-          `Sign in faster next time using ${biometryLabel}?`,
-          [
-            { text: 'Not Now', style: 'cancel' },
-            {
-              text: 'Enable',
-              onPress: async () => {
-                const ok = await saveCredentials(email, password);
-                if (ok) await check(); // refresh hasSavedCreds
-              },
-            },
-          ]
-        );
-      }
-    } catch (err: any) {
-      Alert.alert('Login Failed', err.message || 'An unknown error occurred');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleBiometricLogin = async () => {
-    setIsLoading(true);
-    try {
-      const creds = await authenticateAndGetCredentials();
-      if (!creds) {
-        Alert.alert('Cancelled', `${biometryLabel} authentication was cancelled or failed.`);
-        return;
-      }
-      await login(creds.email, creds.password);
     } catch (err: any) {
       Alert.alert('Login Failed', err.message || 'An unknown error occurred');
     } finally {
@@ -95,38 +48,6 @@ const Login = () => {
 
         <View style={styles.card}>
           <View style={styles.form}>
-
-            {/* Biometric quick-login — only when creds already saved */}
-            {showBiometricButton && (
-              <>
-                <TouchableOpacity
-                  style={[styles.biometricButton, isLoading && styles.buttonDisabled]}
-                  onPress={handleBiometricLogin}
-                  disabled={isLoading}
-                >
-                  {isLoading ? (
-                    <ActivityIndicator color={theme.colors.primary} />
-                  ) : (
-                    <Text style={styles.biometricText}>Sign in with {biometryLabel}</Text>
-                  )}
-                </TouchableOpacity>
-
-                <View style={styles.divider}>
-                  <View style={styles.dividerLine} />
-                  <Text style={styles.dividerText}>or use password</Text>
-                  <View style={styles.dividerLine} />
-                </View>
-              </>
-            )}
-
-            {/* Setup hint — visible immediately when biometrics available but not yet set up */}
-            {showBiometricSetupHint && (
-              <View style={styles.biometricHint}>
-                <Text style={styles.biometricHintText}>
-                  {biometryLabel} available — sign in with password once to enable it
-                </Text>
-              </View>
-            )}
 
             <View style={styles.inputGroup}>
               <Text style={styles.label}>Email</Text>
@@ -238,46 +159,6 @@ const styles = StyleSheet.create({
     color: theme.colors.primaryText,
     fontWeight: '600',
     fontSize: theme.typography.button.fontSize,
-  },
-  biometricButton: {
-    borderWidth: 1.5,
-    borderColor: theme.colors.primary,
-    borderRadius: theme.radius.md,
-    paddingVertical: theme.spacing.md,
-    alignItems: 'center',
-  },
-  biometricText: {
-    color: theme.colors.primary,
-    fontWeight: '600',
-    fontSize: theme.typography.button.fontSize,
-  },
-  biometricHint: {
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-    borderRadius: theme.radius.md,
-    paddingVertical: theme.spacing.sm,
-    paddingHorizontal: theme.spacing.md,
-    alignItems: 'center',
-    backgroundColor: theme.colors.surface,
-  },
-  biometricHintText: {
-    color: theme.colors.textSecondary,
-    fontSize: 12,
-    textAlign: 'center',
-  },
-  divider: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: theme.spacing.sm,
-  },
-  dividerLine: {
-    flex: 1,
-    height: 1,
-    backgroundColor: theme.colors.border,
-  },
-  dividerText: {
-    color: theme.colors.textSecondary,
-    fontSize: 12,
   },
   footer: {
     textAlign: 'center',

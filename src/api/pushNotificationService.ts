@@ -41,22 +41,36 @@ class NotificationService {
 
   async getToken(): Promise<string | null> {
     try {
+      console.log('=== Getting FCM Token ===');
+      
       // Must register before getToken on iOS
       await messaging().registerDeviceForRemoteMessages();
+      console.log('Registered device for remote messages');
+      
       const token = await messaging().getToken();
-      console.log('✅ FCM Token:', token);
+      console.log('FCM Token obtained:', token ? token.substring(0, 20) + '...' : 'null');
+      
       if (token) {
         try {
+          console.log('Sending token to backend...');
           await api.post('/notifications/token', token, {
             headers: { 'Content-Type': 'text/plain' },
           });
-        } catch {}
+          console.log('Token successfully sent to backend');
+        } catch (error: any) {
+          console.error('Failed to send token to backend:', error.response?.data || error.message);
+          throw error;
+        }
+      } else {
+        console.warn('No FCM token obtained');
       }
+      
+      console.log('========================');
       return token;
     } catch (error: any) {
       // Suppress the noisy unregistered error — it resolves after registerDeviceForRemoteMessages
       if (error?.code !== 'messaging/unregistered') {
-        console.warn('FCM token error:', error?.message ?? error);
+        console.error('FCM token error:', error?.message ?? error);
       }
       return null;
     }

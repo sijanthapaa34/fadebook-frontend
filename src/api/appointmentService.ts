@@ -44,7 +44,8 @@ export const rescheduleAppointment = async (appointmentId: number, newDateTime: 
 };
 
 export const cancelAppointment = async (appointmentId: number): Promise<void> => {
-  await api.put(`/appointment/${appointmentId}/cancel`);
+  // Increase timeout to 60 seconds for cancellation (includes refund processing)
+  await api.put(`/appointment/${appointmentId}/cancel`, {}, { timeout: 60000 });
 };
 
 export const fetchBarberAppointments = async (
@@ -97,5 +98,10 @@ export const fetchBarberPast = async (
   const response = await api.get(`/appointment/barber/${barberId}/past`, { 
     params: { page, size } 
   });
+  return response.data;
+};
+
+export const notifyCustomer = async (appointmentId: number): Promise<{ message: string; customerName: string }> => {
+  const response = await api.post(`/appointment/${appointmentId}/notify`);
   return response.data;
 };

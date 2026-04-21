@@ -26,6 +26,7 @@ import CustomerAppointments from '../screens/customer/CustomerAppointmentsScreen
 import CheckoutScreen from '../screens/customer/CheckoutScreen';
 import CustomerPayments from '../screens/customer/CustomerPaymentsScreen';
 import CustomerChatScreen from '../screens/customer/CustomerChatScreen';
+import CustomerChatListScreen from '../screens/customer/CustomerChatListScreen';
 import CustomerProfileScreen from '../screens/customer/CustomerProfileScreen';
 import PaymentCallbackScreen from '../screens/customer/PaymentCallbackScreen';
 
@@ -111,7 +112,8 @@ export type RootStackParamList = {
   BookAppointment: { shopId: number; shopName?: string; reschedule?: RescheduleData };
   CustomerAppointments: undefined;
   CustomerPayments: undefined;
-  CustomerChat: undefined; 
+  CustomerChatList: undefined;
+  CustomerChat: { chatRoomId: number; conversation: any }; 
   CustomerProfile: undefined;
   
   Checkout: {
@@ -308,6 +310,14 @@ const AppNavigator = () => {
                   {() => (
                     <DashboardLayout user={user} onLogout={logout}>
                       <CustomerPayments />
+                    </DashboardLayout>
+                  )}
+                </Stack.Screen>
+
+                <Stack.Screen name="CustomerChatList">
+                  {() => (
+                    <DashboardLayout user={user} onLogout={logout}>
+                      <CustomerChatListScreen />
                     </DashboardLayout>
                   )}
                 </Stack.Screen>

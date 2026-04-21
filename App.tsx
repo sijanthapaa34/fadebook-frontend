@@ -13,10 +13,15 @@ export default function App() {
   // ✅ NEW: Cleanup ref for notification listeners
   const cleanupRef = useRef<(() => void) | null>(null);
 
-  // ✅ UPDATED: Use notification service for FCM setup
+  // ✅ UPDATED: Only setup notification listeners, don't get token yet
+  // Token will be registered after login in authStore.ts
   useEffect(() => {
     const setupNotifications = async () => {
-      const cleanup = await notificationService.initialize();
+      // Request permissions
+      await notificationService.requestPermission();
+      
+      // Setup listeners for foreground/background notifications
+      const cleanup = notificationService.setupListeners();
       cleanupRef.current = cleanup;
     };
 

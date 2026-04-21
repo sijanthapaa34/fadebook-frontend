@@ -58,7 +58,7 @@ const navConfig: Record<UserRole, NavItem[]> = {
     { label: 'Find Shops', path: 'CustomerDashboard', Icon: MapPin },
     { label: 'My Bookings', path: 'CustomerAppointments', Icon: Calendar },
     { label: 'Payments', path: 'CustomerPayments', Icon: CreditCard },
-    { label: 'Chat', path: 'CustomerChat', Icon: MessageSquare },
+    { label: 'Chat', path: 'CustomerChatList', Icon: MessageSquare },
     { label: 'Profile', path: 'CustomerProfile', Icon: UserCircle },
   ],
   BARBER: [

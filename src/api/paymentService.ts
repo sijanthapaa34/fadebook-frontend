@@ -13,8 +13,18 @@ export const initiatePayment = async (
 export const verifyPayment = async (
   data: VerifyPaymentRequest
 ): Promise<VerifyPaymentResponse> => {
+  // ✅ DEBUG: Log what we're sending to backend
+  console.log('=== API: Sending verifyPayment request ===');
+  console.log('Request data:', JSON.stringify(data, null, 2));
+  console.log('=========================================');
+  
   // ✅ FIXED: Changed from /payment/ to /payments/
   const response = await api.post<VerifyPaymentResponse>('/payments/verify', data);
+  
+  console.log('=== API: Received verifyPayment response ===');
+  console.log('Response:', JSON.stringify(response.data, null, 2));
+  console.log('===========================================');
+  
   return response.data;
 };
 

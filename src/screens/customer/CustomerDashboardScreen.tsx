@@ -75,8 +75,8 @@ const ListHeader = memo(({ userCoords, search, setSearch, isLoading, listTitle, 
               />
             )}
 
-            {shops.map((shop) => (
-              shop.latitude && shop.longitude && (
+            {shops.map((shop) => 
+              shop.latitude && shop.longitude ? (
                 <Marker
                   key={shop.id}
                   coordinate={{
@@ -85,10 +85,11 @@ const ListHeader = memo(({ userCoords, search, setSearch, isLoading, listTitle, 
                   }}
                   title={shop.name}
                   description={shop.address}
-                  pinColor={theme.colors.primary}
+                  pinColor="red"
+                  identifier={`shop-${shop.id}`}
                 />
-              )
-            ))}
+              ) : null
+            )}
           </MapView>
 
           {/* RE-CENTER BUTTON */}
@@ -141,18 +142,39 @@ const CustomerDashboard = () => {
     requestLocationPermission();
   }, []);
 
-  // Animate map when coordinates update
+  // Animate map when coordinates update OR when shops change
   useEffect(() => {
     if (userCoords && mapRef.current) {
-      const region: Region = {
-        latitude: userCoords.latitude,
-        longitude: userCoords.longitude,
-        latitudeDelta: DEFAULT_DELTA,
-        longitudeDelta: DEFAULT_DELTA,
-      };
-      mapRef.current.animateToRegion(region, 1500);
+      // If we have shops, fit the map to show all markers
+      if (shops.length > 0) {
+        const coordinates = [
+          { latitude: userCoords.latitude, longitude: userCoords.longitude },
+          ...shops
+            .filter(shop => shop.latitude && shop.longitude)
+            .map(shop => ({
+              latitude: parseFloat(shop.latitude.toString()),
+              longitude: parseFloat(shop.longitude.toString()),
+            }))
+        ];
+        
+        console.log('📍 Fitting map to', coordinates.length, 'points');
+        
+        mapRef.current.fitToCoordinates(coordinates, {
+          edgePadding: { top: 50, right: 50, bottom: 50, left: 50 },
+          animated: true,
+        });
+      } else {
+        // No shops, just center on user
+        const region: Region = {
+          latitude: userCoords.latitude,
+          longitude: userCoords.longitude,
+          latitudeDelta: DEFAULT_DELTA,
+          longitudeDelta: DEFAULT_DELTA,
+        };
+        mapRef.current.animateToRegion(region, 1500);
+      }
     }
-  }, [userCoords]);
+  }, [userCoords, shops]);
 
   const requestLocationPermission = async () => {
     if (Platform.OS === 'android') {
@@ -225,7 +247,10 @@ const CustomerDashboard = () => {
     enabled: true,
   });
 
-  const shops = useMemo(() => data?.pages.flatMap((page) => page.content) ?? [], [data]);
+  const shops = useMemo(() => {
+    const allShops = data?.pages.flatMap((page) => page.content) ?? [];
+    return allShops;
+  }, [data]);
 
   const listTitle = useMemo(() => {
     if (debouncedSearch.length > 1) return `Results for "${debouncedSearch}"`;

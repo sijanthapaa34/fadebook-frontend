@@ -1,4 +1,4 @@
-// Customer Chat Screen
+// Customer Chat Screen with WebSocket
 import React, { useState, useRef, useEffect } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity, StyleSheet, TextInput, Alert, KeyboardAvoidingView, Platform, Animated, AppState,
@@ -7,7 +7,7 @@ import { useRoute, useNavigation } from '@react-navigation/native';
 import { Send, ArrowLeft, Check, CheckCheck } from 'lucide-react-native';
 import { theme } from '../../theme/theme';
 import { useAuthStore } from '../../store/authStore';
-import chatService, { Message, Conversation } from '../../services/chatService';
+import websocketChatService, { Message, Conversation } from '../../services/websocketChatService';
 
 // --- Types ---
 type MessageStatus = 'sent' | 'delivered' | 'seen';
@@ -75,41 +75,51 @@ const CustomerChat = () => {
   const [message, setMessage] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const [sending, setSending] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [activeConversation, setActiveConversation] = useState<Conversation | null>(conversation || null);
+  const [activeConversation] = useState<Conversation | null>(conversation || null);
   
   const scrollViewRef = useRef<ScrollView>(null);
   const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Start polling for messages when chat is active
+  // Connect to WebSocket on mount (disabled - using REST API polling)
+  useEffect(() => {
+    // WebSocket disabled due to React Native compatibility issues
+    // Using REST API polling instead (standard for mobile apps)
+    return () => {
+      // Cleanup
+    };
+  }, []);
+
+  // Subscribe to messages when chat is active (using REST API polling)
   useEffect(() => {
     if (!chatRoomId) return;
 
-    setLoading(true);
-    
-    // Start polling for messages
-    chatService.startMessagePolling(
-      chatRoomId,
-      (updatedMessages) => {
-        setMessages(updatedMessages);
-        setLoading(false);
-        
-        // Auto-scroll to bottom
-        setTimeout(() => {
-          scrollViewRef.current?.scrollToEnd({ animated: true });
-        }, 100);
-      }
-    );
+    // Load initial messages
+    websocketChatService.getMessages(chatRoomId)
+      .then(setMessages)
+      .catch(console.error);
+
+    // Poll for new messages every 3 seconds (when in chat)
+    const interval = setInterval(() => {
+      websocketChatService.getMessages(chatRoomId)
+        .then((newMessages) => {
+          setMessages(newMessages);
+          // Auto-scroll to bottom if new messages
+          setTimeout(() => {
+            scrollViewRef.current?.scrollToEnd({ animated: true });
+          }, 100);
+        })
+        .catch(console.error);
+    }, 3000);
 
     return () => {
-      chatService.stopMessagePolling(chatRoomId);
+      clearInterval(interval);
     };
   }, [chatRoomId]);
 
   // Mark messages as read when screen is focused
   useEffect(() => {
     if (chatRoomId) {
-      chatService.markMessagesAsRead(chatRoomId, 'CUSTOMER').catch(console.error);
+      websocketChatService.markMessagesAsRead(chatRoomId, 'CUSTOMER').catch(console.error);
     }
   }, [chatRoomId]);
 
@@ -117,30 +127,21 @@ const CustomerChat = () => {
   useEffect(() => {
     if (!chatRoomId) return;
 
-    chatService.updateOnlineStatus(chatRoomId, 'CUSTOMER', true).catch(console.error);
+    websocketChatService.updateOnlineStatus(chatRoomId, 'CUSTOMER', true).catch(console.error);
 
     const subscription = AppState.addEventListener('change', (nextAppState) => {
       if (nextAppState === 'active') {
-        chatService.updateOnlineStatus(chatRoomId, 'CUSTOMER', true).catch(console.error);
+        websocketChatService.updateOnlineStatus(chatRoomId, 'CUSTOMER', true).catch(console.error);
       } else {
-        chatService.updateOnlineStatus(chatRoomId, 'CUSTOMER', false).catch(console.error);
+        websocketChatService.updateOnlineStatus(chatRoomId, 'CUSTOMER', false).catch(console.error);
       }
     });
 
     return () => {
-      chatService.updateOnlineStatus(chatRoomId, 'CUSTOMER', false).catch(console.error);
+      websocketChatService.updateOnlineStatus(chatRoomId, 'CUSTOMER', false).catch(console.error);
       subscription.remove();
     };
   }, [chatRoomId]);
-
-  // Update typing indicator when admin is typing
-  useEffect(() => {
-    if (activeConversation?.adminTyping) {
-      setIsTyping(true);
-    } else {
-      setIsTyping(false);
-    }
-  }, [activeConversation?.adminTyping]);
 
   const handleSend = async () => {
     if (!message.trim() || sending || !user || !chatRoomId) return;
@@ -150,7 +151,8 @@ const CustomerChat = () => {
     setSending(true);
 
     try {
-      await chatService.sendMessage(
+      // Send via REST API (WebSocket disabled)
+      await websocketChatService.sendMessageViaRest(
         chatRoomId,
         user.id,
         user.name,
@@ -158,8 +160,12 @@ const CustomerChat = () => {
         messageText,
       );
       
+      // Refresh messages immediately
+      const updatedMessages = await websocketChatService.getMessages(chatRoomId);
+      setMessages(updatedMessages);
+      
       // Stop typing indicator
-      chatService.updateTypingStatus(chatRoomId, 'CUSTOMER', false).catch(console.error);
+      websocketChatService.updateTypingStatus(chatRoomId, 'CUSTOMER', false);
     } catch (error) {
       console.error('Error sending message:', error);
       setMessage(messageText); // Restore message on error
@@ -180,11 +186,11 @@ const CustomerChat = () => {
     }
 
     if (text.length > 0) {
-      chatService.updateTypingStatus(chatRoomId, 'CUSTOMER', true).catch(console.error);
+      websocketChatService.updateTypingStatus(chatRoomId, 'CUSTOMER', true);
     }
 
     typingTimeoutRef.current = setTimeout(() => {
-      chatService.updateTypingStatus(chatRoomId, 'CUSTOMER', false).catch(console.error);
+      websocketChatService.updateTypingStatus(chatRoomId, 'CUSTOMER', false);
     }, 1000);
   };
 

@@ -230,7 +230,7 @@ const CustomerProfileScreen = () => {
             <Text style={styles.loyaltyTitle}>Loyalty Rewards</Text>
             {loyalty && loyalty.freeAppointmentsEarned > 0 && (
               <View style={styles.freeBadge}>
-                <Text style={styles.freeBadgeText}>🎁 {loyalty.freeAppointmentsEarned} Free</Text>
+                <Text style={styles.freeBadgeText}>{loyalty.freeAppointmentsEarned} Free</Text>
               </View>
             )}
           </View>

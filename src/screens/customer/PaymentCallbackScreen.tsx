@@ -45,6 +45,15 @@ const PaymentCallback = () => {
   const refId = params.refId || null;
   
   const gatewayStatus = params.status || null;
+  
+  // ✅ DEBUG: Log all received params
+  console.log('=== PaymentCallback Params ===');
+  console.log('All params:', params);
+  console.log('transactionId:', transactionId);
+  console.log('pidx:', pidx);
+  console.log('refId:', refId);
+  console.log('gatewayStatus:', gatewayStatus);
+  console.log('==============================');
 
   const [status, setStatus] = useState<CallbackStatus>('verifying');
   const [appointment, setAppointment] = useState<VerifyPaymentResponse | null>(null);
@@ -63,6 +72,13 @@ const PaymentCallback = () => {
           new Error('Payment was cancelled or failed at the gateway.')
         );
       }
+
+      // ✅ DEBUG: Log what we're sending to verify API
+      console.log('=== Calling verifyPayment API ===');
+      console.log('transactionId:', transactionId);
+      console.log('pidx:', pidx || undefined);
+      console.log('refId:', refId || undefined);
+      console.log('================================');
 
       // ✅ FIX: Pass pidx from state (not from URL)
       return verifyPayment({
@@ -143,7 +159,12 @@ const PaymentCallback = () => {
   };
 
   const handleTryAgain = () => {
-    navigation.goBack();
+    // Reset navigation stack to go back to booking flow
+    // This prevents getting stuck in payment state
+    navigation.reset({
+      index: 0,
+      routes: [{ name: 'CustomerDashboard' }],
+    } as any);
   };
 
   const handleGoHome = () => {
@@ -272,7 +293,7 @@ const PaymentCallback = () => {
           {appointment && appointment.totalPrice > 0 && (
             <View style={styles.pointsBadge}>
               <Text style={styles.pointsBadgeText}>
-                🎁 +{Math.floor(appointment.totalPrice / 100)} loyalty points earned!
+                 +{Math.floor(appointment.totalPrice / 100)} loyalty points earned!
               </Text>
             </View>
           )}

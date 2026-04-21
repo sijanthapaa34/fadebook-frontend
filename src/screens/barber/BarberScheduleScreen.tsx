@@ -1,20 +1,23 @@
 // src/screens/barber/BarberScheduleScreen.tsx
-import React from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   ScrollView,
   ActivityIndicator,
+  TouchableOpacity,
+  Alert,
 } from 'react-native';
-import { Clock } from 'lucide-react-native';
+import { Clock, Bell } from 'lucide-react-native';
 import { theme } from '../../theme/theme';
 import { useAuthStore } from '../../store/authStore';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { 
   fetchBarberAppointments, 
   fetchBarberUpcoming, 
-  fetchBarberPast 
+  fetchBarberPast,
+  notifyCustomer 
 } from '../../api/appointmentService';
 import { AppointmentDetailsResponse } from '../../models/models';
 
@@ -23,6 +26,46 @@ const hours = ['9 AM', '10 AM', '11 AM', '12 PM', '1 PM', '2 PM', '3 PM', '4 PM'
 
 const BarberScheduleScreen = () => {
   const user = useAuthStore((state) => state.user);
+  const queryClient = useQueryClient();
+  const [notifyingId, setNotifyingId] = useState<number | null>(null);
+
+  // Mutation for notifying customer
+  const notifyMutation = useMutation({
+    mutationFn: notifyCustomer,
+    onSuccess: (data) => {
+      Alert.alert(
+        'Notification Sent',
+        `${data.customerName} has been notified about their appointment.`,
+        [{ text: 'OK' }]
+      );
+      setNotifyingId(null);
+    },
+    onError: (error: any) => {
+      Alert.alert(
+        'Failed to Send',
+        error.response?.data?.message || 'Could not send notification. Please try again.',
+        [{ text: 'OK' }]
+      );
+      setNotifyingId(null);
+    },
+  });
+
+  const handleNotifyCustomer = (appointmentId: number, customerName: string) => {
+    Alert.alert(
+      'Notify Customer',
+      `Send a reminder notification to ${customerName}?`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Send',
+          onPress: () => {
+            setNotifyingId(appointmentId);
+            notifyMutation.mutate(appointmentId);
+          },
+        },
+      ]
+    );
+  };
 
   // --- 1. Calculate Current Week Dates ---
   const getWeekDates = () => {
@@ -171,7 +214,20 @@ const BarberScheduleScreen = () => {
           {getServiceNames(apt.services)} · {formatTime(apt.scheduledTime)}-{calculateEndTime(apt.scheduledTime, apt.totalDurationMinutes)}
         </Text>
       </View>
-      <Text style={styles.aptPrice}>Rs. {apt.totalPrice}</Text>
+      <View style={styles.aptActions}>
+        <Text style={styles.aptPrice}>Rs. {apt.totalPrice}</Text>
+        <TouchableOpacity
+          style={styles.notifyButton}
+          onPress={() => handleNotifyCustomer(apt.appointmentId, apt.customerName)}
+          disabled={notifyingId === apt.appointmentId}
+        >
+          {notifyingId === apt.appointmentId ? (
+            <ActivityIndicator size="small" color={theme.colors.primary} />
+          ) : (
+            <Bell size={16} color={theme.colors.primary} />
+          )}
+        </TouchableOpacity>
+      </View>
     </View>
   );
 
@@ -376,6 +432,11 @@ const styles = StyleSheet.create({
   aptInfo: {
     flex: 1,
   },
+  aptActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: theme.spacing.md,
+  },
   aptName: {
     fontSize: 14,
     fontFamily: theme.fonts.sans,
@@ -393,6 +454,14 @@ const styles = StyleSheet.create({
     fontFamily: theme.fonts.sans,
     fontWeight: '600',
     color: theme.colors.primary,
+  },
+  notifyButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: `${theme.colors.primary}1A`,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });
 

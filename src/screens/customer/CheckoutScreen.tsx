@@ -11,8 +11,9 @@ import {
   Linking,
   Dimensions,
   Modal,
+  AppState,
 } from 'react-native';
-import { useRoute, useNavigation } from '@react-navigation/native';
+import { useRoute, useNavigation, useFocusEffect } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useMutation } from '@tanstack/react-query';
@@ -125,6 +126,57 @@ const Checkout = () => {
   const selectedMethod = METHODS.find((m) => m.id === method);
   const isProcessingRef = useRef(false);
   const webViewRef = useRef<any>(null);
+  const appState = useRef(AppState.currentState);
+
+  // Reset to method selection when screen regains focus after failed payment
+  useFocusEffect(
+    React.useCallback(() => {
+      // When screen comes into focus, reset if we're in a stuck state
+      if (step === 'redirected' || step === 'initiating') {
+        console.log('Screen focused with step:', step, 'txId:', txId);
+        
+        // If no transaction was completed, reset to method selection
+        if (!txId || step === 'initiating') {
+          console.log('Resetting checkout to method selection');
+          setStep('method');
+          setMethod(null);
+          setPaymentUrl(null);
+          setPidx(null);
+          setEsewaHtml(null);
+          setShowEsewaModal(false);
+          setTxId(null);
+          isProcessingRef.current = false;
+        }
+      }
+      
+      // Monitor app state changes
+      const subscription = AppState.addEventListener('change', nextAppState => {
+        if (
+          appState.current.match(/inactive|background/) &&
+          nextAppState === 'active'
+        ) {
+          // App came to foreground
+          // If we're in redirected state and no payment was completed, reset
+          if (step === 'redirected' && !txId) {
+            console.log('App returned to foreground, resetting checkout');
+            setStep('method');
+            setMethod(null);
+            setPaymentUrl(null);
+            setPidx(null);
+            setEsewaHtml(null);
+            setShowEsewaModal(false);
+            setTxId(null);
+            isProcessingRef.current = false;
+          }
+        }
+        appState.current = nextAppState;
+      });
+
+      return () => {
+        subscription.remove();
+      };
+    }, [step, txId])
+  );
 
   // Auto-close modal and show redirected screen after form submission
   useEffect(() => {
@@ -403,55 +455,108 @@ const Checkout = () => {
                   navState.url.includes('fadebook.com/payment/success') || 
                   navState.url.includes('fadebook.com/payment/failure')
                 ) {
-                  // Extract txId from URL
-                  const urlParts = navState.url.split('?');
-                  if (urlParts.length > 1) {
-                    const urlParams = new URLSearchParams(urlParts[1]);
-                    const urlTxId = urlParams.get('txId');
-                    const refId = urlParams.get('refId');
-                    const isFailure = navState.url.includes('failure');
-                    
-                    console.log('Payment completed:', { urlTxId, refId, isFailure });
-                    
-                    setShowEsewaModal(false);
-                    
-                    if (urlTxId || txId) {
-                      navigation.navigate('PaymentCallback', { 
-                        txId: urlTxId || txId,
-                        refId: refId || undefined,
-                        status: isFailure ? 'failure' : undefined
-                      } as any);
+                  // Extract params from URL
+                  try {
+                    const urlParts = navState.url.split('?');
+                    if (urlParts.length > 1) {
+                      const urlParams = new URLSearchParams(urlParts[1]);
+                      const urlTxId = urlParams.get('txId');
+                      const refId = urlParams.get('refId');
+                      const isFailure = navState.url.includes('failure');
+                      
+                      console.log('Payment callback detected:', { 
+                        url: navState.url,
+                        urlTxId, 
+                        refId, 
+                        isFailure,
+                        allParams: Object.fromEntries(urlParams.entries())
+                      });
+                      
+                      setShowEsewaModal(false);
+                      
+                      if (urlTxId || txId) {
+                        navigation.navigate('PaymentCallback', { 
+                          txId: urlTxId || txId,
+                          refId: refId || undefined,
+                          status: isFailure ? 'failure' : undefined
+                        } as any);
+                      } else {
+                        console.error('No txId found in callback URL');
+                      }
                     }
+                  } catch (e) {
+                    console.error('Failed to parse callback URL:', e);
                   }
                 }
               }}
               onError={(syntheticEvent) => {
                 const { nativeEvent } = syntheticEvent;
-                console.error('WebView error:', nativeEvent);
+                console.log('WebView error:', nativeEvent);
                 
                 // Check if error is due to redirect URL not loading (which is expected)
-                if (nativeEvent.description?.includes('fadebook.com')) {
-                  // This is expected - the redirect URL doesn't exist
-                  // Try to extract txId from the failed URL
-                  const url = nativeEvent.url || '';
-                  if (url.includes('txId=')) {
-                    const urlParams = new URLSearchParams(url.split('?')[1]);
-                    const urlTxId = urlParams.get('txId');
-                    const refId = urlParams.get('refId');
-                    
-                    setShowEsewaModal(false);
-                    
-                    if (urlTxId || txId) {
-                      navigation.navigate('PaymentCallback', { 
-                        txId: urlTxId || txId,
-                        refId: refId || undefined
-                      } as any);
+                const errorUrl = nativeEvent.url || '';
+                const errorDescription = nativeEvent.description || '';
+                
+                // eSewa redirects to fadebook.com or rc-epay.esewa.com.np/payment-success
+                // Both will fail to load, but that's expected - we just need the URL params
+                if (
+                  errorUrl.includes('fadebook.com/payment') || 
+                  errorUrl.includes('payment-success') ||
+                  errorUrl.includes('payment-failure') ||
+                  errorDescription.includes('NSURLErrorDomain') ||
+                  errorDescription.includes('TLS') ||
+                  errorDescription.includes('SSL')
+                ) {
+                  console.log('Expected redirect error (SSL/TLS), extracting params from:', errorUrl);
+                  
+                  // Try to extract params from the URL
+                  if (errorUrl.includes('?')) {
+                    try {
+                      const urlParts = errorUrl.split('?');
+                      if (urlParts.length > 1) {
+                        const urlParams = new URLSearchParams(urlParts[1]);
+                        const urlTxId = urlParams.get('txId');
+                        const refId = urlParams.get('refId');
+                        const isFailure = errorUrl.includes('failure');
+                        
+                        console.log('Extracted params from error URL:', { 
+                          errorUrl,
+                          urlTxId, 
+                          refId,
+                          isFailure,
+                          allParams: Object.fromEntries(urlParams.entries())
+                        });
+                        
+                        setShowEsewaModal(false);
+                        
+                        if (urlTxId || txId) {
+                          navigation.navigate('PaymentCallback', { 
+                            txId: urlTxId || txId,
+                            refId: refId || undefined,
+                            status: isFailure ? 'failure' : undefined
+                          } as any);
+                        } else {
+                          console.error('No txId found in error URL');
+                        }
+                        return;
+                      }
+                    } catch (e) {
+                      console.error('Failed to parse error URL params:', e);
                     }
+                  }
+                  
+                  // If we can't extract params but have txId from state, use that
+                  // This is a fallback - refId will be missing
+                  if (txId) {
+                    console.warn('Using fallback: txId from state, refId will be missing');
+                    setShowEsewaModal(false);
+                    navigation.navigate('PaymentCallback', { txId } as any);
                     return;
                   }
                 }
                 
-                // Real error
+                // Real error - not a redirect issue
+                console.error('Real WebView error (not redirect):', nativeEvent);
                 Alert.alert(
                   'Connection Error',
                   'Could not connect to eSewa. Please check your internet connection.',

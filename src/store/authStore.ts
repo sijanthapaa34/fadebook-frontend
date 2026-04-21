@@ -4,6 +4,7 @@ import { User, UserRole, RegisterCustomerRequest } from '../models/models';
 import { loginRequest, registerRequest, googleSignInRequest } from '../api/authService';
 import { setUnauthorizedHandler } from '../api/authEvents';
 import api from '../api/api';
+import notificationService from '../api/pushNotificationService';
 
 const MOBILE_ROLES: UserRole[] = ['CUSTOMER', 'BARBER'];
 
@@ -90,6 +91,13 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     const safeUser = { ...user, role: normalizeRole(user.role) };
     await Keychain.setGenericPassword(JSON.stringify(safeUser), token);
     set({ user: safeUser, token, isAuthenticated: true });
+    
+    // ✅ Register FCM token after successful login
+    try {
+      await notificationService.getToken();
+    } catch (e) {
+      console.warn('Failed to register FCM token after login:', e);
+    }
   },
 
   register: async (data) => {
@@ -98,6 +106,14 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     const userWithRole = { ...user, role: normalizeRole(user.role || 'CUSTOMER') };
     await Keychain.setGenericPassword(JSON.stringify(userWithRole), token);
     set({ user: userWithRole, token, isAuthenticated: true });
+    
+    // ✅ Register FCM token after successful registration
+    try {
+      await notificationService.getToken();
+    } catch (e) {
+      console.warn('Failed to register FCM token after registration:', e);
+    }
+    
     return userWithRole;
   },
 
@@ -107,6 +123,13 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     const userWithRole = { ...user, role: normalizeRole(user.role || 'CUSTOMER') };
     await Keychain.setGenericPassword(JSON.stringify(userWithRole), token);
     set({ user: userWithRole, token, isAuthenticated: true });
+    
+    // ✅ Register FCM token after successful Google login
+    try {
+      await notificationService.getToken();
+    } catch (e) {
+      console.warn('Failed to register FCM token after Google login:', e);
+    }
   },
 
   logout: async () => {
