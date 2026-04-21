@@ -1,0 +1,19 @@
+{
+  "Simulator Target Bundle": "org.reactjs.native.example.FadeBook",
+  "aps": {
+    "alert": {
+      "title": "New Booking! 💈",
+      "body": "John Doe booked a Haircut for tomorrow at 3:00 PM"
+    },
+    "badge": 2,
+    "sound": "default"
+  },
+  "data": {
+    "type": "NEW_APPOINTMENT",
+    "appointmentId": "102",
+    "customerName": "John Doe",
+    "serviceName": "Haircut",
+    "scheduledTime": "2024-04-19T15:00:00Z",
+    "timestamp": "2024-04-18T11:00:00Z"
+  }
+}

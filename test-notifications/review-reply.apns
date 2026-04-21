@@ -1,0 +1,17 @@
+{
+  "Simulator Target Bundle": "org.reactjs.native.example.FadeBook",
+  "aps": {
+    "alert": {
+      "title": "Reply to Your Review 💬",
+      "body": "Mike from The Fade House replied to your review"
+    },
+    "badge": 1,
+    "sound": "default"
+  },
+  "data": {
+    "type": "REVIEW_REPLY",
+    "barberName": "Mike Johnson",
+    "shopName": "The Fade House",
+    "timestamp": "2024-04-18T13:00:00Z"
+  }
+}

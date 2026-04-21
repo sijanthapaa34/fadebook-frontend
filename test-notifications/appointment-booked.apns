@@ -1,0 +1,21 @@
+{
+  "Simulator Target Bundle": "org.reactjs.native.example.FadeBook",
+  "aps": {
+    "alert": {
+      "title": "Appointment Confirmed! 🎉",
+      "body": "Your appointment with Mike at The Fade House is confirmed for tomorrow at 2:00 PM"
+    },
+    "badge": 1,
+    "sound": "default"
+  },
+  "data": {
+    "type": "APPOINTMENT_BOOKED",
+    "appointmentId": "101",
+    "shopId": "5",
+    "shopName": "The Fade House",
+    "barberName": "Mike Johnson",
+    "serviceName": "Premium Haircut",
+    "scheduledTime": "2024-04-19T14:00:00Z",
+    "timestamp": "2024-04-18T10:30:00Z"
+  }
+}

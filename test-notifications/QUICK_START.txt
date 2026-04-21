@@ -1,0 +1,71 @@
+╔══════════════════════════════════════════════════════════════╗
+║                                                              ║
+║   🚀 QUICK START: Test Push Notifications on Simulator      ║
+║                                                              ║
+╚══════════════════════════════════════════════════════════════╝
+
+📱 METHOD 1: DRAG & DROP (EASIEST!)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+1. Run app in simulator:
+   $ npm run ios
+
+2. Drag ANY .apns file onto the simulator window
+
+3. 🎉 Notification appears!
+
+
+💻 METHOD 2: COMMAND LINE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+$ cd test-notifications
+$ xcrun simctl push booted org.reactjs.native.example.FadeBook appointment-booked.apns
+
+
+🧪 METHOD 3: TEST ALL AT ONCE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+$ cd test-notifications
+$ chmod +x test-all-notifications.sh
+$ ./test-all-notifications.sh
+
+
+📋 AVAILABLE TEST FILES
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+✓ appointment-booked.apns         - Customer booking confirmation
+✓ new-appointment-barber.apns     - Barber receives new booking
+✓ new-review.apns                 - 5-star review notification
+✓ review-reply.apns               - Reply to customer review
+✓ application-approved.apns       - Application status update
+✓ appointment-cancelled.apns      - Cancellation notice
+✓ appointment-rescheduled.apns    - Time change notification
+
+
+🎯 WHAT TO TEST
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Foreground:  Keep app open → Send notification → See alert
+Background:  Close app → Send notification → Check notification center
+Navigation:  Tap notification → Verify correct screen opens
+Badge:       Multiple notifications → Check badge count increases
+
+
+⚠️  TROUBLESHOOTING
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+No notification appearing?
+→ Check: Settings → Notifications → FadeBook → Allow Notifications (ON)
+→ Reset: xcrun simctl privacy booted reset notifications org.reactjs.native.example.FadeBook
+
+Simulator not running?
+→ Start: npm run ios
+
+JSON error?
+→ Validate at: https://jsonlint.com
+
+
+📚 MORE INFO
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Full guide:     ../SIMULATOR_PUSH_TESTING.md
+Quick test:     ../QUICK_SIMULATOR_TEST.md
+All docs:       ../PUSH_NOTIFICATIONS_INDEX.md
+
+
+═══════════════════════════════════════════════════════════════
+Happy Testing! 🎉
+═══════════════════════════════════════════════════════════════

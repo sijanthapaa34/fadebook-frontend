@@ -1,0 +1,19 @@
+{
+  "Simulator Target Bundle": "org.reactjs.native.example.FadeBook",
+  "aps": {
+    "alert": {
+      "title": "New Review ⭐⭐⭐⭐⭐",
+      "body": "Sarah Williams left you a 5-star review: 'Amazing service!'"
+    },
+    "badge": 1,
+    "sound": "default"
+  },
+  "data": {
+    "type": "NEW_REVIEW",
+    "shopId": "5",
+    "customerName": "Sarah Williams",
+    "rating": "5",
+    "comment": "Amazing service!",
+    "timestamp": "2024-04-18T12:00:00Z"
+  }
+}

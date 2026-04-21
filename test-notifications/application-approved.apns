@@ -1,0 +1,16 @@
+{
+  "Simulator Target Bundle": "org.reactjs.native.example.FadeBook",
+  "aps": {
+    "alert": {
+      "title": "Application Approved! 🎊",
+      "body": "Congratulations! Your barber application has been approved. You can now start accepting appointments."
+    },
+    "badge": 1,
+    "sound": "default"
+  },
+  "data": {
+    "type": "APPLICATION_STATUS",
+    "status": "APPROVED",
+    "timestamp": "2024-04-18T14:00:00Z"
+  }
+}

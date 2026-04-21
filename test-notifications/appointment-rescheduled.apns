@@ -1,0 +1,17 @@
+{
+  "Simulator Target Bundle": "org.reactjs.native.example.FadeBook",
+  "aps": {
+    "alert": {
+      "title": "Appointment Rescheduled 📅",
+      "body": "Your appointment has been moved to April 20 at 4:00 PM"
+    },
+    "badge": 1,
+    "sound": "default"
+  },
+  "data": {
+    "type": "APPOINTMENT_RESCHEDULED",
+    "shopName": "The Fade House",
+    "newTime": "2024-04-20T16:00:00Z",
+    "timestamp": "2024-04-18T16:00:00Z"
+  }
+}
